@@ -23,6 +23,8 @@ export interface LignePublication {
   indicateur: string | null;
   sous_forum: string | null;
   url_publiee: string | null;
+  /** Le lien à publier, celui qui porte la référence du post. Voir `suite-veolt.ts`. */
+  lien_suivi: string | null;
   publie_le: string | null;
 }
 

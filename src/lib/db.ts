@@ -230,6 +230,9 @@ function migrer(d: Database.Database) {
     // Rang d'un fichier dans un post fourni (« livrable ») : l'ordre des pages
     // d'un carrousel fait ailleurs. Vide pour tout le reste.
     ['medias', 'ordre', 'INTEGER'],
+    // Le lien a publier, celui qui porte la reference du post. Sans lui, un
+    // post ne peut rien prouver : voir `suite-veolt.ts`.
+    ['publications', 'lien_suivi', 'TEXT'],
   ];
   for (const [table, colonne, type] of ajouts) {
     const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;

@@ -13,6 +13,7 @@ const PAGES = [
   ['campagnes', 'Campagnes'],
   ['comptes', 'Comptes et connexions'],
   ['indicateurs', 'Indicateurs'],
+  ['terrain', 'Terrain'],
 ] as const;
 
 export function Flanc({
