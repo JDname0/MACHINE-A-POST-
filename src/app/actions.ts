@@ -7,6 +7,8 @@ import { sauvegarder } from '@/lib/persistance';
 import { verifier, ouvrirSession, fermerSession } from '@/lib/auth';
 import { publier, type ReseauConnectable } from '@/lib/connecteurs';
 import { format } from '@/lib/formats';
+import { declarerPost, reference } from '@/lib/suite-veolt';
+import type { EntiteSlug } from '@/lib/marques';
 
 /**
  * L'adresse de base du site, telle qu'elle est vue depuis l'extérieur.
@@ -91,6 +93,55 @@ export async function marquerPublie(fd: FormData) {
   await sauvegarder();
   revalidatePath(`/${entite}/publications/${id}`);
   revalidatePath(`/${entite}`);
+}
+
+/**
+ * Déclare le post à la machine à prospection et range le lien à publier.
+ *
+ * C'est un bouton qu'on presse, pas un automate : rien ne part tant que
+ * Jonathan ne l'a pas pressé, règle §1 du cadrage. Ce qui part est une
+ * déclaration — une référence, un réseau, une page de destination — et rien
+ * du contenu du post.
+ *
+ * Ce qui revient est le lien à publier. Publier le lien nu à la place, c'est
+ * accepter de ne jamais savoir ce que ce post a produit.
+ */
+export async function declarerAuTerrain(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite')) as EntiteSlug;
+  const url = String(fd.get('url_cible') ?? '').trim();
+  const p = db().prepare('SELECT * FROM publications WHERE id=?').get(id) as
+    | Record<string, string>
+    | undefined;
+  if (!p) return;
+
+  const ref = reference(entite, id, p.publie_le || p.date_prevue || '');
+  const r = await declarerPost(entite, {
+    ref,
+    reseau: format(p.format_slug).reseau,
+    titre: p.titre,
+    url: url || undefined,
+    offre: undefined,
+    publie_le: p.publie_le || undefined,
+  });
+
+  // Un échec ne doit pas se déguiser en succès : on range ce qu'on sait, et
+  // la page dira ce qui s'est passé plutôt que d'afficher un lien inventé.
+  const valeur =
+    r.etat === 'ok'
+      ? r.donnees.lien_a_utiliser
+      : r.etat === 'inerte'
+        ? `[non déclaré] variables manquantes : ${r.manques.map((m) => m.variable).join(', ')}`
+        : `[non déclaré] ${r.pourquoi}`;
+
+  db().prepare('UPDATE publications SET lien_suivi=?, maj_le=datetime(\'now\') WHERE id=?').run(valeur, id);
+  tracer(
+    r.etat === 'ok' ? 'post déclaré au terrain' : 'déclaration au terrain refusée',
+    `publication ${id} — ${valeur.slice(0, 160)}`,
+    entite,
+  );
+  await sauvegarder();
+  revalidatePath(`/${entite}/publications/${id}`);
 }
 
 /** Le bouton qui appelle l'API. Il n'est proposé que sur une publication validée. */

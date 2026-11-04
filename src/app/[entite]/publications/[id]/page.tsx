@@ -10,7 +10,7 @@ import { gabaritPour, deuxLignes, GABARITS } from '@/lib/visuels';
 import { controlerMedia, attendu } from '@/lib/conformite-media';
 import { poids, duree, estVideo } from '@/lib/medias';
 import { db } from '@/lib/db';
-import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique } from '@/app/actions';
+import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique, declarerAuTerrain } from '@/app/actions';
 
 export default async function Composeur({ params }: { params: Promise<{ entite: string; id: string }> }) {
   const { entite, id } = await params;
@@ -407,6 +407,39 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
                   Marquer comme publié
                 </button>
               </form>
+            </div>
+
+            {/* ── Le lien à publier ─────────────────────────────────────── */}
+            <div className="carte">
+              <h3>Le lien à publier</h3>
+              <p style={{ marginBottom: 9 }}>
+                Déclare ce post à la machine à prospection et récupère le lien à coller dans la publication. C&apos;est
+                ce lien, et lui seul, qui permettra de dire plus tard ce que ce post a produit —{' '}
+                <strong style={{ color: 'var(--encre)' }}>publier le lien nu, c&apos;est accepter de ne jamais savoir</strong>.
+                Rien du contenu du post ne part : une référence, un réseau, une page de destination.
+              </p>
+              <form action={declarerAuTerrain}>
+                <input type="hidden" name="id" value={p.id} />
+                <input type="hidden" name="entite" value={e} />
+                <div className="champ">
+                  <label htmlFor="url_cible">Page de destination sur le site</label>
+                  <input id="url_cible" name="url_cible" placeholder="https://veolt.fr/…" />
+                </div>
+                <button type="submit" className="fantome">
+                  Déclarer et obtenir le lien
+                </button>
+              </form>
+              {p.lien_suivi ? (
+                p.lien_suivi.startsWith('[non déclaré]') ? (
+                  <div className="encart" style={{ marginTop: 11 }}>
+                    <strong>Non déclaré.</strong> {p.lien_suivi.replace('[non déclaré]', '').trim()}
+                    <br />
+                    <span className="aide">Aucun lien n&apos;est proposé : un lien inventé ne prouverait rien.</span>
+                  </div>
+                ) : (
+                  <pre className="bloc" style={{ marginTop: 11 }}>{p.lien_suivi}</pre>
+                )
+              ) : null}
             </div>
 
             {connectable && diag && spec ? (
