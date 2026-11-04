@@ -33,6 +33,7 @@ async function initialiser() {
   d.pragma(EN_SERVERLESS ? 'journal_mode = DELETE' : 'journal_mode = WAL');
   d.pragma('foreign_keys = ON');
   schema(d);
+  migrer(d);
   const aSeme = semer(d);
   if (aSeme) await sauvegarder();
   return { d, niveau };
@@ -162,6 +163,21 @@ function schema(d: Database.Database) {
       UNIQUE (entite, reseau)
     );
 
+    CREATE TABLE IF NOT EXISTS medias (
+      id INTEGER PRIMARY KEY,
+      entite TEXT NOT NULL,
+      cle TEXT NOT NULL UNIQUE,
+      nom TEXT NOT NULL,
+      type_mime TEXT NOT NULL,
+      octets INTEGER NOT NULL,
+      largeur INTEGER,
+      hauteur INTEGER,
+      duree_s REAL,
+      legende TEXT,
+      publication_id INTEGER REFERENCES publications(id) ON DELETE SET NULL,
+      cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS journal (
       id INTEGER PRIMARY KEY,
       entite TEXT,
@@ -170,6 +186,30 @@ function schema(d: Database.Database) {
       le TEXT NOT NULL DEFAULT (datetime('now'))
     );
   `);
+}
+
+/**
+ * Colonnes ajoutées après coup.
+ *
+ * `CREATE TABLE IF NOT EXISTS` ne touche pas une table qui existe déjà : sur
+ * une base en production — et l'instantané du Blob en est une — la colonne
+ * manquerait, et chaque lecture tomberait. D'où cette reprise, qui coûte une
+ * lecture de `table_info` au démarrage.
+ */
+function migrer(d: Database.Database) {
+  const ajouts: Array<[string, string, string]> = [['medias', 'duree_s', 'REAL']];
+  for (const [table, colonne, type] of ajouts) {
+    const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (colonnes.length === 0 || colonnes.some((c) => c.name === colonne)) continue;
+    try {
+      d.exec(`ALTER TABLE ${table} ADD COLUMN ${colonne} ${type}`);
+    } catch (e) {
+      // Deux processus qui démarrent sur le même fichier — le `next build`
+      // en lance plusieurs — peuvent lire `table_info` avant que l'autre
+      // n'ait ajouté la colonne. Le perdant n'a rien à faire.
+      if (!/duplicate column name/i.test((e as Error).message)) throw e;
+    }
+  }
 }
 
 export function tracer(action: string, detail?: string, entite?: string) {

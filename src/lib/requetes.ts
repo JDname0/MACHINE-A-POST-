@@ -61,7 +61,8 @@ export function compteursMenu(entite: EntiteSlug): Record<string, number> {
     .get(entite) as { n: number };
   const articles = d.prepare("SELECT COUNT(*) AS n FROM articles WHERE entite=? AND statut='a-ecrire'").get(entite) as { n: number };
   const campagnes = d.prepare("SELECT COUNT(*) AS n FROM campagnes WHERE entite=? AND statut='active'").get(entite) as { n: number };
-  return { publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n };
+  const medias = d.prepare('SELECT COUNT(*) AS n FROM medias WHERE entite=?').get(entite) as { n: number };
+  return { publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n, visuels: medias.n };
 }
 
 export function statsEntite(entite: EntiteSlug) {
@@ -182,4 +183,46 @@ export function resultats(entite: EntiteSlug): ResultatReseau[] {
       dureeMoyenne: m.duree,
     };
   });
+}
+
+export interface LigneMedia {
+  id: number;
+  entite: EntiteSlug;
+  cle: string;
+  nom: string;
+  type_mime: string;
+  octets: number;
+  largeur: number | null;
+  hauteur: number | null;
+  duree_s: number | null;
+  legende: string | null;
+  publication_id: number | null;
+  titre_publication: string | null;
+  cree_le: string;
+}
+
+/** Les images déposées pour une entité, la dernière en premier. */
+export function mediasDe(entite: EntiteSlug): LigneMedia[] {
+  return db()
+    .prepare(
+      `SELECT m.*, p.titre AS titre_publication
+         FROM medias m LEFT JOIN publications p ON p.id = m.publication_id
+        WHERE m.entite = ? ORDER BY m.id DESC`,
+    )
+    .all(entite) as LigneMedia[];
+}
+
+/** Les images rattachées à une publication, pour l'afficher dans le composeur. */
+export function mediasDePublication(id: number): LigneMedia[] {
+  return db().prepare('SELECT * FROM medias WHERE publication_id = ? ORDER BY id DESC').all(id) as LigneMedia[];
+}
+
+/** De quoi remplir le choix « rattacher à une publication ». */
+export function publicationsPourChoix(entite: EntiteSlug) {
+  return db()
+    .prepare(
+      `SELECT id, titre, format_slug, date_prevue FROM publications
+        WHERE entite = ? ORDER BY date_prevue DESC LIMIT 120`,
+    )
+    .all(entite) as Array<{ id: number; titre: string | null; format_slug: string; date_prevue: string }>;
 }

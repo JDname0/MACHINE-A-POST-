@@ -5,16 +5,17 @@ import { TOUS_GABARITS, CONTENUS, theme } from '@/lib/visuels';
 import { DECISIONS, REFUS } from '@/lib/axe-visuel';
 import { videosDe } from '@/lib/videos';
 import { format } from '@/lib/formats';
+import { Medias } from '@/components/Medias';
 
 export default async function Visuels({
   params,
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ variante?: string }>;
+  searchParams: Promise<{ variante?: string; posees?: string; refus?: string }>;
 }) {
   const { entite } = await params;
-  const { variante: v } = await searchParams;
+  const { variante: v, posees, refus } = await searchParams;
   const variante = v === 'sombre' ? 'sombre' : 'clair';
   const e = entite as EntiteSlug;
   const m = marque(e);
@@ -145,6 +146,11 @@ export default async function Visuels({
             );
           })}
         </div>
+
+        <div className="sep" />
+
+        {/* ── Images apportées ────────────────────────────────────────── */}
+        <Medias entite={e} posees={posees} refus={refus} />
 
         <div className="sep" />
 

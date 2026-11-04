@@ -3,10 +3,12 @@ import { notFound } from 'next/navigation';
 import { Flanc } from '@/components/Flanc';
 import { marque, type EntiteSlug } from '@/lib/marques';
 import { format, type FormatSlug } from '@/lib/formats';
-import { publication, compteursMenu, formaterDate, LIBELLE_STATUT, sousForums, joursDepuis } from '@/lib/requetes';
+import { publication, compteursMenu, formaterDate, LIBELLE_STATUT, sousForums, joursDepuis, mediasDePublication } from '@/lib/requetes';
 import { controler, estValidable } from '@/lib/garde-fous';
 import { diagnostiquer, CONNEXIONS, type ReseauConnectable } from '@/lib/connecteurs';
 import { gabaritPour, deuxLignes, GABARITS } from '@/lib/visuels';
+import { controlerMedia, attendu } from '@/lib/conformite-media';
+import { poids, duree, estVideo } from '@/lib/medias';
 import { db } from '@/lib/db';
 import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique } from '@/app/actions';
 
@@ -18,6 +20,13 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
 
   const m = marque(e);
   const f = format(p.format_slug);
+  const apportes = mediasDePublication(p.id);
+  const attenduParLeFormat = attendu(p.format_slug);
+  // Chaque fichier rattaché est confronté au format **avant** d'arriver au
+  // moment de publier : un Reel en 1:1 ou une vidéo de trois minutes se voit
+  // ici, pas dans le refus de l'API.
+  const examines = apportes.map((m) => ({ m, constats: controlerMedia(p.format_slug, m) }));
+  const publiables = examines.filter((x) => !x.constats.some((k) => k.niveau === 'blocage'));
   const fs = sousForums();
   const sfChoisi = fs.find((x) => x.nom === p.sous_forum);
 
@@ -292,6 +301,94 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
               </div>
             )}
 
+            {apportes.length > 0 ? (
+              <div className="carte">
+                <div className="rang" style={{ justifyContent: 'space-between', marginBottom: 9 }}>
+                  <h3>Média de la publication</h3>
+                  <span className="pastille" data-t={publiables.length > 0 ? 'ok' : 'blocage'}>
+                    {publiables.length} sur {apportes.length} conforme{publiables.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+                <p style={{ marginBottom: 11 }}>
+                  Déposé à la main pour ce post — ce que le générateur ne sait pas faire : un rendu, une photo, un
+                  montage, un écran du produit. {f.nom} attend{' '}
+                  {attenduParLeFormat === 'aucun' ? 'du texte seul' : attenduParLeFormat === 'video' ? 'une vidéo' : 'une image'}.
+                </p>
+
+                <div className="pile" style={{ gap: 13 }}>
+                  {examines.map(({ m, constats }) => (
+                    <div key={m.id} className="grille" style={{ gridTemplateColumns: '96px minmax(0,1fr)', gap: 12 }}>
+                      {estVideo(m.type_mime) ? (
+                        <video
+                          src={`/${e}/medias/${m.id}`}
+                          preload="metadata"
+                          muted
+                          style={{ width: 96, aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--ligne)', background: '#000' }}
+                        />
+                      ) : (
+                        <a href={`/${e}/medias/${m.id}`} target="_blank" rel="noreferrer">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`/${e}/medias/${m.id}`}
+                            alt={m.legende ?? m.nom}
+                            style={{ width: 96, aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--ligne)' }}
+                          />
+                        </a>
+                      )}
+                      <div>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, wordBreak: 'break-word' }}>{m.nom}</div>
+                        <div className="rang" style={{ gap: 5, marginTop: 6 }}>
+                          <span className="pastille" data-t={estVideo(m.type_mime) ? 'accent' : undefined}>
+                            {estVideo(m.type_mime) ? 'vidéo' : 'image'}
+                          </span>
+                          {m.largeur && m.hauteur ? <span className="pastille">{m.largeur} × {m.hauteur}</span> : null}
+                          {duree(m.duree_s) ? <span className="pastille">{duree(m.duree_s)}</span> : null}
+                          <span className="pastille">{poids(m.octets)}</span>
+                        </div>
+                        {constats.length === 0 ? (
+                          <div className="aide">Conforme au format. Rien à signaler.</div>
+                        ) : (
+                          constats.map((k, i) => (
+                            <div className="constat" data-n={k.niveau} key={i} style={{ marginTop: 7 }}>
+                              <div className="regle">{k.regle}</div>
+                              <div className="msg">{k.message}</div>
+                              <div className="remede">{k.remede}</div>
+                            </div>
+                          ))
+                        )}
+                        <div className="rang" style={{ marginTop: 8 }}>
+                          <a className="bouton fantome" href={`/${e}/medias/${m.id}`} download={m.nom} style={{ padding: '6px 11px', fontSize: 12 }}>
+                            Télécharger
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="rang" style={{ marginTop: 13 }}>
+                  <Link className="bouton fantome" href={`/${e}/visuels#images`}>
+                    La médiathèque
+                  </Link>
+                </div>
+              </div>
+            ) : attenduParLeFormat !== 'aucun' ? (
+              <div className="carte">
+                <h3>Média de la publication</h3>
+                <p>
+                  Aucun fichier rattaché. {f.nom} attend {attenduParLeFormat === 'video' ? 'une vidéo' : 'une image'} —
+                  {attenduParLeFormat === 'video'
+                    ? ' le visuel généré ne sert ici que de couverture, pas de contenu.'
+                    : ' le gabarit généré ci-dessus fait l’affaire, et un fichier apporté le remplace.'}
+                </p>
+                <div className="rang" style={{ marginTop: 11 }}>
+                  <Link className="bouton fantome" href={`/${e}/visuels#images`}>
+                    Déposer un fichier
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
             <div className="carte">
               <h3>Voie 1 — publication manuelle assistée</h3>
               <p style={{ marginBottom: 9 }}>
@@ -332,12 +429,25 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
                   <form action={publierParApi}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="entite" value={e} />
-                    {f.reseau !== 'linkedin' ? (
+                    {attenduParLeFormat !== 'aucun' ? (
                       <div className="champ">
-                        <label htmlFor="media">URL publique du média</label>
-                        <input id="media" name="media_url" placeholder="https://…" />
+                        <label htmlFor="media">Média à joindre</label>
+                        <select id="media" name="media_id" defaultValue={publiables[0] ? String(publiables[0].m.id) : ''}>
+                          <option value="">— aucun —</option>
+                          {publiables.map(({ m }) => (
+                            <option key={m.id} value={m.id}>
+                              {m.nom}
+                              {m.largeur ? ` · ${m.largeur} × ${m.hauteur}` : ''}
+                              {duree(m.duree_s) ? ` · ${duree(m.duree_s)}` : ''}
+                            </option>
+                          ))}
+                        </select>
                         <div className="aide">
-                          Les API ne prennent pas de fichier local : il faut une adresse atteignable par le réseau.
+                          {publiables.length === 0
+                            ? 'Aucun fichier conforme rattaché à cette publication. Les fichiers bloqués ne sont pas proposés ici.'
+                            : f.reseau === 'linkedin'
+                              ? 'LinkedIn n’attache pas encore le fichier : son API exige un envoi en deux temps, à brancher une fois la revue passée. Le fichier reste à joindre à la main.'
+                              : 'L’outil signe une adresse temporaire, valable deux heures, que le réseau ira chercher. Le fichier reste privé le reste du temps.'}
                         </div>
                       </div>
                     ) : null}

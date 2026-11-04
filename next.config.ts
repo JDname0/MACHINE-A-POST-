@@ -27,6 +27,14 @@ const ENTETES = [
 
 const config: NextConfig = {
   serverExternalPackages: ['better-sqlite3'],
+  experimental: {
+    // Le dépôt d'images passe par une action serveur, dont le corps est limité
+    // à 1 Mo par défaut — toute photo le dépasserait. 6 Mo laisse passer un
+    // envoi de 4 Mo (le plafond que `src/lib/medias.ts` fait respecter) plus
+    // l'enveloppe multipart. Au-delà, c'est la fonction Vercel elle-même qui
+    // refuserait la requête, et sans message exploitable.
+    serverActions: { bodySizeLimit: '6mb' },
+  },
   async headers() {
     return [{ source: '/:path*', headers: ENTETES }];
   },
