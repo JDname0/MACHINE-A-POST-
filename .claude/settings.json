@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "claude-mods": {
+      "source": { "source": "github", "repo": "JDname0/claude-mods" }
+    }
+  },
+  "enabledPlugins": {
+    "indicateurs@claude-mods": true
+  }
+}
