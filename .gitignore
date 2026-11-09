@@ -1,0 +1,8 @@
+node_modules/
+.next/
+.vercel/
+.env*
+SECRETS-A-GARDER.txt
+data/*.db*
+data/medias/
+tsconfig.tsbuildinfo
