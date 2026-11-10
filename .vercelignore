@@ -1,0 +1,6 @@
+SECRETS-A-GARDER.txt
+.env*
+captures/
+data/medias/
+node_modules/
+.next/

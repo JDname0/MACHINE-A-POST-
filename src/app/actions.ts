@@ -68,6 +68,15 @@ export async function changerStatut(fd: FormData) {
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const statut = String(fd.get('statut'));
+  if (!['brouillon', 'a-relire', 'valide', 'abandonne'].includes(statut)) return;
+  if (statut === 'valide') {
+    // Même règle que la file de validation : le garde-fou est revérifié ici,
+    // un bouton grisé n'empêche pas un formulaire envoyé à la main.
+    const { publication } = await import('@/lib/requetes');
+    const { constatsDe } = await import('@/lib/fiche');
+    const p = publication(id);
+    if (!p || !constatsDe(p).validable) return;
+  }
   db().prepare("UPDATE publications SET statut=?, maj_le=datetime('now') WHERE id=?").run(statut, id);
   tracer('statut changé', `publication ${id} → ${statut}`, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
@@ -111,6 +120,96 @@ export async function trancher(fd: FormData) {
   revalidatePath(`/${entite}/publications`);
   revalidatePath(`/${entite}/publications/${id}`);
   redirect(`${retour}#p${id}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Assistance IA — proposer, adopter, rejeter
+// ─────────────────────────────────────────────────────────────────────────────
+
+function retourSur(fd: FormData, entite: string, id: number): string {
+  return String(fd.get('retour') ?? '') || `/${entite}/publications/${id}`;
+}
+function avecParam(url: string, cle: string, val: string): string {
+  const [base, ancre] = url.split('#');
+  return `${base}${base.includes('?') ? '&' : '?'}${cle}=${encodeURIComponent(val)}${ancre ? `#${ancre}` : ''}`;
+}
+
+/** Demande une réécriture à l'IA. Le post n'est pas touché : la proposition attend une décision. */
+export async function demanderIA(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const consigne = String(fd.get('consigne') ?? '').slice(0, 600);
+  const retour = retourSur(fd, entite, id);
+  const { publication } = await import('@/lib/requetes');
+  const { constatsDe } = await import('@/lib/fiche');
+  const { proposerReecriture, messageErreurIA } = await import('@/lib/ia');
+  const p = publication(id);
+  if (!p || p.entite !== entite || p.statut === 'publie') redirect(retour);
+
+  let erreur: string | null = null;
+  try {
+    const r = await proposerReecriture(p, constatsDe(p).constats, consigne);
+    const d = db();
+    d.prepare("UPDATE propositions_ia SET statut='remplacee' WHERE publication_id=? AND statut='en-attente'").run(id);
+    d.prepare(
+      'INSERT INTO propositions_ia (publication_id, accroche, corps, appel, hashtags, note, consigne) VALUES (?,?,?,?,?,?,?)',
+    ).run(id, r.accroche, r.corps, r.appel, r.hashtags, r.note, consigne || null);
+    tracer('réécriture IA proposée', `publication ${id}`, entite);
+    await sauvegarder();
+  } catch (e) {
+    erreur = messageErreurIA(e);
+    console.error('[ia]', e);
+  }
+  revalidatePath(`/${entite}/publications/${id}`);
+  revalidatePath(`/${entite}/valider`);
+  redirect(erreur ? avecParam(retour, 'erreurIA', `${id}|${erreur.slice(0, 200)}`) : retour);
+}
+
+/**
+ * Adopter : le texte proposé remplace le brouillon, et le post repasse
+ * « à relire » même s'il était validé — un texte changé est un texte à relire.
+ */
+export async function adopterIA(fd: FormData) {
+  const pid = Number(fd.get('proposition'));
+  const entite = String(fd.get('entite'));
+  const d = db();
+  const prop = d.prepare("SELECT * FROM propositions_ia WHERE id=? AND statut='en-attente'").get(pid) as
+    | { publication_id: number; accroche: string; corps: string; appel: string; hashtags: string }
+    | undefined;
+  if (!prop) redirect(`/${entite}/valider`);
+  const p = d.prepare('SELECT entite, statut, accroche, corps, appel, hashtags FROM publications WHERE id=?').get(prop.publication_id) as
+    | { entite: string; statut: string; accroche: string; corps: string; appel: string; hashtags: string }
+    | undefined;
+  const retour = retourSur(fd, entite, prop.publication_id);
+  if (!p || p.entite !== entite || p.statut === 'publie') redirect(retour);
+
+  d.transaction(() => {
+    // L'ancienne version reste lisible dans le journal : adopter n'efface rien.
+    tracer('version remplacée par l’IA', JSON.stringify({ id: prop.publication_id, accroche: p.accroche, corps: p.corps, appel: p.appel, hashtags: p.hashtags }), entite);
+    d.prepare(
+      "UPDATE publications SET accroche=?, corps=?, appel=?, hashtags=?, statut='a-relire', maj_le=datetime('now') WHERE id=?",
+    ).run(prop.accroche, prop.corps, prop.appel, prop.hashtags, prop.publication_id);
+    d.prepare("UPDATE propositions_ia SET statut='adoptee' WHERE id=?").run(pid);
+  })();
+  await sauvegarder();
+  revalidatePath(`/${entite}/publications/${prop.publication_id}`);
+  revalidatePath(`/${entite}/valider`);
+  revalidatePath(`/${entite}`);
+  redirect(retour);
+}
+
+export async function rejeterIA(fd: FormData) {
+  const pid = Number(fd.get('proposition'));
+  const entite = String(fd.get('entite'));
+  const d = db();
+  const prop = d.prepare('SELECT publication_id FROM propositions_ia WHERE id=?').get(pid) as { publication_id: number } | undefined;
+  if (!prop) redirect(`/${entite}/valider`);
+  d.prepare("UPDATE propositions_ia SET statut='rejetee' WHERE id=? AND statut='en-attente'").run(pid);
+  tracer('réécriture IA rejetée', `publication ${prop.publication_id}`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/publications/${prop.publication_id}`);
+  revalidatePath(`/${entite}/valider`);
+  redirect(retourSur(fd, entite, prop.publication_id));
 }
 
 export async function marquerPublie(fd: FormData) {

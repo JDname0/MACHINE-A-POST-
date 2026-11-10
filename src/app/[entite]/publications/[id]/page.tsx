@@ -10,10 +10,18 @@ import { gabaritPour, GABARITS } from '@/lib/visuels';
 import { controlerMedia, attendu } from '@/lib/conformite-media';
 import { poids, duree, estVideo } from '@/lib/medias';
 import { db } from '@/lib/db';
+import { AssistantIA } from '@/components/AssistantIA';
 import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique } from '@/app/actions';
 
-export default async function Composeur({ params }: { params: Promise<{ entite: string; id: string }> }) {
+export default async function Composeur({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ entite: string; id: string }>;
+  searchParams: Promise<{ erreurIA?: string }>;
+}) {
   const { entite, id } = await params;
+  const { erreurIA } = await searchParams;
   const e = entite as EntiteSlug;
   const p = publication(Number(id));
   if (!p || p.entite !== e) notFound();
@@ -205,6 +213,11 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
                   ))}
                 </div>
               )}
+              <AssistantIA
+                p={p}
+                retour={`/${e}/publications/${p.id}`}
+                erreur={erreurIA?.startsWith(`${p.id}|`) ? erreurIA.slice(String(p.id).length + 1) : undefined}
+              />
             </div>
 
             <div className="carte">

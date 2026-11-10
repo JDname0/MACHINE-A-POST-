@@ -5,6 +5,7 @@ import { format } from '@/lib/formats';
 import { publications, compteursMenu, formaterDate, LIBELLE_STATUT, mediasDePublication } from '@/lib/requetes';
 import { constatsDe, lienVisuel, texteAColler } from '@/lib/fiche';
 import { trancher } from '@/app/actions';
+import { AssistantIA } from '@/components/AssistantIA';
 
 /**
  * La file de validation : une semaine à la fois, chaque post avec son visuel,
@@ -23,10 +24,11 @@ export default async function Valider({
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ s?: string; bloque?: string }>;
+  searchParams: Promise<{ s?: string; bloque?: string; erreurIA?: string }>;
 }) {
   const { entite } = await params;
-  const { s, bloque } = await searchParams;
+  const { s, bloque, erreurIA } = await searchParams;
+  const [idErreurIA, ...msgIA] = (erreurIA ?? '').split('|');
   const e = entite as EntiteSlug;
   const m = marque(e);
   const tout = publications(e).filter((p) => p.semaine != null);
@@ -198,6 +200,12 @@ export default async function Valider({
                   </form>
                 </div>
               ) : null}
+
+              <AssistantIA
+                p={p}
+                retour={`${retour}#p${p.id}`}
+                erreur={Number(idErreurIA) === p.id ? msgIA.join('|') : undefined}
+              />
             </section>
           );
         })}

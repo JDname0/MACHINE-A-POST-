@@ -58,14 +58,14 @@
 - [ ] [C] Récupérer la base de production (Blob `machine-a-post/machine.db`)
   pour travailler sur les vraies données. La copie locale vient du paquet de
   déploiement et peut être en retard.
-- [ ] [C] Ajouter une action « Recaler le calendrier à partir du … » :
+- [x] [C] Ajouter une action « Recaler le calendrier à partir du … » (page Calendrier, testée le 10/11) :
   - elle décale les dates **sans re-semer**, pour garder tout ce qui a déjà été
     édité ;
   - elle applique la décision D2 ;
   - elle se termine par `await sauvegarder()`.
-- [ ] [C] Remettre à zéro le compteur « créneaux passés non traités ».
-- [ ] [C] Vérifier en local que S1 commence le lundi 16/11 avec la phase
-  « exister ». S4 se termine le 13/12.
+- [x] [C] Remettre à zéro le compteur « créneaux passés non traités » (il se vide de lui-même une fois les dates recalées).
+- [x] [C] Vérifier en local que S1 commence le lundi 16/11 avec la phase
+  « exister ». S4 se termine le 13/12 (S12 le 07/02).
 - [ ] [J] Feu vert → [C] déploiement en production, puis vérification sur l'outil
   en ligne.
 - [ ] [C] Ajouter un export du calendrier (`.ics` ou CSV) pour le voir dans
@@ -85,10 +85,17 @@
   post doit passer les garde-fous sans blocage.
 - [ ] [J] Valider les posts de S1 avant le samedi 14/11.
 - [ ] [C] Faire de même pour S2 à S4, une semaine d'avance à chaque fois.
-- [ ] [C] Ajouter une vue « À valider cette semaine » : une page avec, pour
-  chaque post, le texte, le visuel et deux boutons, Valider ou Renvoyer.
-- [ ] [C] Ajouter la validation par lot avec relecture : toujours un clic par
+- [x] [C] Ajouter une vue « À valider cette semaine » : une page avec, pour
+  chaque post, le texte, le visuel et deux boutons, Valider ou Renvoyer
+  (menu « À valider » ; le garde-fou est revérifié côté serveur).
+- [x] [C] Ajouter la validation par lot avec relecture : toujours un clic par
   post, jamais un « tout valider ».
+- [x] [C] Réécriture IA d'un post (Claude), sous supervision : l'IA propose,
+  tu adoptes ou rejettes ; un texte adopté repasse « à relire ».
+- [ ] [J] Poser `ANTHROPIC_API_KEY` sur Vercel (variable sensible) pour
+  activer la réécriture IA en production.
+- [ ] [C] Pré-rédiger toute une semaine avec l'IA en un clic : une
+  proposition par post, toujours adoptée une par une.
 
 ## Lot 3 — Images générées
 

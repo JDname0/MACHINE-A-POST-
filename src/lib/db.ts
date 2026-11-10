@@ -178,6 +178,21 @@ function schema(d: Database.Database) {
       cree_le TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Réécritures proposées par l'IA. Elles n'entrent dans le brouillon que
+    -- sur « Adopter » : la publication elle-même n'est jamais modifiée ici.
+    CREATE TABLE IF NOT EXISTS propositions_ia (
+      id INTEGER PRIMARY KEY,
+      publication_id INTEGER NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
+      accroche TEXT NOT NULL DEFAULT '',
+      corps TEXT NOT NULL DEFAULT '',
+      appel TEXT NOT NULL DEFAULT '',
+      hashtags TEXT NOT NULL DEFAULT '',
+      note TEXT,
+      consigne TEXT,
+      statut TEXT NOT NULL DEFAULT 'en-attente',
+      cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS journal (
       id INTEGER PRIMARY KEY,
       entite TEXT,
