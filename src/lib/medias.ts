@@ -80,6 +80,17 @@ export function plafond(typeMime: string, directVersBlob: boolean): number {
  */
 export const depotDirect = () => blobActif();
 
+/**
+ * Le plus gros fichier vidéo qu'on peut déposer par le chemin disponible :
+ * direct vers le store (production), ou action serveur — bornée à ~4 Mo sur
+ * Vercel, plus large en local où aucune plateforme ne coupe la requête. Le
+ * studio règle son débit d'encodage là-dessus.
+ */
+export function plafondDepotVideo(): number {
+  if (depotDirect()) return TAILLE_MAX_VIDEO;
+  return process.env.VERCEL ? TAILLE_MAX_ACTION : 40 * 1024 * 1024;
+}
+
 const PREFIXE = 'machine-a-post/medias/';
 const DOSSIER = EN_SERVERLESS ? '/tmp/medias' : path.join(process.cwd(), 'data', 'medias');
 

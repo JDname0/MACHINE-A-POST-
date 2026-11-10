@@ -18,6 +18,7 @@
  */
 
 import type { PlanMontage } from './montage';
+import { deuxLignes } from './coupe';
 import { enregistrerTeleversement, deposerVideoMontee } from '@/app/actions';
 
 export interface ImageDispo {
@@ -46,6 +47,10 @@ export interface Montage {
   rythme: 'sec' | 'pose';
   direct: boolean;
   legende: string;
+  /** Taille maximale du fichier, selon le chemin de dépôt (voir `plafondDepotVideo`). */
+  plafondOctets: number;
+  /** Variante des cartes à la charte : fond clair (par défaut) ou sombre. */
+  variante?: 'clair' | 'sombre';
 }
 
 const FPS = 30;
@@ -91,7 +96,8 @@ function lignes(ctx: CanvasRenderingContext2D, texte: string, max: number): stri
 export const dureeDe = (plans: PlanMontage[]) => plans.reduce((n, x) => n + x.duree, 0);
 
 /** Dessine et encode la vidéo. Renvoie le fichier et le mode d'encodage utilisé. */
-export async function fabriquerVideo(m: Montage, progres: (pourcent: number) => void): Promise<{ fichier: File; mode: string }> {
+/** Charge polices et images, et renvoie de quoi dessiner n'importe quelle image de la vidéo. */
+async function preparerRendu(m: Montage) {
   const { largeur: L, hauteur: H, plans } = m;
   const c = document.createElement('canvas');
   c.width = L;
@@ -116,11 +122,11 @@ export async function fabriquerVideo(m: Montage, progres: (pourcent: number) => 
         return charger(m.images.find((k) => k.id === id)?.url ?? carteDe(i));
       }
       const u = new URL(carteDe(i), window.location.origin);
-      const mots = x.texte.split(/\s+/);
-      const coupe = Math.ceil(mots.length / 2);
-      u.searchParams.set('ligne1', mots.slice(0, coupe).join(' '));
-      u.searchParams.set('ligne2', mots.slice(coupe).join(' '));
+      const { ligne1, ligne2 } = deuxLignes(x.texte);
+      u.searchParams.set('ligne1', ligne1);
+      u.searchParams.set('ligne2', ligne2);
       u.searchParams.set('sousTitre', '');
+      if (m.variante === 'sombre') u.searchParams.set('variante', 'sombre');
       return charger(u.pathname + u.search);
     }),
   );
@@ -191,7 +197,32 @@ export async function fabriquerVideo(m: Montage, progres: (pourcent: number) => 
     dessinerPlan(ctx, i, u);
   };
 
-  return encoder(c, dessiner, Math.round(t0 * FPS), t0, m.direct, progres);
+  return { canvas: c, dessiner, bornes, nbImages: Math.round(t0 * FPS), duree: t0 };
+}
+
+/** Dessine et encode la vidéo. Renvoie le fichier et le mode d'encodage utilisé. */
+export async function fabriquerVideo(m: Montage, progres: (pourcent: number) => void): Promise<{ fichier: File; mode: string }> {
+  const r = await preparerRendu(m);
+  return encoder(r.canvas, r.dessiner, r.nbImages, r.duree, m.plafondOctets, progres);
+}
+
+/**
+ * Le storyboard : une image par plan, prise une seconde après son début (ou au
+ * milieu d'un plan court), en vignette JPEG. Mêmes polices, mêmes images, même
+ * dessin que la vidéo — ce qu'on voit ici est ce qui sortira.
+ */
+export async function apercusPlans(m: Montage, largeur = 216): Promise<string[]> {
+  const r = await preparerRendu(m);
+  const v = document.createElement('canvas');
+  v.width = largeur;
+  v.height = Math.round((largeur * m.hauteur) / m.largeur);
+  const vctx = v.getContext('2d')!;
+  return r.bornes.map(([a, b]) => {
+    const t = Math.min(a + 1, (a + b) / 2);
+    r.dessiner(Math.floor(t * FPS));
+    vctx.drawImage(r.canvas, 0, 0, v.width, v.height);
+    return v.toDataURL('image/jpeg', 0.82);
+  });
 }
 
 /** Range la vidéo dans la médiathèque, rattachée au post. */
@@ -239,12 +270,12 @@ async function encoder(
   dessiner: (k: number) => void,
   nbImages: number,
   duree: number,
-  direct: boolean,
+  plafond: number,
   progres: (pourcent: number) => void,
 ): Promise<{ fichier: File; mode: string }> {
-  // En local (pas de store), le dépôt passe par une action serveur bornée à
-  // quelques Mo : on règle le débit pour tenir dessous.
-  const debit = direct ? 8_000_000 : Math.min(8_000_000, Math.floor((3.4 * 1024 * 1024 * 8) / Math.max(duree, 1)));
+  // 8 Mbit/s : net en 1080p pour des plans fixes animés. Si le chemin de dépôt
+  // est plus étroit, on descend juste ce qu'il faut pour tenir dessous.
+  const debit = Math.min(8_000_000, Math.floor((plafond * 0.85 * 8) / Math.max(duree, 1)));
 
   if ('VideoEncoder' in window) {
     let codec: string | null = null;

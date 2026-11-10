@@ -2,8 +2,8 @@
  * Production des vidéos au rythme du calendrier.
  *
  * Chaque post vidéo a une **échéance de production** : sa vidéo doit exister
- * `DELAI_VIDEO_JOURS` jours avant sa date de publication, pour laisser le
- * temps de la relire et de la valider. L'outil dit ce qui est prêt, ce qui est
+ * N jours avant sa date de publication (réglable : la veille par défaut), pour
+ * laisser le temps de la relire et de la valider. L'outil dit ce qui est prêt, ce qui est
  * à monter et ce qui est en retard — et la production en lot fabrique d'un
  * coup tout ce qui est dû.
  *
@@ -13,18 +13,71 @@
 
 import { db } from './db';
 import { publications, type LignePublication } from './requetes';
-import { attendu } from './conformite-media';
+import { attendu, dureeConseillee } from './conformite-media';
+import { visuelsDuPost } from './fiche';
 import { videosDe } from './videos';
 import { cadreVideo, plansDepuisPost, plansDepuisScript, type PlanMontage } from './montage';
-import { deuxLignes } from './visuels';
-import { TYPES_IMAGE } from './medias';
-import type { EntiteSlug } from './marques';
+import { deuxLignes, THEMES } from './visuels';
+import { TYPES_IMAGE, depotDirect, plafondDepotVideo } from './medias';
+import type { Montage } from './fabrique-video';
+import { marque, type EntiteSlug } from './marques';
 
-export const DELAI_VIDEO_JOURS = 3;
-/** Horizon de la production en lot : tout ce qui sera dû dans les sept jours. */
+/** Horizon de l'anticipation : ce qui sera dû dans les sept jours. */
 export const HORIZON_LOT_JOURS = 7;
 
-export type EtatVideo = 'prete' | 'en-retard' | 'a-monter' | 'plus-tard';
+// ── Réglages : quand et comment produire ───────────────────────────────────
+
+/** Combien de jours avant la publication la vidéo doit exister. */
+export const DELAIS = [
+  { jours: 0, libelle: 'le jour même' },
+  { jours: 1, libelle: 'la veille' },
+  { jours: 3, libelle: 'trois jours avant' },
+  { jours: 7, libelle: 'une semaine avant' },
+] as const;
+
+/**
+ * - `boutons` : rien ne se fabrique sans un clic ;
+ * - `rappel` : un bandeau sur toutes les pages le jour où une vidéo est due ;
+ * - `auto` : la vidéo due se fabrique dès que l'outil est ouvert ce jour-là —
+ *   elle reste à relire et à valider, comme toutes les autres.
+ */
+export const MODES = [
+  { slug: 'boutons', libelle: 'Boutons seulement' },
+  { slug: 'rappel', libelle: 'Rappel le jour venu' },
+  { slug: 'auto', libelle: 'Automatique à l’ouverture' },
+] as const;
+export type ModeVideo = (typeof MODES)[number]['slug'];
+
+export interface ReglagesVideo {
+  delai: number;
+  mode: ModeVideo;
+}
+
+export function reglagesVideo(entite: EntiteSlug): ReglagesVideo {
+  const lire = (cle: string) =>
+    (db().prepare('SELECT valeur FROM reglages WHERE cle=?').get(`video.${cle}.${entite}`) as { valeur: string } | undefined)?.valeur;
+  const delai = Number(lire('delai'));
+  const mode = lire('mode');
+  return {
+    delai: DELAIS.some((d) => d.jours === delai) ? delai : 1,
+    mode: MODES.some((m) => m.slug === mode) ? (mode as ModeVideo) : 'rappel',
+  };
+}
+
+export function poserReglagesVideo(entite: EntiteSlug, r: ReglagesVideo) {
+  const ecrire = db().prepare('INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur=excluded.valeur');
+  ecrire.run(`video.delai.${entite}`, String(r.delai));
+  ecrire.run(`video.mode.${entite}`, r.mode);
+}
+
+/**
+ * - `prete` : une vidéo est rattachée ;
+ * - `en-retard` : l'échéance est passée ;
+ * - `aujourdhui` : c'est le jour de la produire ;
+ * - `bientot` : dans les sept jours — on peut la faire en avance ;
+ * - `plus-tard`.
+ */
+export type EtatVideo = 'prete' | 'en-retard' | 'aujourdhui' | 'bientot' | 'plus-tard';
 
 export interface EcheanceVideo {
   p: LignePublication;
@@ -44,20 +97,23 @@ export function aUneVideo(publicationId: number): boolean {
 
 export function echeancesVideo(entite: EntiteSlug, aujourdhui = new Date()): EcheanceVideo[] {
   const jour = iso(aujourdhui);
+  const { delai } = reglagesVideo(entite);
   return publications(entite)
     .filter((p) => attendu(p.format_slug) === 'video' && p.statut !== 'publie' && p.statut !== 'abandonne')
     .map((p) => {
       const d = new Date(`${p.date_prevue}T12:00:00Z`);
-      d.setUTCDate(d.getUTCDate() - DELAI_VIDEO_JOURS);
+      d.setUTCDate(d.getUTCDate() - delai);
       const echeance = iso(d);
       const restants = jours(jour, echeance);
       const etat: EtatVideo = aUneVideo(p.id)
         ? 'prete'
         : restants < 0
           ? 'en-retard'
-          : restants <= HORIZON_LOT_JOURS
-            ? 'a-monter'
-            : 'plus-tard';
+          : restants === 0
+            ? 'aujourdhui'
+            : restants <= HORIZON_LOT_JOURS
+              ? 'bientot'
+              : 'plus-tard';
       return { p, echeance, etat, joursRestants: restants };
     });
 }
@@ -107,7 +163,8 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
   const scripts = videosDe(p.entite as EntiteSlug);
   const auto = scripts.find((s) => s.formatSlug === p.format_slug && s.pilier === p.pilier);
   const script = scriptRef === 'post' ? undefined : scripts.find((s) => s.ref === scriptRef) ?? auto;
-  const plans = script ? plansDepuisScript(script) : plansDepuisPost(p);
+  const conseil = dureeConseillee(p.format_slug)?.conseil;
+  const plans = script ? plansDepuisScript(script) : plansDepuisPost(p, conseil);
 
   const ouverture = memoire.find((m) => m.origine === 'genere' && m.publication_id === p.id);
   if (ouverture && plans.length) plans[0] = { ...plans[0], source: { type: 'media', id: ouverture.id } };
@@ -116,16 +173,111 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
     ...memoire.filter((m) => m.origine === 'apporte' && m.publication_id === p.id),
     ...memoire.filter((m) => m.origine === 'apporte' && m.publication_id !== p.id && m.semaine != null && m.semaine === p.semaine),
   ];
-  if (matiere.length) {
-    for (let i = 1, k = 0; i < plans.length - 1; i++, k++) {
-      plans[i] = { ...plans[i], source: { type: 'media', id: matiere[k % matiere.length].id } };
+  // Chaque image apportée sert une fois au plus, répartie sur le milieu de la
+  // vidéo : la même image cinq fois de suite se voit, et fait pauvre. Les plans
+  // restants gardent la carte à la charte.
+  const milieu = plans.length - 2;
+  if (matiere.length && milieu > 0) {
+    const pas = Math.max(1, Math.floor(milieu / matiere.length));
+    for (let k = 0, i = 1; k < matiere.length && i < plans.length - 1; k++, i += pas) {
+      plans[i] = { ...plans[i], source: { type: 'media', id: matiere[k].id } };
     }
   }
 
   const cadre = cadreVideo(p.format_slug);
+  // La carte au cadre de la vidéo : rognée, une carte 9:16 dans une vidéo 4:5
+  // perdrait l'en-tête et le pied de marque, et le texte toucherait le bord.
+  const gabarit = cadre.ratio === '9:16' ? 'reel' : 'affirmation';
   const cartes = plans.map((x) => {
     const { ligne1, ligne2 } = deuxLignes(x.texte);
-    return `/${p.entite}/visuels/reel?${new URLSearchParams({ ligne1, ligne2, sousTitre: '' })}`;
+    return `/${p.entite}/visuels/${gabarit}?${new URLSearchParams({ ligne1, ligne2, sousTitre: '' })}`;
   });
   return { plans, cartes, largeur: cadre.largeur, hauteur: cadre.hauteur, ratio: cadre.ratio, scriptRef: script?.ref ?? null };
+}
+
+/** Le montage complet d'un post, prêt à fabriquer dans le navigateur (studio, lot, boutons). */
+export function montagePret(p: LignePublication, memoire: ImageMemoire[], scriptRef?: string): Montage {
+  const e = p.entite as EntiteSlug;
+  const md = montageParDefaut(p, memoire, scriptRef);
+  const t = THEMES[e].clair;
+  return {
+    entite: e,
+    publicationId: p.id,
+    largeur: md.largeur,
+    hauteur: md.hauteur,
+    plans: md.plans,
+    cartes: md.cartes,
+    images: memoire.map((x) => ({ id: x.id, url: `/${e}/medias/${x.id}`, nom: x.nom, origine: x.origine })),
+    theme: { fond: t.fond, encre: t.encre, accent: t.accent, policeTitre: t.policeTitre },
+    rythme: e === 'veolt' ? 'sec' : 'pose',
+    direct: depotDirect(),
+    plafondOctets: plafondDepotVideo(),
+    legende: p.titre ?? '',
+  };
+}
+
+/** Les formats vidéo que la marque peut utiliser (réseau non exclu). */
+export function formatsVideoDe(entite: EntiteSlug): string[] {
+  const r = marque(entite).reseaux;
+  const tous: Array<[string, keyof typeof r]> = [
+    ['li-video', 'linkedin'],
+    ['ig-reel', 'instagram'],
+    ['ig-video', 'instagram'],
+    ['tiktok-video', 'tiktok'],
+  ];
+  return tous.filter(([, reseau]) => r[reseau] && r[reseau] !== 'exclu').map(([f]) => f);
+}
+
+export interface VideoProduite {
+  id: number;
+  nom: string;
+  octets: number;
+  duree_s: number | null;
+  largeur: number | null;
+  hauteur: number | null;
+  cree_le: string;
+  publication_id: number | null;
+  titre: string | null;
+  date_prevue: string | null;
+  format_slug: string | null;
+  semaine: number | null;
+}
+
+/** Les vidéos rangées dans la médiathèque d'une entité, la plus récente d'abord. */
+export function videosProduites(entite: EntiteSlug): VideoProduite[] {
+  return db()
+    .prepare(
+      `SELECT m.id, m.nom, m.octets, m.duree_s, m.largeur, m.hauteur, m.cree_le, m.publication_id,
+              p.titre, p.date_prevue, p.format_slug, p.semaine
+         FROM medias m LEFT JOIN publications p ON p.id = m.publication_id
+        WHERE m.entite = ? AND m.type_mime LIKE 'video/%'
+        ORDER BY m.id DESC`,
+    )
+    .all(entite) as VideoProduite[];
+}
+
+/**
+ * Les visuels à générer aujourd'hui : posts dont l'échéance (publication −
+ * délai réglé) est atteinte, qui ont un visuel, et dont aucun visuel n'est
+ * encore mémorisé. Contrairement aux vidéos, les images se fabriquent sur le
+ * serveur : pas besoin d'avoir l'outil ouvert dans un navigateur puissant.
+ */
+export function visuelsDus(entite: EntiteSlug, aujourdhui = new Date()): LignePublication[] {
+  const { delai } = reglagesVideo(entite);
+  const limite = new Date(aujourdhui);
+  limite.setUTCDate(limite.getUTCDate() + delai);
+  const borne = iso(limite);
+  const memorises = new Set(
+    (db().prepare("SELECT DISTINCT publication_id FROM medias WHERE entite=? AND origine='genere' AND publication_id IS NOT NULL").all(entite) as Array<{
+      publication_id: number;
+    }>).map((x) => x.publication_id),
+  );
+  return publications(entite).filter(
+    (p) =>
+      p.statut !== 'publie' &&
+      p.statut !== 'abandonne' &&
+      p.date_prevue <= borne &&
+      !memorises.has(p.id) &&
+      visuelsDuPost(p).length > 0,
+  );
 }

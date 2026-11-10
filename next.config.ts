@@ -35,7 +35,9 @@ const config: NextConfig = {
     // envoi de 4 Mo (le plafond que `src/lib/medias.ts` fait respecter) plus
     // l'enveloppe multipart. Au-delà, c'est la fonction Vercel elle-même qui
     // refuserait la requête, et sans message exploitable.
-    serverActions: { bodySizeLimit: '6mb' },
+    // 40 Mo pour le dépôt de vidéos en local ; sur Vercel la plateforme coupe
+    // de toute façon à ~4,5 Mo, et la production dépose en direct vers le store.
+    serverActions: { bodySizeLimit: '40mb' },
   },
   async headers() {
     return [{ source: '/:path*', headers: ENTETES }];

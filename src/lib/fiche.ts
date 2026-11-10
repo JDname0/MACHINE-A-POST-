@@ -71,6 +71,43 @@ export function lienVisuel(p: LignePublication): string | null {
   return `/${p.entite}/visuels/${v.slug}?${q.toString()}`;
 }
 
+/**
+ * Les pages d'un carrousel, lues dans le corps du post (« PAGE n — … »), chacune
+ * rendue avec le gabarit carrousel : la première phrase en titre, le reste en
+ * sous-titre, la pagination en pied. `[]` si le post n'est pas un carrousel.
+ */
+export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; contenu: Partial<Contenu> }> {
+  if (!/carrousel/.test(p.format_slug)) return [];
+  const pages = [...p.corps.matchAll(/PAGE\s+(\d+)\s*[—–-]\s*([\s\S]*?)(?=\n\s*PAGE\s+\d+\s*[—–-]|$)/g)].map((m) => m[2].trim());
+  return pages.map((texte, i) => {
+    const [premiere, ...reste] = texte.split(/(?<=[.:!?])\s+/);
+    const titre = premiere.length > 70 ? texte.slice(0, 70) : premiere;
+    const { ligne1, ligne2 } = deuxLignes(titre);
+    return {
+      slug: 'carrousel' as GabaritSlug,
+      contenu: {
+        ligne1,
+        ligne2,
+        sousTitre: (premiere.length > 70 ? texte.slice(70) : reste.join(' ')).slice(0, 200),
+        pagination: `${i + 1} / ${pages.length}`,
+      },
+    };
+  });
+}
+
+/** Tous les visuels d'un post : son visuel principal, puis les pages s'il s'agit d'un carrousel. */
+export function visuelsDuPost(p: LignePublication): Array<{ slug: GabaritSlug; contenu: Partial<Contenu> }> {
+  const principal = parametresVisuel(p);
+  const pages = pagesCarrousel(p);
+  // Dans un carrousel, la page 1 tient lieu de couverture : pas de doublon.
+  return pages.length ? pages : principal ? [principal] : [];
+}
+
+export function urlVisuel(entite: string, v: { slug: GabaritSlug; contenu: Partial<Contenu> }): string {
+  const q = new URLSearchParams(Object.entries(v.contenu).map(([k, x]) => [k, String(x ?? '')]));
+  return `/${entite}/visuels/${v.slug}?${q.toString()}`;
+}
+
 export function texteAColler(p: LignePublication): string {
   return [p.accroche, p.corps, p.appel, p.hashtags].filter(Boolean).join('\n\n');
 }

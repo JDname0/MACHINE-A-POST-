@@ -14,18 +14,30 @@
 import { createHash } from 'node:crypto';
 import { ImageResponse } from 'next/og';
 import { db, tracer } from './db';
-import { GABARITS, rendre } from './visuels';
+import { GABARITS, rendre, type GabaritSlug, type Contenu } from './visuels';
 import { chargerPolices } from './polices';
 import { nouvelleCle, ecrire } from './medias';
-import { parametresVisuel } from './fiche';
+import { visuelsDuPost } from './fiche';
 import type { EntiteSlug } from './marques';
 import type { LignePublication } from './requetes';
 
 export type ResultatMemoire = 'cree' | 'deja' | 'aucun';
 
 export async function memoriserVisuelDe(p: LignePublication): Promise<ResultatMemoire> {
-  const v = parametresVisuel(p);
-  if (!v) return 'aucun';
+  const visuels = visuelsDuPost(p);
+  if (!visuels.length) return 'aucun';
+  let cree = false;
+  for (const [i, v] of visuels.entries()) {
+    if ((await memoriserUn(p, v, visuels.length > 1 ? i + 1 : null)) === 'cree') cree = true;
+  }
+  return cree ? 'cree' : 'deja';
+}
+
+async function memoriserUn(
+  p: LignePublication,
+  v: { slug: GabaritSlug; contenu: Partial<Contenu> },
+  page: number | null,
+): Promise<ResultatMemoire> {
   const empreinte = createHash('sha1').update(JSON.stringify([p.entite, v.slug, v.contenu])).digest('hex');
   const d = db();
   const existe = d.prepare('SELECT id, publication_id FROM medias WHERE empreinte = ?').get(empreinte) as
@@ -51,7 +63,7 @@ export async function memoriserVisuelDe(p: LignePublication): Promise<ResultatMe
   ).run(
     p.entite,
     cle,
-    `${g.nom} — ${(p.titre ?? 'sans titre').slice(0, 80)}.png`,
+    `${g.nom}${page ? ` p.${page}` : ''} — ${(p.titre ?? 'sans titre').slice(0, 80)}.png`,
     'image/png',
     octets.length,
     g.largeur,
@@ -60,6 +72,6 @@ export async function memoriserVisuelDe(p: LignePublication): Promise<ResultatMe
     p.id,
     empreinte,
   );
-  tracer('visuel mémorisé', `publication ${p.id} · ${v.slug}`, p.entite);
+  tracer('visuel mémorisé', `publication ${p.id} · ${v.slug}${page ? ` p.${page}` : ''}`, p.entite);
   return 'cree';
 }

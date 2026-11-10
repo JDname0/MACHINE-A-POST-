@@ -126,6 +126,24 @@
   les 7 jours, avec le montage par défaut.
 - [x] [C] Garde-fou « Vidéo manquante » : un post vidéo sans vidéo ne peut pas
   être validé.
+- [x] [C] Réglage par entité : produire les contenus le jour même, la veille,
+  3 jours ou une semaine avant ; mode boutons / rappel / automatique.
+  Formulaire dans le calendrier et dans le studio.
+- [x] [C] Calendrier : clic sur un post → aperçu complet (texte, visuel, pages
+  de carrousel, vidéo) avec Valider, Générer, Régénérer, sans quitter la page.
+- [x] [C] Rappel du jour (carte flottante) : visuels et vidéos dus, génération
+  en un clic ou automatique à l'ouverture (une fois par jour).
+- [x] [C] Studio : storyboard image par image, réordonner / dupliquer les
+  plans, durée conseillée du format, variante sombre (MagistrIA), légende à
+  copier, plans proposés par l'IA, galerie des vidéos produites.
+- [x] [C] Vidéo à la demande depuis n'importe quel post (réseaux autorisés par
+  la marque) — c'est ce qui permet des vidéos MagistrIA.
+- [x] [C] Régénérer une vidéo : remplace la précédente (studio, calendrier,
+  galerie).
+- [x] [C] Pages de carrousel générées et mémorisées une à une.
+- [x] [C] Chartes vérifiées le 10/11 : MagistrIA = code du site (4/11),
+  Veolt = veoltproduction.fr. ⚠️ La racine de veoltproduction.fr affiche la
+  connexion de la « Machine à prospection », pas la vitrine — [J] à vérifier.
 - [ ] [C] Plans vidéo dans le studio : accepter des clips (Higgsfield,
   Blender, After Effects) en plus des images, découpés au bon plan.
 - [ ] [C] Musique et sous-titres : piste son libre de droits, optionnelle.

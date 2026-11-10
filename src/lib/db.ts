@@ -193,6 +193,13 @@ function schema(d: Database.Database) {
       cree_le TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Réglages choisis dans l'interface (clé → valeur). Ex. : quand produire
+    -- les vidéos (la veille, trois jours avant…), et comment (bouton, rappel, auto).
+    CREATE TABLE IF NOT EXISTS reglages (
+      cle TEXT PRIMARY KEY,
+      valeur TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS journal (
       id INTEGER PRIMARY KEY,
       entite TEXT,

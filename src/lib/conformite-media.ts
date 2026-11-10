@@ -64,6 +64,11 @@ const DUREES: Record<string, { conseil: [number, number]; max: number; pourquoi:
   'ig-video': { conseil: [20, 60], max: 900, pourquoi: 'au-delà d’une minute, le fil Instagram n’est plus le bon endroit' },
 };
 
+/** La durée conseillée d'un format vidéo, pour guider le montage. `null` hors vidéo. */
+export function dureeConseillee(formatSlug: string): { conseil: [number, number]; max: number; pourquoi: string } | null {
+  return DUREES[formatSlug] ?? null;
+}
+
 export function controlerMedia(formatSlug: string, m: MediaAControler): Constat[] {
   const c: Constat[] = [];
   const f = format(formatSlug as FormatSlug);

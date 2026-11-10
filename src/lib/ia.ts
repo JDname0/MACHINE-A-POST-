@@ -56,11 +56,16 @@ function cadreEntite(entite: EntiteSlug): string {
     `Phrase fondatrice, à laquelle tout post doit se rattacher : « ${m.principe} »`,
     `Promesse éditoriale : ${m.promesseEditoriale}`,
     '',
-    'Piliers éditoriaux :',
-    ...m.piliers.map((p) => `- ${p.slug} — ${p.nom} : ${p.contenu}`),
+    `Signature : ${m.signature}. Site : ${m.site}.`,
     '',
-    'Personas :',
-    ...m.personas.map((p) => `- ${p.slug} — ${p.nom} : ${p.douleur}`),
+    'Piliers éditoriaux (et la preuve que chacun peut avancer) :',
+    ...m.piliers.map((p) => `- ${p.slug} — ${p.nom} : ${p.contenu} Preuve : ${p.preuve}`),
+    '',
+    'Personas (à qui on parle, et ce qu’ils cherchent) :',
+    ...m.personas.map((p) => `- ${p.slug} — ${p.nom} : ${p.douleur} Recherche type : « ${p.requeteType} »`),
+    '',
+    'Offres réelles (prix affichés, à citer exactement ou pas du tout) :',
+    ...m.offres.map((o) => `- ${o.nom} — à partir de ${o.prixDepart}, pour ${o.acheteur}`),
     '',
     'Preuves que tu as le droit d’avancer :',
     ...m.preuvesAutorisees.map((x) => `- ${x}`),
@@ -148,4 +153,82 @@ export function messageErreurIA(e: unknown): string {
   if (e instanceof Anthropic.APIError) return `L’API a répondu une erreur (${e.status ?? '?'}). Réessaie.`;
   if (e instanceof SyntaxError) return 'Réponse illisible du modèle. Réessaie.';
   return e instanceof Error ? e.message : 'Erreur inconnue.';
+}
+
+export interface PlanIA {
+  duree: number;
+  texte: string;
+  image: string;
+}
+
+const SCHEMA_PLANS = {
+  type: 'object',
+  properties: {
+    plans: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          duree: { type: 'number', description: 'Durée du plan en secondes (2 à 6).' },
+          texte: { type: 'string', description: 'Texte incrusté à l’écran, mot pour mot, 90 caractères au plus.' },
+          image: { type: 'string', description: 'Ce qu’on voit à l’image, en une phrase, sans rien inventer.' },
+        },
+        required: ['duree', 'texte', 'image'],
+        additionalProperties: false,
+      },
+    },
+    note: { type: 'string', description: 'Le parti pris du montage, en une ou deux phrases.' },
+  },
+  required: ['plans', 'note'],
+  additionalProperties: false,
+} as const;
+
+/**
+ * Propose les plans d'une vidéo à partir d'un post. Même cadre de marque que
+ * la réécriture (preuves interdites comprises) ; la proposition arrive dans le
+ * studio, où Jonathan la relit et la retouche avant de fabriquer quoi que ce soit.
+ */
+export async function proposerPlans(
+  p: LignePublication,
+  duree: { conseil: [number, number]; pourquoi: string } | null,
+  consigne = '',
+): Promise<{ plans: PlanIA[]; note: string }> {
+  if (!iaDisponible()) throw new Error('ANTHROPIC_API_KEY manquante côté serveur.');
+  const f = format(p.format_slug);
+  const client = new Anthropic();
+  const demandePlans = [
+    `Écris le découpage d'une vidéo ${f.nom}, à partir du post ci-dessous.`,
+    duree ? `Durée totale visée : ${duree.conseil[0]} à ${duree.conseil[1]} secondes (${duree.pourquoi}).` : '',
+    'Règles : lecture muette, donc chaque plan porte un texte incrusté court (90 caractères au plus) ;',
+    'les trois premières secondes portent le sujet, sans générique ni logo ; 4 à 7 plans ;',
+    'le dernier plan est l’appel à l’action. Aucune preuve interdite, aucun chiffre ni client inventé.',
+    '',
+    `Titre : ${p.titre ?? '—'}`,
+    '<accroche>', p.accroche, '</accroche>',
+    '<corps>', p.corps, '</corps>',
+    '<appel>', p.appel, '</appel>',
+    consigne.trim() ? `\nConsigne de Jonathan : ${consigne.trim()}` : '',
+  ].join('\n');
+  const reponse = await client.beta.messages.create({
+    model: MODELE_IA,
+    max_tokens: 16000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    output_config: { effort: 'medium', format: { type: 'json_schema', schema: SCHEMA_PLANS } },
+    system: [{ type: 'text', text: cadreEntite(p.entite as EntiteSlug), cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: demandePlans }],
+  });
+  if (reponse.stop_reason === 'refusal') throw new Error('Le modèle a refusé cette demande. Reformule la consigne.');
+  if (reponse.stop_reason === 'max_tokens') throw new Error('Réponse tronquée. Réessaie.');
+  const texte = reponse.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
+  const brut = JSON.parse(texte) as { plans?: Array<Partial<PlanIA>>; note?: string };
+  const plans = (brut.plans ?? [])
+    .map((x) => ({
+      duree: Math.min(8, Math.max(1.5, Number(x.duree) || 3)),
+      texte: String(x.texte ?? '').slice(0, 140),
+      image: String(x.image ?? ''),
+    }))
+    .filter((x) => x.texte);
+  if (!plans.length) throw new Error('Aucun plan exploitable dans la réponse. Réessaie.');
+  return { plans, note: String(brut.note ?? '') };
 }

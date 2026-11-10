@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fabriquerVideo, enregistrerVideo, type Montage } from '@/lib/fabrique-video';
 
@@ -22,7 +22,20 @@ export interface ElementLot {
 
 type EtatLigne = 'attente' | 'fabrication' | 'envoi' | 'faite' | 'erreur';
 
-export function ProductionLot({ elements }: { elements: ElementLot[] }) {
+export function ProductionLot({
+  elements,
+  titre,
+  aide,
+  auto = false,
+  cleAuto,
+}: {
+  elements: ElementLot[];
+  titre?: string;
+  aide?: string;
+  /** Lancer seul, une fois par jour et par entité (mode « automatique »). */
+  auto?: boolean;
+  cleAuto?: string;
+}) {
   const router = useRouter();
   const [etats, setEtats] = useState<Record<number, { etat: EtatLigne; pourcent?: number; message?: string }>>({});
   const [enCours, setEnCours] = useState(false);
@@ -48,17 +61,34 @@ export function ProductionLot({ elements }: { elements: ElementLot[] }) {
     router.refresh();
   }
 
+  // Mode automatique : une seule fois par jour, mémorisé dans le navigateur —
+  // ouvrir dix pages ne doit pas fabriquer dix fois la même vidéo.
+  const lance = useRef(false);
+  useEffect(() => {
+    if (!auto || !cleAuto || lance.current || elements.length === 0) return;
+    lance.current = true;
+    const cle = `machine-auto-video:${cleAuto}:${new Date().toISOString().slice(0, 10)}`;
+    try {
+      if (localStorage.getItem(cle)) return;
+      localStorage.setItem(cle, '1');
+    } catch {
+      return;
+    }
+    void lancer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auto, cleAuto, elements.length]);
+
   if (elements.length === 0) return null;
   return (
     <div className="carte" style={{ marginBottom: 16 }}>
       <div className="rang" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
         <div>
           <h3 style={{ marginBottom: 4 }}>
-            {elements.length} vidéo{elements.length > 1 ? 's' : ''} à produire maintenant
+            {titre ?? `${elements.length} vidéo${elements.length > 1 ? 's' : ''} à produire maintenant`}
           </h3>
           <div className="aide">
-            Échéance dépassée ou dans les sept jours. Montage par défaut (script ou texte du post, images de la mémoire) ;
-            chaque vidéo reste à relire et à valider dans la file.
+            {aide ??
+              'Montage par défaut (script ou texte du post, images de la mémoire) ; chaque vidéo reste à relire et à valider dans la file.'}
           </div>
         </div>
         <button type="button" onClick={lancer} disabled={enCours}>

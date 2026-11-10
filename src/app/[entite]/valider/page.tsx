@@ -6,6 +6,9 @@ import { publications, compteursMenu, formaterDate, LIBELLE_STATUT, mediasDePubl
 import { constatsDe, lienVisuel, texteAColler } from '@/lib/fiche';
 import { trancher, memoriserSemaine } from '@/app/actions';
 import { AssistantIA } from '@/components/AssistantIA';
+import { BoutonVideo } from '@/components/BoutonVideo';
+import { attendu } from '@/lib/conformite-media';
+import { aUneVideo, imagesMemoire, montagePret } from '@/lib/production';
 
 /**
  * La file de validation : une semaine à la fois, chaque post avec son visuel,
@@ -43,6 +46,7 @@ export default async function Valider({
   const pubs = tout.filter((p) => p.semaine === semaine);
   const valides = pubs.filter((p) => p.statut === 'valide' || p.statut === 'publie').length;
   const retour = `/${e}/valider?s=${semaine}`;
+  const memoire = imagesMemoire(e);
 
   return (
     <>
@@ -153,10 +157,11 @@ export default async function Valider({
                         : medias.length
                           ? `${medias.length} média${medias.length > 1 ? 's' : ''} rattaché${medias.length > 1 ? 's' : ''} — à voir dans le composeur.`
                           : 'Vidéo : aucun fichier rattaché pour l’instant.'}
-                      {f.reseau !== 'blog' ? (
-                        <div style={{ marginTop: 8 }}>
+                      {attendu(p.format_slug) === 'video' && !aUneVideo(p.id) ? (
+                        <div className="rang" style={{ marginTop: 8, gap: 10, flexWrap: 'wrap' }}>
+                          <BoutonVideo montage={montagePret(p, memoire)} />
                           <Link className="lien-accent" href={`/${e}/videos?p=${p.id}`}>
-                            Monter la vidéo dans le studio →
+                            Régler les plans dans le studio →
                           </Link>
                         </div>
                       ) : null}

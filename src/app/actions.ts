@@ -161,6 +161,27 @@ export async function memoriserVisuel(fd: FormData) {
   redirect(retour);
 }
 
+/** Génère et range les visuels dus aujourd'hui (selon le réglage de l'entité). Appelé par le rappel, ou seul en mode auto. */
+export async function memoriserVisuelsDus(fd: FormData) {
+  const entite = String(fd.get('entite')) as 'veolt' | 'magistria';
+  const { visuelsDus } = await import('@/lib/production');
+  const { memoriserVisuelDe } = await import('@/lib/memoire');
+  let n = 0;
+  for (const p of visuelsDus(entite)) {
+    try {
+      if ((await memoriserVisuelDe(p)) === 'cree') n++;
+    } catch (e) {
+      console.error('[mémoire] visuel dû non généré', p.id, e);
+    }
+  }
+  if (n) {
+    tracer('visuels dus générés', `${n} post(s)`, entite);
+    await sauvegarder();
+  }
+  revalidatePath(`/${entite}`, 'layout');
+  return { n };
+}
+
 /** Mémorise d'un coup les visuels de toute une semaine — la matière du studio vidéo. */
 export async function memoriserSemaine(fd: FormData) {
   const entite = String(fd.get('entite'));
@@ -177,6 +198,86 @@ export async function memoriserSemaine(fd: FormData) {
   revalidatePath(`/${entite}/visuels`);
   revalidatePath(`/${entite}/videos`);
   redirect(`${retour}${retour.includes('?') ? '&' : '?'}memorises=${crees}`);
+}
+
+/**
+ * Vidéo à la demande : un nouveau post vidéo, hors calendrier, tiré du texte
+ * d'un post existant (un LinkedIn, un carrousel…). Le calendrier n'est pas
+ * touché : le post créé n'a pas de semaine, il garde la date du post source.
+ * Seuls les réseaux que la marque n'exclut pas sont proposés.
+ */
+export async function creerVideoDepuisPost(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const source = Number(fd.get('source'));
+  const formatSlug = String(fd.get('format_slug'));
+  const { publication } = await import('@/lib/requetes');
+  const { formatsVideoDe } = await import('@/lib/production');
+  const s = publication(source);
+  if (!s || s.entite !== entite || !formatsVideoDe(entite as 'veolt' | 'magistria').includes(formatSlug)) redirect(`/${entite}/videos`);
+  // Déjà créée depuis ce post, dans ce format : on la rouvre plutôt que d'en faire une seconde.
+  const existe = db()
+    .prepare('SELECT id FROM publications WHERE entite=? AND date_prevue=? AND format_slug=? AND pilier=?')
+    .get(entite, s.date_prevue, formatSlug, s.pilier) as { id: number } | undefined;
+  if (existe) redirect(`/${entite}/videos?p=${existe.id}`);
+  const info = db()
+    .prepare(
+      `INSERT INTO publications (entite, format_slug, pilier, persona, sujet_ref, date_prevue, semaine, phase, raison,
+        statut, titre, accroche, corps, appel, hashtags, consignes_visuel, preuve, indicateur)
+       VALUES (?,?,?,?,?,?,NULL,NULL,?, 'brouillon', ?,?,?,?,?,?,?,?)`,
+    )
+    .run(
+      entite,
+      formatSlug,
+      s.pilier,
+      s.persona,
+      s.sujet_ref,
+      s.date_prevue,
+      `Vidéo à la demande, tirée du post « ${(s.titre ?? '').slice(0, 80)} ».`,
+      s.titre,
+      s.accroche,
+      s.corps,
+      s.appel,
+      s.hashtags,
+      s.consignes_visuel,
+      s.preuve,
+      s.indicateur,
+    );
+  tracer('vidéo à la demande créée', `depuis la publication ${source} · ${formatSlug}`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/videos`);
+  redirect(`/${entite}/videos?p=${info.lastInsertRowid}`);
+}
+
+/** Plans d'une vidéo proposés par l'IA. Rien n'est enregistré : le studio les affiche, Jonathan retouche. */
+export async function proposerPlansIA(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const { publication } = await import('@/lib/requetes');
+  const { dureeConseillee } = await import('@/lib/conformite-media');
+  const { proposerPlans, messageErreurIA } = await import('@/lib/ia');
+  const p = publication(id);
+  if (!p) return { ok: false as const, raison: 'Post introuvable.' };
+  try {
+    const r = await proposerPlans(p, dureeConseillee(p.format_slug), String(fd.get('consigne') ?? '').slice(0, 600));
+    tracer('plans vidéo proposés par l’IA', `publication ${id} · ${r.plans.length} plans`, p.entite);
+    return { ok: true as const, ...r };
+  } catch (e) {
+    return { ok: false as const, raison: messageErreurIA(e) };
+  }
+}
+
+/** Quand et comment produire les vidéos — choisi dans le studio, par entité. */
+export async function majReglagesVideo(fd: FormData) {
+  const entite = String(fd.get('entite')) as 'veolt' | 'magistria';
+  const { poserReglagesVideo, DELAIS, MODES } = await import('@/lib/production');
+  const delai = Number(fd.get('delai'));
+  const mode = String(fd.get('mode'));
+  const retour = String(fd.get('retour') ?? '').startsWith(`/${entite}/`) ? String(fd.get('retour')) : `/${entite}/videos`;
+  if (!DELAIS.some((d) => d.jours === delai) || !MODES.some((m) => m.slug === mode)) redirect(retour);
+  poserReglagesVideo(entite, { delai, mode: mode as 'boutons' | 'rappel' | 'auto' });
+  tracer('réglages vidéo', `délai ${delai} j · mode ${mode}`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}`, 'layout');
+  redirect(`${retour}${retour.includes('?') ? '&' : '?'}reglages=1`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -740,6 +841,7 @@ export async function enregistrerTeleversement(fd: FormData) {
       publicationId,
       fd.get('origine') === 'video' ? 'video' : 'apporte',
     );
+  if (fd.get('origine') === 'video' && publicationId) await remplacerAnciennesVideos(publicationId, cle);
   tracer('fichier déposé', `${fd.get('nom')} · ${typeMime}`, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
@@ -747,6 +849,23 @@ export async function enregistrerTeleversement(fd: FormData) {
   revalidatePath(`/${entite}/visuels`);
   if (publicationId) revalidatePath(`/${entite}/publications/${publicationId}`);
   return { ok: true as const };
+}
+
+/**
+ * Régénérer, c'est remplacer : une vidéo montée dans le studio pour un post
+ * retire les précédentes vidéos du studio rattachées au même post (fichier et
+ * fiche). Les vidéos déposées à la main ne sont jamais touchées.
+ */
+async function remplacerAnciennesVideos(publicationId: number, garder: string) {
+  const { effacer } = await import('@/lib/medias');
+  const anciennes = db()
+    .prepare("SELECT id, cle FROM medias WHERE publication_id=? AND origine='video' AND cle != ?")
+    .all(publicationId, garder) as Array<{ id: number; cle: string }>;
+  for (const a of anciennes) {
+    await effacer(a.cle);
+    db().prepare('DELETE FROM medias WHERE id=?').run(a.id);
+  }
+  if (anciennes.length) tracer('vidéo régénérée', `publication ${publicationId} · ${anciennes.length} ancienne(s) remplacée(s)`);
 }
 
 /**
@@ -758,9 +877,9 @@ export async function deposerVideoMontee(fd: FormData) {
   const entite = String(fd.get('entite'));
   const f = fd.get('fichier');
   if (!(f instanceof File) || f.size === 0) return { ok: false as const, raison: 'Fichier vide.' };
-  const { TYPES_VIDEO, TAILLE_MAX_ACTION, nouvelleCle, ecrire } = await import('@/lib/medias');
+  const { TYPES_VIDEO, plafondDepotVideo, nouvelleCle, ecrire } = await import('@/lib/medias');
   if (!(f.type in TYPES_VIDEO)) return { ok: false as const, raison: `Type refusé : ${f.type}.` };
-  if (f.size > TAILLE_MAX_ACTION) return { ok: false as const, raison: 'Vidéo trop lourde pour ce chemin de dépôt.' };
+  if (f.size > plafondDepotVideo()) return { ok: false as const, raison: 'Vidéo trop lourde pour ce chemin de dépôt.' };
   const cle = nouvelleCle(f.type);
   await ecrire(cle, Buffer.from(await f.arrayBuffer()), f.type);
   const n = (k: string) => (Number.isFinite(Number(fd.get(k))) ? Number(fd.get(k)) : null);
@@ -771,6 +890,7 @@ export async function deposerVideoMontee(fd: FormData) {
        VALUES (?,?,?,?,?,?,?,?,?,?, 'video')`,
     )
     .run(entite, cle, f.name, f.type, f.size, n('largeur'), n('hauteur'), n('duree_s'), String(fd.get('legende') ?? '') || null, publicationId);
+  if (publicationId) await remplacerAnciennesVideos(publicationId, cle);
   tracer('vidéo montée dans le studio', f.name, entite);
   await sauvegarder();
   revalidatePath(`/${entite}/visuels`);

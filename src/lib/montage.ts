@@ -36,34 +36,95 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
   }));
 }
 
-/** Coupe un texte en phrases courtes, lisibles en incrustation (≤ 90 caractères). */
-function phrases(texte: string): string[] {
+const MAX_TEXTE_PLAN = 70;
+
+/** Coupe un texte en phrases courtes, lisibles en incrustation (≤ `max` caractères, souplement). */
+function phrases(texte: string, max = MAX_TEXTE_PLAN): string[] {
   return texte
+    .replace(/PAGE\s+\d+\s*[—–-]\s*/g, ' ')
+    .replace(/À RETENIR\s*:\s*/g, '')
     .replace(/\s+/g, ' ')
-    .split(/(?<=[.!?…])\s+|\s+[—–-]\s+/)
+    .split(/(?<=[.!?…])\s+/)
     .map((x) => x.trim())
     .filter((x) => x.length > 3)
-    .flatMap((x) => {
-      if (x.length <= 90) return [x];
-      // Une phrase trop longue se coupe à la virgule la plus proche du milieu.
-      const milieu = x.length / 2;
-      const virgules = [...x.matchAll(/,\s/g)].map((m) => m.index ?? 0);
-      const coupe = virgules.sort((a, b) => Math.abs(a - milieu) - Math.abs(b - milieu))[0];
-      return coupe ? [x.slice(0, coupe + 1), x.slice(coupe + 2)] : [x.slice(0, 88) + '…'];
-    });
+    .flatMap((x) => couper(x, max));
 }
 
 /**
- * Faute de script écrit pour ce post : l'accroche ouvre (3 s — elle doit porter
- * le sujet sans le son), quatre phrases du corps au plus, l'appel ferme.
+ * Une phrase trop longue se coupe à la ponctuation la plus proche du milieu
+ * (virgule, deux-points, tiret) — là où le lecteur s'arrête déjà. Sans
+ * ponctuation utilisable, elle reste entière jusqu'à `max + 25` caractères :
+ * une carte lit très bien trois lignes, alors qu'une phrase coupée au milieu
+ * d'un groupe de mots (« sans montrer son / raisonnement ») ne se lit plus.
  */
-export function plansDepuisPost(p: { accroche: string; corps: string; appel: string }): PlanMontage[] {
-  const ouverture = phrases(p.accroche)[0] ?? p.accroche.slice(0, 90);
-  const milieu = phrases(p.corps).slice(0, 4);
-  const fin = phrases(p.appel)[0];
-  const plans: PlanMontage[] = [{ duree: 3, texte: ouverture, image: 'Ouverture — le sujet, lisible sans le son.', source: { type: 'carte' } }];
-  for (const t of milieu) plans.push({ duree: t.length > 60 ? 4 : 3, texte: t, image: '', source: { type: 'carte' } });
-  if (fin) plans.push({ duree: 3, texte: fin, image: 'Fermeture — l’appel à l’action.', source: { type: 'carte' } });
+function couper(x: string, max: number): string[] {
+  if (x.length <= max) return [x];
+  const milieu = x.length / 2;
+  const c = [...x.matchAll(/[,:;—–]\s/g)]
+    .map((m) => (m.index ?? 0) + 1)
+    .filter((k) => k >= 15 && x.length - k >= 15)
+    .sort((a, b) => Math.abs(a - milieu) - Math.abs(b - milieu))[0];
+  if (c) return [...couper(x.slice(0, c).trim(), max), ...couper(x.slice(c).trim(), max)];
+  if (x.length <= max + 25) return [x];
+  const mot = x.lastIndexOf(' ', Math.round(milieu)) || Math.round(milieu);
+  return [...couper(x.slice(0, mot).trim(), max), ...couper(x.slice(mot).trim(), max)];
+}
+
+const normal = (t: string) => t.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Le temps de lire un texte incrusté : une seconde et quart, plus le temps de lecture, borné. */
+const dureeLecture = (t: string) => Math.min(5, Math.max(2.5, Math.round((1.25 + t.length * 0.045) * 2) / 2));
+
+/**
+ * Faute de script écrit pour ce post : le titre ouvre (il porte le sujet sans
+ * le son, dans les trois premières secondes), puis le propos phrase par phrase
+ * jusqu'à la durée conseillée du format ; l'appel à l'action ferme, entier.
+ *
+ * Quand l'accroche n'est que le début du corps (cas courant : c'est ce qui
+ * s'affiche avant « voir plus »), seul le corps sert — sinon la vidéo dirait
+ * deux fois la même phrase.
+ */
+export function plansDepuisPost(
+  p: { titre?: string | null; accroche: string; corps: string; appel: string },
+  dureeVisee: [number, number] = [10, 20],
+): PlanMontage[] {
+  const plans: PlanMontage[] = [];
+  const ouverture = (p.titre && p.titre.length <= 90 ? p.titre : phrases(p.accroche)[0]) ?? p.accroche.slice(0, MAX_TEXTE_PLAN);
+  plans.push({ duree: 3, texte: ouverture, image: 'Ouverture — le sujet, lisible sans le son.', source: { type: 'carte' } });
+
+  const accrocheDansCorps = normal(p.corps).startsWith(normal(p.accroche).slice(0, 60));
+  const propos = accrocheDansCorps ? phrases(p.corps) : [...phrases(p.accroche), ...phrases(p.corps)];
+  const fins = phrases(p.appel, 100).slice(0, 2);
+  const reserve = fins.reduce((n, t) => n + dureeLecture(t), 0);
+
+  const vus = [normal(ouverture)];
+  let total = 3;
+  let k = 0;
+  const ajouter = (t: string) => {
+    const d = dureeLecture(t);
+    plans.push({ duree: d, texte: t, image: '', source: { type: 'carte' } });
+    total += d;
+  };
+  for (; k < propos.length; k++) {
+    if (plans.length + fins.length >= 11 || total + reserve >= dureeVisee[1]) break;
+    const t = propos[k];
+    const n = normal(t);
+    if (!n || vus.some((v) => v.includes(n) || n.includes(v))) continue;
+    vus.push(n);
+    ajouter(t);
+    if (total + reserve >= dureeVisee[0] && plans.length >= 5) {
+      k++;
+      break;
+    }
+  }
+  // Ne jamais finir le propos sur un fragment (« Quand on n'a pas de preuve à
+  // montrer, ») : on complète la phrase si la suite existe, sinon on le retire.
+  const suspendu = () => plans.length > 1 && /[,:;—–]$/.test(plans[plans.length - 1].texte);
+  while (suspendu() && k < propos.length && plans.length + fins.length < 12) ajouter(propos[k++]);
+  while (suspendu()) total -= plans.pop()!.duree;
+  for (const [i, t] of fins.entries()) {
+    plans.push({ duree: dureeLecture(t), texte: t, image: i === 0 ? 'Fermeture — l’appel à l’action.' : '', source: { type: 'carte' } });
+  }
   return plans;
 }
 

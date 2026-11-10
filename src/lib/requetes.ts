@@ -67,16 +67,17 @@ export function compteursMenu(entite: EntiteSlug): Record<string, number> {
   const aValider = d
     .prepare("SELECT COUNT(*) AS n FROM publications WHERE entite=? AND semaine IS NOT NULL AND statut IN ('brouillon','a-relire')")
     .get(entite) as { n: number };
-  // Vidéos dues : échéance (publication − 3 jours) dans les sept jours ou dépassée, sans vidéo rattachée.
+  // Vidéos dues aujourd'hui ou en retard (échéance = publication − délai réglé), sans vidéo rattachée.
+  const delai = Number((d.prepare('SELECT valeur FROM reglages WHERE cle=?').get(`video.delai.${entite}`) as { valeur: string } | undefined)?.valeur ?? 1);
   const videos = d
     .prepare(
       `SELECT COUNT(*) AS n FROM publications p
         WHERE p.entite=? AND p.format_slug IN ('ig-reel','ig-video','li-video','tiktok-video')
           AND p.statut NOT IN ('publie','abandonne')
-          AND date(p.date_prevue, '-3 day') <= date('now', '+7 day')
+          AND date(p.date_prevue, '-' || ? || ' day') <= date('now')
           AND NOT EXISTS (SELECT 1 FROM medias m WHERE m.publication_id = p.id AND m.type_mime LIKE 'video/%')`,
     )
-    .get(entite) as { n: number };
+    .get(entite, Number.isFinite(delai) ? delai : 1) as { n: number };
   return { videos: videos.n, valider: aValider.n, publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n, visuels: medias.n };
 }
 
