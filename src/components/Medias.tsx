@@ -229,6 +229,8 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
                   </span>
                   {d ? <span className="pastille">{d}</span> : null}
                   <span className="pastille">{poids(m.octets)}</span>
+                  {m.origine === 'genere' ? <span className="pastille" data-t="accent">généré</span> : null}
+                  {m.origine === 'video' ? <span className="pastille" data-t="accent">studio</span> : null}
                   {c ? (
                     <span className="pastille" data-t={c.exact ? 'ok' : 'alerte'} title={c.ou}>
                       {c.exact ? c.nom : 'hors cadre'}

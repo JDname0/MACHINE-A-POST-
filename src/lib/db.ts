@@ -212,7 +212,14 @@ function schema(d: Database.Database) {
  * lecture de `table_info` au démarrage.
  */
 function migrer(d: Database.Database) {
-  const ajouts: Array<[string, string, string]> = [['medias', 'duree_s', 'REAL']];
+  const ajouts: Array<[string, string, string]> = [
+    ['medias', 'duree_s', 'REAL'],
+    // D'où vient le fichier : 'apporte' (déposé), 'genere' (visuel de l'outil),
+    // 'video' (montée dans le studio). C'est la mémoire des visuels.
+    ['medias', 'origine', "TEXT NOT NULL DEFAULT 'apporte'"],
+    // Signature du contenu d'un visuel généré : évite d'en mémoriser deux fois le même.
+    ['medias', 'empreinte', 'TEXT'],
+  ];
   for (const [table, colonne, type] of ajouts) {
     const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
     if (colonnes.length === 0 || colonnes.some((c) => c.name === colonne)) continue;

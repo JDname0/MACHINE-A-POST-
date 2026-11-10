@@ -78,6 +78,11 @@ export async function changerStatut(fd: FormData) {
     if (!p || !constatsDe(p).validable) return;
   }
   db().prepare("UPDATE publications SET statut=?, maj_le=datetime('now') WHERE id=?").run(statut, id);
+  if (statut === 'valide') {
+    const { publication } = await import('@/lib/requetes');
+    const p = publication(id);
+    if (p) await memoriserSansBloquer(p);
+  }
   tracer('statut changé', `publication ${id} → ${statut}`, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
@@ -109,6 +114,7 @@ export async function trancher(fd: FormData) {
     if (!constatsDe(p).validable) redirect(`${retour}${retour.includes('?') ? '&' : '?'}bloque=${id}#p${id}`);
     db().prepare("UPDATE publications SET statut='valide', maj_le=datetime('now') WHERE id=?").run(id);
     tracer('validé depuis la file', `publication ${id}`, entite);
+    await memoriserSansBloquer(p);
   } else if (decision === 'a-relire') {
     db().prepare("UPDATE publications SET statut='a-relire', maj_le=datetime('now') WHERE id=?").run(id);
     tracer('renvoyé en relecture', `publication ${id}`, entite);
@@ -120,6 +126,57 @@ export async function trancher(fd: FormData) {
   revalidatePath(`/${entite}/publications`);
   revalidatePath(`/${entite}/publications/${id}`);
   redirect(`${retour}#p${id}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mémoire des visuels — ranger les images générées dans la médiathèque
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Mémorise le visuel d'un post validé. Un échec ne doit jamais empêcher la
+ * validation : le visuel se régénère, il sera mémorisé à la prochaine occasion.
+ */
+async function memoriserSansBloquer(p: import('@/lib/requetes').LignePublication) {
+  try {
+    const { memoriserVisuelDe } = await import('@/lib/memoire');
+    await memoriserVisuelDe(p);
+  } catch (e) {
+    console.error('[mémoire] visuel non mémorisé', p.id, e);
+  }
+}
+
+export async function memoriserVisuel(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const retour = String(fd.get('retour') ?? '') || `/${entite}/publications/${id}`;
+  const { publication } = await import('@/lib/requetes');
+  const { memoriserVisuelDe } = await import('@/lib/memoire');
+  const p = publication(id);
+  if (!p || p.entite !== entite) redirect(retour);
+  await memoriserVisuelDe(p);
+  await sauvegarder();
+  revalidatePath(`/${entite}/visuels`);
+  revalidatePath(`/${entite}/videos`);
+  revalidatePath(`/${entite}/publications/${id}`);
+  redirect(retour);
+}
+
+/** Mémorise d'un coup les visuels de toute une semaine — la matière du studio vidéo. */
+export async function memoriserSemaine(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const semaine = Number(fd.get('semaine'));
+  const retour = String(fd.get('retour') ?? '') || `/${entite}/valider?s=${semaine}`;
+  const { publications } = await import('@/lib/requetes');
+  const { memoriserVisuelDe } = await import('@/lib/memoire');
+  let crees = 0;
+  for (const p of publications(entite as 'veolt' | 'magistria').filter((x) => x.semaine === semaine)) {
+    if ((await memoriserVisuelDe(p)) === 'cree') crees++;
+  }
+  tracer('visuels de la semaine mémorisés', `S${semaine} : ${crees} nouveau(x)`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/visuels`);
+  revalidatePath(`/${entite}/videos`);
+  redirect(`${retour}${retour.includes('?') ? '&' : '?'}memorises=${crees}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -667,8 +724,8 @@ export async function enregistrerTeleversement(fd: FormData) {
 
   db()
     .prepare(
-      `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, duree_s, legende, publication_id)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, duree_s, legende, publication_id, origine)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       entite,
@@ -681,12 +738,43 @@ export async function enregistrerTeleversement(fd: FormData) {
       n('duree_s'),
       String(fd.get('legende') ?? '').trim() || null,
       publicationId,
+      fd.get('origine') === 'video' ? 'video' : 'apporte',
     );
   tracer('fichier déposé', `${fd.get('nom')} · ${typeMime}`, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/visuels`);
+  if (publicationId) revalidatePath(`/${entite}/publications/${publicationId}`);
+  return { ok: true as const };
+}
+
+/**
+ * Dépôt d'une vidéo montée dans le studio, quand le store Blob n'existe pas
+ * (développement local). En production la vidéo part directement vers le
+ * store, comme tout fichier lourd, puis passe par `enregistrerTeleversement`.
+ */
+export async function deposerVideoMontee(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const f = fd.get('fichier');
+  if (!(f instanceof File) || f.size === 0) return { ok: false as const, raison: 'Fichier vide.' };
+  const { TYPES_VIDEO, TAILLE_MAX_ACTION, nouvelleCle, ecrire } = await import('@/lib/medias');
+  if (!(f.type in TYPES_VIDEO)) return { ok: false as const, raison: `Type refusé : ${f.type}.` };
+  if (f.size > TAILLE_MAX_ACTION) return { ok: false as const, raison: 'Vidéo trop lourde pour ce chemin de dépôt.' };
+  const cle = nouvelleCle(f.type);
+  await ecrire(cle, Buffer.from(await f.arrayBuffer()), f.type);
+  const n = (k: string) => (Number.isFinite(Number(fd.get(k))) ? Number(fd.get(k)) : null);
+  const publicationId = Number(fd.get('publication_id')) || null;
+  db()
+    .prepare(
+      `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, duree_s, legende, publication_id, origine)
+       VALUES (?,?,?,?,?,?,?,?,?,?, 'video')`,
+    )
+    .run(entite, cle, f.name, f.type, f.size, n('largeur'), n('hauteur'), n('duree_s'), String(fd.get('legende') ?? '') || null, publicationId);
+  tracer('vidéo montée dans le studio', f.name, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/visuels`);
+  revalidatePath(`/${entite}/videos`);
   if (publicationId) revalidatePath(`/${entite}/publications/${publicationId}`);
   return { ok: true as const };
 }

@@ -86,3 +86,21 @@ dans une vidéo redemanderait le fichier entier, rassemblé en mémoire dans la
 fonction. Les dimensions et la durée viennent du navigateur sur ce chemin, et
 d'une lecture des boîtes `mvhd` / `tkhd` du MP4 sur l'autre (`dimensionsVideo`).
 Le WebM n'est pas analysé côté serveur — conteneur EBML, pas rentable.
+
+## Reprise du 10/11/2026 — validation, IA, vidéo
+
+- **Calendrier** : action « Recaler » (page Calendrier) — décale les dates des
+  deux entités sur un nouveau premier lundi, sans re-semer, pause optionnelle.
+  Cible : S1 le lundi 16/11/2026. **À faire en production après déploiement.**
+- **File « À valider »** : une semaine à la fois, texte + visuel + garde-fous,
+  Valider / À retravailler. Le garde-fou est revérifié côté serveur partout.
+- **Réécriture IA** (`src/lib/ia.ts`, `claude-opus-5-5`) : propositions dans
+  `propositions_ia`, adoptées ou rejetées à la main ; un texte adopté repasse
+  « à relire ». Nécessite `ANTHROPIC_API_KEY` côté serveur.
+- **Mémoire des visuels** (`src/lib/memoire.ts`) : `medias.origine` vaut
+  `apporte`, `genere` ou `video` ; `medias.empreinte` évite les doublons.
+- **Studio vidéo** (`/[entite]/videos`, `src/lib/fabrique-video.ts`) : rendu
+  canvas + WebCodecs H.264 + `mp4-muxer` dans le navigateur, puis dépôt direct
+  au store comme toute vidéo. Échéance de production = publication − 3 jours
+  (`src/lib/production.ts`), production en lot, garde-fou « Vidéo manquante ».
+- `.vercelignore` : les secrets ne partent plus avec le code.

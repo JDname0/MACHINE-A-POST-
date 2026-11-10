@@ -8,6 +8,7 @@ const PAGES = [
   ['publications', 'Publications'],
   ['formats', 'Formats 2026'],
   ['visuels', 'Visuels et vidéos'],
+  ['videos', 'Studio vidéo'],
   ['seo', 'SEO, articles, liens'],
   ['campagnes', 'Campagnes'],
   ['comptes', 'Comptes et connexions'],

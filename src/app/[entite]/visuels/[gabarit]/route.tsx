@@ -1,6 +1,5 @@
 import { ImageResponse } from 'next/og';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
+import { chargerPolices } from '@/lib/polices';
 import { estEntite, type EntiteSlug } from '@/lib/marques';
 import { connecte } from '@/lib/auth';
 import { GABARITS, rendre, type GabaritSlug, type Contenu, type Variante } from '@/lib/visuels';
@@ -15,23 +14,6 @@ import { GABARITS, rendre, type GabaritSlug, type Contenu, type Variante } from 
  * (`outputFileTracingIncludes`) — sans ça le traçage de Next ne les voit pas,
  * puisqu'aucun `import` ne les mentionne.
  */
-
-const DOSSIER = path.join(process.cwd(), 'src', 'assets', 'polices');
-const lire = (f: string) => readFileSync(path.join(DOSSIER, f));
-
-let polices: Array<{ name: string; data: Buffer; weight: 400 | 600 | 700; style: 'normal' }> | null = null;
-function chargerPolices() {
-  if (polices) return polices;
-  polices = [
-    { name: 'Bebas', data: lire('BebasNeue.ttf'), weight: 400, style: 'normal' },
-    { name: 'Kanit', data: lire('Kanit-Bold.ttf'), weight: 700, style: 'normal' },
-    { name: 'Spectral', data: lire('Spectral-Bold.ttf'), weight: 700, style: 'normal' },
-    { name: 'Spectral', data: lire('Spectral-SemiBold.ttf'), weight: 600, style: 'normal' },
-    { name: 'Inter', data: lire('Inter-Regular.ttf'), weight: 400, style: 'normal' },
-    { name: 'Inter', data: lire('Inter-SemiBold.ttf'), weight: 600, style: 'normal' },
-  ];
-  return polices;
-}
 
 export async function GET(
   requete: Request,

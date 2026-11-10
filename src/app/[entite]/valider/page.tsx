@@ -4,7 +4,7 @@ import { marque, type EntiteSlug } from '@/lib/marques';
 import { format } from '@/lib/formats';
 import { publications, compteursMenu, formaterDate, LIBELLE_STATUT, mediasDePublication } from '@/lib/requetes';
 import { constatsDe, lienVisuel, texteAColler } from '@/lib/fiche';
-import { trancher } from '@/app/actions';
+import { trancher, memoriserSemaine } from '@/app/actions';
 import { AssistantIA } from '@/components/AssistantIA';
 
 /**
@@ -68,6 +68,14 @@ export default async function Valider({
               {valides}/{pubs.length} validés
             </span>
             {pubs[0]?.phase ? <span className="pastille">{pubs[0].phase}</span> : null}
+            <form action={memoriserSemaine} style={{ marginLeft: 'auto' }}>
+              <input type="hidden" name="entite" value={e} />
+              <input type="hidden" name="semaine" value={semaine} />
+              <input type="hidden" name="retour" value={retour} />
+              <button type="submit" className="fantome" title="Range les visuels de la semaine dans la médiathèque — matière pour le studio vidéo">
+                Mémoriser les visuels de la semaine
+              </button>
+            </form>
           </div>
         </header>
 
@@ -144,7 +152,14 @@ export default async function Valider({
                         ? 'Article de blog : pas de visuel généré.'
                         : medias.length
                           ? `${medias.length} média${medias.length > 1 ? 's' : ''} rattaché${medias.length > 1 ? 's' : ''} — à voir dans le composeur.`
-                          : 'Vidéo : aucun fichier rattaché pour l’instant. Le script est dans le composeur.'}
+                          : 'Vidéo : aucun fichier rattaché pour l’instant.'}
+                      {f.reseau !== 'blog' ? (
+                        <div style={{ marginTop: 8 }}>
+                          <Link className="lien-accent" href={`/${e}/videos?p=${p.id}`}>
+                            Monter la vidéo dans le studio →
+                          </Link>
+                        </div>
+                      ) : null}
                     </div>
                   )}
                 </div>

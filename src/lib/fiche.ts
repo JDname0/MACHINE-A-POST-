@@ -10,8 +10,10 @@
 import type { EntiteSlug } from './marques';
 import type { FormatSlug } from './formats';
 import { controler, estValidable, type Constat } from './garde-fous';
-import { gabaritPour, deuxLignes } from './visuels';
+import { gabaritPour, deuxLignes, type GabaritSlug, type Contenu } from './visuels';
 import { sousForums, joursDepuis, type LignePublication } from './requetes';
+import { attendu } from './conformite-media';
+import { aUneVideo } from './production';
 
 export function constatsDe(p: LignePublication): { constats: Constat[]; validable: boolean } {
   const sf = sousForums().find((x) => x.nom === p.sous_forum);
@@ -30,24 +32,43 @@ export function constatsDe(p: LignePublication): { constats: Constat[]; validabl
     joursDepuisDernierPostSousForum: joursDepuis(sf?.dernier_post ?? null),
     plafondJoursSousForum: sf?.plafond_jours ?? null,
   });
+  // Un post vidéo sans vidéo ne peut pas partir : il partirait vide. Le
+  // calendrier fixe l'échéance de production (production.ts), ce garde-fou en
+  // est le dernier verrou.
+  if (attendu(p.format_slug) === 'video' && !aUneVideo(p.id)) {
+    constats.unshift({
+      niveau: 'blocage',
+      regle: 'Vidéo manquante',
+      message: 'Ce format se publie avec une vidéo, et aucune n’est rattachée à ce post.',
+      remede: 'Monte-la dans le Studio vidéo (un clic avec les réglages par défaut), ou dépose un fichier dans la médiathèque.',
+    });
+  }
   return { constats, validable: estValidable(constats) };
 }
 
-/** Le visuel généré qui va avec ce post, pré-rempli de son propre texte. `null` si le format n'en a pas. */
-export function lienVisuel(p: LignePublication): string | null {
+/** Le gabarit et le texte du visuel généré de ce post. `null` si le format n'a pas de visuel. */
+export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; contenu: Partial<Contenu> } | null {
   const slug = gabaritPour(p.format_slug, p.pilier);
   if (!slug) return null;
   const { ligne1, ligne2 } = deuxLignes(p.titre ?? '');
-  const q = new URLSearchParams({ ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) });
+  const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) };
   if (slug === 'chiffre') {
     // Sur ce gabarit c'est la grande valeur qui porte : on prend le premier
     // nombre ou la première référence d'article trouvée dans l'accroche.
     const trouve = p.accroche.match(/(?:art\.?\s*)?[LRD]\.?\s*\d+(?:-\d+)?|\d[\d  ]*(?:\s*€|\s*%)?/i);
-    q.set('chiffre', (trouve?.[0] ?? '—').trim());
-    q.set('legende', p.preuve ?? '');
-    q.set('sousTitre', p.accroche.slice(0, 180));
+    contenu.chiffre = (trouve?.[0] ?? '—').trim();
+    contenu.legende = p.preuve ?? '';
+    contenu.sousTitre = p.accroche.slice(0, 180);
   }
-  return `/${p.entite}/visuels/${slug}?${q.toString()}`;
+  return { slug, contenu };
+}
+
+/** Le visuel généré qui va avec ce post, pré-rempli de son propre texte. `null` si le format n'en a pas. */
+export function lienVisuel(p: LignePublication): string | null {
+  const v = parametresVisuel(p);
+  if (!v) return null;
+  const q = new URLSearchParams(Object.entries(v.contenu).map(([k, x]) => [k, String(x ?? '')]));
+  return `/${p.entite}/visuels/${v.slug}?${q.toString()}`;
 }
 
 export function texteAColler(p: LignePublication): string {

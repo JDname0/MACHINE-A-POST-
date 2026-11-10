@@ -112,6 +112,26 @@
 
 ## Lot 4 — Vidéo (Higgsfield, Blender, After Effects)
 
+**En place (10/11)** :
+- [x] [C] Mémoire des visuels : chaque visuel généré se range dans la
+  médiathèque (bouton « Mémoriser », mémorisation de toute une semaine, et
+  automatique à la validation d'un post). Pas de doublon.
+- [x] [C] Studio vidéo (menu « Studio vidéo ») : plans tirés du script ou du
+  texte du post, une image par plan (carte à la charte, visuel généré, ou
+  image apportée avec texte incrusté), MP4 H.264 fabriqué dans le navigateur,
+  rangé dans la médiathèque et rattaché au post.
+- [x] [C] Échéancier : chaque vidéo doit exister 3 jours avant sa
+  publication ; états prête / à monter / en retard ; compteur dans le menu.
+- [x] [C] Production en lot : un clic fabrique toutes les vidéos dues dans
+  les 7 jours, avec le montage par défaut.
+- [x] [C] Garde-fou « Vidéo manquante » : un post vidéo sans vidéo ne peut pas
+  être validé.
+- [ ] [C] Plans vidéo dans le studio : accepter des clips (Higgsfield,
+  Blender, After Effects) en plus des images, découpés au bon plan.
+- [ ] [C] Musique et sous-titres : piste son libre de droits, optionnelle.
+
+**Ensuite** :
+
 - [ ] [C] Lister les créneaux vidéo des 12 semaines (Reels, vidéos LinkedIn,
   TikTok Veolt), chacun avec son script de `videos.ts`.
 - [ ] [C] Écrire la fiche qualité d'une vidéo :

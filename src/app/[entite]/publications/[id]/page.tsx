@@ -11,7 +11,7 @@ import { controlerMedia, attendu } from '@/lib/conformite-media';
 import { poids, duree, estVideo } from '@/lib/medias';
 import { db } from '@/lib/db';
 import { AssistantIA } from '@/components/AssistantIA';
-import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique } from '@/app/actions';
+import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique, memoriserVisuel } from '@/app/actions';
 
 export default async function Composeur({
   params,
@@ -267,6 +267,13 @@ export default async function Composeur({
                   <a className="bouton fantome" href={lienVisuel} download={`${e}-${p.id}.png`}>
                     Télécharger le PNG
                   </a>
+                  <form action={memoriserVisuel}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="entite" value={e} />
+                    <button type="submit" className="fantome" title="Range ce visuel dans la médiathèque : il devient matière pour le studio vidéo">
+                      Mémoriser
+                    </button>
+                  </form>
                   <Link className="bouton fantome" href={`/${e}/visuels`}>
                     Tous les gabarits
                   </Link>
@@ -364,7 +371,12 @@ export default async function Composeur({
                     ? ' le visuel généré ne sert ici que de couverture, pas de contenu.'
                     : ' le gabarit généré ci-dessus fait l’affaire, et un fichier apporté le remplace.'}
                 </p>
-                <div className="rang" style={{ marginTop: 11 }}>
+                <div className="rang" style={{ marginTop: 11, gap: 8 }}>
+                  {attenduParLeFormat === 'video' ? (
+                    <Link className="bouton" href={`/${e}/videos?p=${p.id}`}>
+                      Monter la vidéo dans le studio
+                    </Link>
+                  ) : null}
                   <Link className="bouton fantome" href={`/${e}/visuels#images`}>
                     Déposer un fichier
                   </Link>

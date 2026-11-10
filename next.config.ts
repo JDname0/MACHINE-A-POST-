@@ -19,6 +19,8 @@ const ENTETES = [
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
+      // L'aperçu du studio vidéo lit la vidéo fabriquée depuis une adresse blob:.
+      "media-src 'self' blob:",
       "connect-src 'self' https:",
       "frame-ancestors 'self'",
     ].join('; '),
@@ -42,8 +44,12 @@ const config: NextConfig = {
   // `import` ne les mentionne, donc le traçage de Next ne les embarquerait pas
   // dans le paquet serverless sans cette déclaration — et la génération
   // d'images échouerait en production uniquement.
+  // Les polices sont lues sur le disque (src/lib/polices.ts) : aucun import ne
+  // les mentionne, il faut donc les déclarer. Toutes les routes, parce que les
+  // actions serveur qui mémorisent un visuel tournent dans la fonction de la
+  // page qui les appelle.
   outputFileTracingIncludes: {
-    '/[entite]/visuels/[gabarit]': ['./src/assets/polices/**'],
+    '/**': ['./src/assets/polices/**'],
   },
 };
 
