@@ -13,7 +13,7 @@ import { duree as libelleDuree, poids } from '@/lib/medias';
 import { videosDe } from '@/lib/videos';
 import { depotDirect, plafondDepotVideo } from '@/lib/medias';
 import { echeancesVideo, imagesMemoire, montageParDefaut, montagePret, themeStudio, nomPilier, reglagesVideo, formatsVideoDe, videosProduites, DELAIS, type EtatVideo } from '@/lib/production';
-import { memoriserSemaine, creerVideoDepuisPost } from '@/app/actions';
+import { memoriserSemaine, creerVideoDepuisPost, creerVideoCasUsage } from '@/app/actions';
 import { ReglagesProduction } from '@/components/ReglagesProduction';
 import { BoutonVideo } from '@/components/BoutonVideo';
 
@@ -104,6 +104,32 @@ export default async function Videos({
             ) : null}
           </div>
         </header>
+
+        {scripts.some((x) => x.casUsage) ? (
+          <section className="carte" style={{ marginBottom: 12 }}>
+            <strong>Vidéos cas d&apos;usage — démonstrations longues</strong>
+            <div className="aide" style={{ marginBottom: 10 }}>
+              45 à 60 secondes, construites sur ce qui est vrai : fonctions réelles sur un dossier d&apos;exemple, prix
+              affichés, aucun client ni résultat inventé. Chacune crée un post hors calendrier, à relire et valider.
+            </div>
+            <div className="grille" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+              {scripts
+                .filter((x) => x.casUsage)
+                .map((x) => (
+                  <form key={x.ref} action={creerVideoCasUsage} className="encart" style={{ margin: 0 }}>
+                    <input type="hidden" name="entite" value={e} />
+                    <input type="hidden" name="ref" value={x.ref} />
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{x.titre}</div>
+                    <div className="aide" style={{ marginBottom: 8 }}>
+                      {format(x.formatSlug).nom} · {x.duree} s · {x.plans.length} plans ·{' '}
+                      {[...new Set(x.plans.map((pl) => pl.scene?.type).filter(Boolean))].join(', ')}
+                    </div>
+                    <button type="submit">Créer et ouvrir dans le studio</button>
+                  </form>
+                ))}
+            </div>
+          </section>
+        ) : null}
 
         <form action={creerVideoDepuisPost} className="carte" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end', marginBottom: 12 }}>
           <input type="hidden" name="entite" value={e} />

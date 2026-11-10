@@ -186,9 +186,9 @@ export const MARQUES: Record<EntiteSlug, Marque> = {
       'Une IA juridique qui montre son raisonnement et ses sources, pour que le professionnel garde la décision.',
     principe: "L'IA propose, le professionnel décide.",
     site: 'magistrai.fr',
-    // Relevé dans le produit livré (`magistria-mvp/src/app/globals.css`) le
-    // 2026-10-21, et non dans le cadrage de mai : la marque a évolué vers le
-    // bordeaux sur fond clair, avec Spectral en police d'affichage.
+    // Thème de l'INTERFACE de l'outil (section MagistrIA), pas des contenus.
+    // La charte des visuels et des vidéos est celle du site en ligne
+    // magistrai.fr (fond nuit, Spectral blanc, cyan, « IA » or) : voir visuels.tsx.
     theme: { fond: '#FFFFFF', accent: '#7B2D3E', accentDoux: '#B8962E', encre: '#15121A', serif: true },
     piliers: [
       {

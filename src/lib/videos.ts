@@ -14,6 +14,7 @@
 
 import type { EntiteSlug } from './marques';
 import type { FormatSlug } from './formats';
+import type { Scene } from './montage';
 
 export interface Plan {
   /** Repère temporel, en secondes. */
@@ -23,6 +24,8 @@ export interface Plan {
   image: string;
   /** Ce qui est incrusté à l'écran, mot pour mot. */
   texte: string;
+  /** La scène dessinée dans le studio (écran produit, chiffre, liste…) ; absente : titre seul. */
+  scene?: Scene;
 }
 
 export interface ScriptVideo {
@@ -37,6 +40,10 @@ export interface ScriptVideo {
   plans: Plan[];
   legende: string;
   indicateur: string;
+  /** Cadre imposé (sinon celui du format) : un cas d'usage Instagram se tourne en 9:16. */
+  cadre?: '9:16' | '4:5';
+  /** Démonstration d'un cas d'utilisation réel du produit ou du service. */
+  casUsage?: boolean;
 }
 
 export const VIDEOS: ScriptVideo[] = [
@@ -140,6 +147,300 @@ export const VIDEOS: ScriptVideo[] = [
     ],
     legende:
       "L’IA propose, le professionnel décide. Ce n’est pas un slogan : c’est une contrainte d’architecture, visible dans le produit.\n\nQu’attendez-vous d’un outil d’IA juridique avant de lui faire confiance : la source, l’étape, ou la limite ?",
+    indicateur: 'taux de visionnage complet',
+  },
+
+  // ── Cas d'usage : démonstrations longues (45–60 s), scènes dessinées ─────
+  //
+  // Construits uniquement sur ce qui est vrai : prix affichés, fonctions du
+  // produit réellement livrées, dossiers et chiffres d'EXEMPLE signalés comme
+  // tels. Aucun client, aucun résultat, aucun témoignage.
+  {
+    ref: 'vid-v-cu-1',
+    titre: 'Cas type : du projet au rendez-vous bancaire',
+    entite: 'veolt',
+    formatSlug: 'ig-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'demonter-un-chiffre',
+    duree: 51,
+    tournage:
+      "Tout est dessiné par le studio : aucun tournage. Le prévisionnel est un EXEMPLE construit pour la vidéo, et l'écran le dit. Vérifier la liste des livrables contre la page de l'offre avant validation.",
+    plans: [
+      { de: 0, a: 3.5, image: 'Titre seul, plein cadre.', texte: 'Votre banquier lit trois lignes. Pas trente pages.' },
+      { de: 3.5, a: 7.5, image: 'Titre seul.', texte: 'Cas type : un projet qui cherche son premier prêt.' },
+      {
+        de: 7.5,
+        a: 17.5,
+        image: 'Prévisionnel d’exemple, trois lignes repérées une à une.',
+        texte: 'Les trois lignes qu’il regarde',
+        scene: {
+          type: 'tableur',
+          fenetre: 'Prévisionnel · EXEMPLE — chiffres fictifs',
+          colonnes: ['', 'An 1', 'An 2', 'An 3'],
+          lignes: [
+            { libelle: 'Chiffre d’affaires', valeurs: ['180 k€', '240 k€', '290 k€'] },
+            { libelle: 'Charges fixes', valeurs: ['132 k€', '150 k€', '164 k€'] },
+            { libelle: 'Trésorerie au plus bas', valeurs: ['−8 k€', '12 k€', '31 k€'] },
+            { libelle: 'Annuités d’emprunt', valeurs: ['18 k€', '18 k€', '18 k€'] },
+            { libelle: 'Résultat net', valeurs: ['4 k€', '38 k€', '61 k€'] },
+          ],
+          reperes: [
+            { ligne: 2, note: '1. Le point bas de trésorerie' },
+            { ligne: 3, note: '2. Les annuités face au résultat' },
+            { ligne: 0, note: '3. L’hypothèse de chiffre d’affaires' },
+          ],
+        },
+      },
+      { de: 17.5, a: 21.5, image: 'Titre seul.', texte: 'Un point bas négatif ? Le prêt se joue là.' },
+      {
+        de: 21.5,
+        a: 28.5,
+        image: 'Liste qui se construit.',
+        texte: 'Ce que nous préparons avec vous',
+        scene: {
+          type: 'liste',
+          items: [
+            'Le prévisionnel sur trois ans, ligne par ligne',
+            'Le plan de trésorerie, mois par mois',
+            'Les réponses aux questions du banquier',
+          ],
+        },
+      },
+      {
+        de: 28.5,
+        a: 32.5,
+        image: 'Le prix affiché, qui défile.',
+        texte: 'Business plan et analyse financière',
+        scene: { type: 'chiffre', valeur: '490 €', legende: 'HT, à partir de — le prix affiché' },
+      },
+      {
+        de: 32.5,
+        a: 39.5,
+        image: 'Les trois offres et leurs prix.',
+        texte: 'Une équipe pour lancer, faire connaître et financer',
+        scene: {
+          type: 'liste',
+          items: ['Business plan — dès 490 € HT', 'Site web et web 3D — dès 1 490 € HT', 'Vidéo, pub 3D et motion — dès 119 € HT'],
+        },
+      },
+      {
+        de: 39.5,
+        a: 43.5,
+        image: 'Le délai, qui défile.',
+        texte: 'Votre devis',
+        scene: { type: 'chiffre', valeur: '24 h', legende: 'de délai de réponse — un engagement tenu' },
+      },
+      { de: 43.5, a: 47, image: 'Titre seul.', texte: 'On commence par une analyse gratuite de votre projet.' },
+      {
+        de: 47,
+        a: 51,
+        image: 'Écran de fin, bouton d’action.',
+        texte: 'Votre projet mérite trois lignes solides.',
+        scene: { type: 'fin', action: 'Demander l’analyse gratuite' },
+      },
+    ],
+    legende:
+      "Un banquier ne lit pas trente pages : il cherche le point bas de trésorerie, la capacité à rembourser et l'hypothèse de chiffre d'affaires.\n\nBusiness plan et analyse financière dès 490 € HT. On commence par une analyse gratuite de votre projet.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-v-cu-2',
+    titre: 'Cas type : une référence produit, quatorze visuels',
+    entite: 'veolt',
+    formatSlug: 'ig-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'montrer-le-travail',
+    duree: 46,
+    tournage:
+      "Tout est dessiné par le studio. Remplacer les cartes des plans 2 et 5 par de vrais rendus 3D dès qu'ils existent (médiathèque) : la vidéo y gagne tout.",
+    plans: [
+      { de: 0, a: 3.5, image: 'Le rendu 3D final, plein cadre.', texte: 'Ce produit n’a jamais été photographié.' },
+      { de: 3.5, a: 7.5, image: 'Rendu 3D sous un autre angle.', texte: 'Cas type : une marque qui a besoin de visuels pour chaque référence.' },
+      {
+        de: 7.5,
+        a: 17,
+        image: 'Comparatif en deux colonnes.',
+        texte: 'Photo studio ou packshot 3D ?',
+        scene: {
+          type: 'comparatif',
+          gauche: { titre: 'Photo studio', points: ['La matière réelle', 'Un studio à relouer à chaque déclinaison', 'Moins chère sous cinq visuels'] },
+          droite: { titre: 'Packshot 3D', points: ['Quatorze angles, trois coloris', 'Le fond change sans studio', 'Plus rentable au-delà de cinq visuels'] },
+        },
+      },
+      {
+        de: 17,
+        a: 26,
+        image: 'Le pipeline, étape par étape.',
+        texte: 'Sept étapes, faites une seule fois',
+        scene: { type: 'liste', items: ['Modélisation', 'Matériaux', 'Éclairage', 'Caméra', 'Animation', 'Rendu', 'Étalonnage'] },
+      },
+      { de: 26, a: 31, image: 'Grille de déclinaisons.', texte: 'Le premier visuel paie le modèle. Les suivants ne paient que le cadrage.' },
+      {
+        de: 31,
+        a: 35,
+        image: 'Le prix affiché, qui défile.',
+        texte: 'Vidéo, pub 3D et motion',
+        scene: { type: 'chiffre', valeur: '119 €', legende: 'HT, à partir de — le prix affiché' },
+      },
+      { de: 35, a: 41, image: 'Titre seul.', texte: 'Au-delà de cinq visuels par référence, la 3D devient le format tenable.' },
+      {
+        de: 41,
+        a: 46,
+        image: 'Écran de fin, bouton d’action.',
+        texte: 'Combien de visuels par référence et par an ?',
+        scene: { type: 'fin', action: 'Demander l’analyse gratuite' },
+      },
+    ],
+    legende:
+      "La 3D ne remplace pas la photo. Elle remplace la deuxième séance photo.\n\nEn dessous de cinq visuels par référence, la photo reste moins chère ; au-delà, le modèle 3D fait une fois rend les variantes presque gratuites. Vidéo, pub 3D et motion dès 119 € HT.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-m-cu-1',
+    titre: 'Cas d’usage : un refus de garantie après un sinistre cyber',
+    entite: 'magistria',
+    formatSlug: 'li-video',
+    casUsage: true,
+    pilier: 'sinistre-decortique',
+    duree: 60,
+    tournage:
+      "Tout est dessiné par le studio, sur un dossier d'EXEMPLE construit pour la vidéo — jamais une pièce de dossier réel, même anonymisée. L'écran montre des fonctions livrées : raisonnement en trois étapes, citations classées, refus de conclure quand les pièces manquent.",
+    plans: [
+      { de: 0, a: 4, image: 'Titre seul.', texte: 'Un refus de garantie tient-il devant un juge ?' },
+      { de: 4, a: 8.5, image: 'Titre seul.', texte: 'Cas d’usage : un gestionnaire de sinistres face à un rapport d’expertise cyber.' },
+      {
+        de: 8.5,
+        a: 16.5,
+        image: 'Les trois phrases qui comptent.',
+        texte: 'Dans le rapport, trois phrases comptent',
+        scene: {
+          type: 'liste',
+          items: [
+            'La date de compromission — elle commande le délai de déclaration',
+            'Le vecteur d’entrée — il commande l’exclusion',
+            'Les sauvegardes — elles commandent le montant',
+          ],
+        },
+      },
+      {
+        de: 16.5,
+        a: 30,
+        image: 'L’écran d’analyse sur un dossier d’exemple.',
+        texte: 'L’outil instruit, étape par étape',
+        scene: {
+          type: 'analyse',
+          fenetre: 'magistrai.fr · Analyse — dossier d’exemple',
+          extrait:
+            'Article 7 — Exclusions. Sont exclus les dommages résultant d’un défaut de mise à jour des systèmes d’information de l’assuré.',
+          surligne: 'défaut de mise à jour',
+          etapes: [
+            { label: 'MAJEURE', texte: 'Art. L. 113-1 C. assur. : une exclusion n’est opposable que si elle est formelle et limitée.' },
+            { label: 'MINEURE', texte: 'La clause vise un « défaut de mise à jour » sans en fixer le périmètre ni le délai.' },
+            { label: 'CONCLUSION', texte: 'Le caractère limité est discutable. La décision revient au gestionnaire.' },
+          ],
+          citations: [
+            { ref: 'Code des assurances, art. L. 113-1', etat: 'verifiee' },
+            { ref: 'Rapport d’expertise, p. 12', etat: 'hors-corpus' },
+          ],
+        },
+      },
+      { de: 30, a: 34.5, image: 'Titre seul.', texte: 'Chaque affirmation porte sa source. Chaque citation, son état.' },
+      { de: 34.5, a: 39, image: 'Titre seul.', texte: 'Et quand les pièces manquent, l’outil le dit : « je ne peux pas conclure ».' },
+      {
+        de: 39,
+        a: 46,
+        image: 'Les sources réellement branchées.',
+        texte: 'Les sources branchées',
+        scene: { type: 'liste', items: ['Légifrance / DILA', 'Bases CVE / NIST', 'Décisions de la CNIL', 'Alertes de l’ANSSI'] },
+      },
+      { de: 46, a: 50, image: 'Titre seul.', texte: 'L’IA propose. Le gestionnaire décide.' },
+      {
+        de: 50,
+        a: 55,
+        image: 'Le prix, qui défile.',
+        texte: 'Pour juger sur pièce',
+        scene: { type: 'chiffre', valeur: '0 €', legende: 'Freemium — 10 crédits par mois, sans carte bancaire' },
+      },
+      {
+        de: 55,
+        a: 60,
+        image: 'Écran de fin, bouton d’action.',
+        texte: 'Testez-le sur un dossier d’exemple.',
+        scene: { type: 'fin', action: 'Essayer gratuitement' },
+      },
+    ],
+    legende:
+      "Une exclusion n'est opposable que si elle est formelle et limitée (C. assur., art. L. 113-1). Encore faut-il le montrer, pièce par pièce.\n\nMagistrIA instruit : règle citée, faits qualifiés, conclusion laissée au gestionnaire. Et quand les pièces manquent, il le dit. Freemium sans carte bancaire.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-m-cu-2',
+    titre: 'Cas d’usage : chiffrer un risque cyber avec FAIR',
+    entite: 'magistria',
+    formatSlug: 'li-video',
+    casUsage: true,
+    pilier: 'methode-nommee',
+    duree: 50,
+    tournage:
+      "Tout est dessiné par le studio, sur un scénario d'EXEMPLE. Aucun montant n'est affiché : la vidéo montre la méthode, pas un résultat.",
+    plans: [
+      { de: 0, a: 4, image: 'Titre seul.', texte: 'Un risque cyber « élevé », ça vaut combien ?' },
+      { de: 4, a: 8.5, image: 'Titre seul.', texte: 'Cas d’usage : une direction juridique doit chiffrer un risque, pas le colorier.' },
+      {
+        de: 8.5,
+        a: 15.5,
+        image: 'La décomposition FAIR.',
+        texte: 'La méthode FAIR décompose',
+        scene: { type: 'liste', items: ['La fréquence d’un événement', 'L’ampleur de la perte', 'Une distribution en euros — pas une couleur'] },
+      },
+      {
+        de: 15.5,
+        a: 27.5,
+        image: 'L’écran d’analyse sur un scénario d’exemple.',
+        texte: 'Hypothèses d’un côté, résultat de l’autre',
+        scene: {
+          type: 'analyse',
+          fenetre: 'magistrai.fr · FAIR — scénario d’exemple',
+          extrait: 'Scénario : un rançongiciel chiffre la messagerie et les partages de fichiers pendant trois jours.',
+          surligne: 'rançongiciel',
+          etapes: [
+            { label: 'HYPOTHÈSES', texte: 'Fréquence et ampleur saisies séparément, chacune modifiable.' },
+            { label: 'CALCUL', texte: 'La perte annuelle est simulée selon la méthode FAIR.' },
+            { label: 'RÉSULTAT', texte: 'Une fourchette en euros, les hypothèses affichées à côté.' },
+          ],
+          citations: [{ ref: 'Méthode Open FAIR (The Open Group)', etat: 'verifiee' }],
+        },
+      },
+      { de: 27.5, a: 32.5, image: 'Titre seul.', texte: 'Changer une hypothèse ne refait pas tout : on voit ce qui bouge, et pourquoi.' },
+      {
+        de: 32.5,
+        a: 40,
+        image: 'Les méthodes nommées.',
+        texte: 'Les méthodes nommées dans l’outil',
+        scene: {
+          type: 'liste',
+          items: ['FAIR — le risque en euros', 'EBIOS Risk Manager — la méthode de l’ANSSI', 'Le syllogisme juridique — majeure, mineure, conclusion'],
+        },
+      },
+      {
+        de: 40,
+        a: 45,
+        image: 'Le prix, qui défile.',
+        texte: 'Offre Pro',
+        scene: { type: 'chiffre', valeur: '59 €', legende: 'HT par mois — pour un juriste ou un avocat indépendant' },
+      },
+      {
+        de: 45,
+        a: 50,
+        image: 'Écran de fin, bouton d’action.',
+        texte: 'Chiffrez votre premier risque.',
+        scene: { type: 'fin', action: 'Essayer gratuitement' },
+      },
+    ],
+    legende:
+      "Un risque « élevé » ne se budgète pas. La méthode FAIR décompose un risque en fréquence et en ampleur de perte, puis produit une distribution en euros.\n\nDans MagistrIA, les hypothèses restent affichées à côté du résultat : on peut en changer une sans refaire l'autre.",
     indicateur: 'taux de visionnage complet',
   },
 ];

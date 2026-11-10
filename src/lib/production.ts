@@ -160,7 +160,9 @@ export interface MontageParDefaut {
  */
 export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], scriptRef?: string): MontageParDefaut {
   const scripts = videosDe(p.entite as EntiteSlug);
-  const auto = scripts.find((s) => s.formatSlug === p.format_slug && s.pilier === p.pilier);
+  // Le script écrit pour ce post (vidéo cas d'usage), sinon celui du format et du pilier.
+  const auto =
+    scripts.find((s) => s.ref === p.sujet_ref) ?? scripts.find((s) => !s.casUsage && s.formatSlug === p.format_slug && s.pilier === p.pilier);
   const script = scriptRef === 'post' ? undefined : scripts.find((s) => s.ref === scriptRef) ?? auto;
   const conseil = dureeConseillee(p.format_slug)?.conseil;
   const plans = script ? plansDepuisScript(script) : plansDepuisPost(p, conseil);
@@ -184,7 +186,7 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
     }
   }
 
-  const cadre = cadreVideo(p.format_slug);
+  const cadre = cadreVideo(p.format_slug, script?.cadre);
   // La carte au cadre de la vidéo : rognée, une carte 9:16 dans une vidéo 4:5
   // perdrait l'en-tête et le pied de marque, et le texte toucherait le bord.
   const gabarit = cadre.ratio === '9:16' ? 'reel' : 'affirmation';
@@ -217,6 +219,13 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
       surTitre: { couleur: '#C79BFF', police: 'Bebas' },
       lueur: 'rgba(182,0,168,0.13)',
       majuscules: true,
+      douce: '#A9A6B8',
+      surface: 'rgba(237,235,242,0.06)',
+      filet: 'rgba(237,235,242,0.18)',
+      ambre: '#FF8A3D',
+      // Le bouton du site : violet → magenta.
+      bouton: { fond: ['#7621B0', '#B600A8'], encre: '#FFFFFF' },
+      adresse: t.adresse,
     };
   }
   return {
@@ -229,6 +238,13 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
     surTitre: { couleur: '#7FB7D9', police: 'Mono' },
     lueur: 'rgba(60,200,255,0.08)',
     majuscules: false,
+    douce: '#9AA9BB',
+    surface: 'rgba(233,238,245,0.05)',
+    filet: 'rgba(80,190,255,0.22)',
+    ambre: '#FF9A3C',
+    // Le bouton « Essayer gratuitement » du site : bordeaux.
+    bouton: { fond: ['#7B2D3E', '#94384C'], encre: '#FFFFFF' },
+    adresse: t.adresse,
   };
 }
 

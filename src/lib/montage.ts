@@ -12,16 +12,60 @@ import type { ScriptVideo } from './videos';
 
 export type SourcePlan = { type: 'carte' } | { type: 'media'; id: number };
 
+export type EtatCitation = 'verifiee' | 'inconnue' | 'hors-corpus';
+
+/**
+ * Ce qui se passe dans un plan, au-delà du titre animé. Chaque scène est
+ * dessinée et animée dans le navigateur, aux couleurs de la marque — c'est ce
+ * qui fait d'une vidéo une démonstration plutôt qu'une suite de phrases.
+ * Le `texte` du plan sert de titre à la scène.
+ *
+ * Règle tenue par les scripts qui les utilisent : rien n'y est inventé. Un
+ * écran produit montre une fonction réelle sur un dossier d'exemple, un
+ * tableur porte « EXEMPLE — chiffres fictifs », un chiffre est un prix affiché.
+ */
+export type Scene =
+  | { type: 'titre' }
+  /** Un chiffre réel qui défile jusqu'à sa valeur (prix affiché, délai tenu). */
+  | { type: 'chiffre'; valeur: string; legende: string }
+  /** Une liste qui se construit, élément par élément. */
+  | { type: 'liste'; items: string[] }
+  /** Deux colonnes, la seconde mise en avant. */
+  | { type: 'comparatif'; gauche: { titre: string; points: string[] }; droite: { titre: string; points: string[] } }
+  /** Écran d'analyse (MagistrIA) : clause surlignée, raisonnement en étapes, citations classées. */
+  | {
+      type: 'analyse';
+      fenetre: string;
+      extrait: string;
+      surligne: string;
+      etapes: Array<{ label: string; texte: string }>;
+      citations: Array<{ ref: string; etat: EtatCitation }>;
+    }
+  /** Tableur d'exemple (Veolt) : lignes repérées une à une, avec leur note. */
+  | {
+      type: 'tableur';
+      fenetre: string;
+      colonnes: string[];
+      lignes: Array<{ libelle: string; valeurs: string[] }>;
+      reperes: Array<{ ligne: number; note: string }>;
+    }
+  /** Écran de fin : titre, bouton d'action, adresse du site. */
+  | { type: 'fin'; action: string; adresse?: string };
+
 export interface PlanMontage {
   duree: number;
   texte: string;
   /** Ce qu'on voit, tel que décrit par le script — une aide au choix de l'image. */
   image: string;
   source: SourcePlan;
+  /** La scène du plan ; absente : titre animé seul. */
+  scene?: Scene;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
-export function cadreVideo(formatSlug: string): { largeur: number; hauteur: number; ratio: string } {
+export function cadreVideo(formatSlug: string, impose?: '9:16' | '4:5'): { largeur: number; hauteur: number; ratio: string } {
+  if (impose === '9:16') return { largeur: 1080, hauteur: 1920, ratio: '9:16' };
+  if (impose === '4:5') return { largeur: 1080, hauteur: 1350, ratio: '4:5' };
   return formatSlug === 'ig-reel' || formatSlug === 'tiktok-video'
     ? { largeur: 1080, hauteur: 1920, ratio: '9:16' }
     : { largeur: 1080, hauteur: 1350, ratio: '4:5' };
@@ -33,6 +77,7 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     texte: p.texte,
     image: p.image,
     source: { type: 'carte' },
+    ...(p.scene ? { scene: p.scene } : {}),
   }));
 }
 

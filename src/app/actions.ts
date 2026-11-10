@@ -265,6 +265,45 @@ export async function proposerPlansIA(fd: FormData) {
   }
 }
 
+/**
+ * Vidéo cas d'usage : un post hors calendrier, porté par un script de
+ * démonstration (`casUsage` dans videos.ts). Le texte du post est la légende
+ * du script ; le studio monte la vidéo à partir de ses scènes.
+ */
+export async function creerVideoCasUsage(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const ref = String(fd.get('ref'));
+  const { VIDEOS } = await import('@/lib/videos');
+  const s = VIDEOS.find((v) => v.ref === ref && v.entite === entite && v.casUsage);
+  if (!s) redirect(`/${entite}/videos`);
+  const existe = db().prepare('SELECT id FROM publications WHERE entite=? AND sujet_ref=? AND format_slug=?').get(entite, ref, s.formatSlug) as
+    | { id: number }
+    | undefined;
+  if (existe) redirect(`/${entite}/videos?p=${existe.id}`);
+  const [accroche, ...suite] = s.legende.split('\n\n');
+  const { iso } = await import('@/lib/calendrier');
+  // Une date libre : aujourd'hui, ou le premier jour suivant sans post de ce format et de ce pilier.
+  const d = new Date();
+  for (let k = 0; k < 60; k++) {
+    const libre = !db()
+      .prepare('SELECT 1 FROM publications WHERE entite=? AND date_prevue=? AND format_slug=? AND pilier=?')
+      .get(entite, iso(d), s.formatSlug, s.pilier);
+    if (libre) break;
+    d.setDate(d.getDate() + 1);
+  }
+  const info = db()
+    .prepare(
+      `INSERT INTO publications (entite, format_slug, pilier, persona, sujet_ref, date_prevue, semaine, phase, raison,
+        statut, titre, accroche, corps, appel, hashtags, consignes_visuel, preuve, indicateur)
+       VALUES (?,?,?,NULL,?,?,NULL,NULL,?, 'brouillon', ?,?,?,'','','',NULL,?)`,
+    )
+    .run(entite, s.formatSlug, s.pilier, ref, iso(d), `Vidéo cas d’usage : ${s.titre}.`, s.titre, accroche, suite.join('\n\n'), s.indicateur);
+  tracer('vidéo cas d’usage créée', `${ref} · ${s.formatSlug}`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/videos`);
+  redirect(`/${entite}/videos?p=${info.lastInsertRowid}`);
+}
+
 /** Quand et comment produire les vidéos — choisi dans le studio, par entité. */
 export async function majReglagesVideo(fd: FormData) {
   const entite = String(fd.get('entite')) as 'veolt' | 'magistria';

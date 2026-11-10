@@ -144,6 +144,15 @@
 - [x] [C] Chartes vérifiées le 10/11 : MagistrIA = code du site (4/11),
   Veolt = veoltproduction.fr. ⚠️ La racine de veoltproduction.fr affiche la
   connexion de la « Machine à prospection », pas la vitrine — [J] à vérifier.
+- [x] [C] Vidéos cas d'usage (45–60 s) : scènes dessinées et animées —
+  écran d'analyse MagistrIA (clause surlignée, majeure/mineure/conclusion,
+  citations classées), tableur d'exemple Veolt, chiffres qui défilent, listes,
+  comparatif, écran de fin avec le bouton du site. 4 scripts : business plan
+  et packshot 3D (Veolt), refus de garantie cyber et FAIR (MagistrIA).
+- [ ] [J] Relire les 4 scripts cas d'usage (`src/lib/videos.ts`), surtout la
+  liste des livrables du business plan Veolt.
+- [ ] [J] Adresse Veolt dans les visuels : veoltproduction.fr (racine = page
+  de connexion de la prospection) ou veolt.fr (vitrine en ligne) ?
 - [ ] [C] Plans vidéo dans le studio : accepter des clips (Higgsfield,
   Blender, After Effects) en plus des images, découpés au bon plan.
 - [ ] [C] Musique et sous-titres : piste son libre de droits, optionnelle.
