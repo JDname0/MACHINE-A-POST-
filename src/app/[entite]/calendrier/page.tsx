@@ -3,12 +3,23 @@ import { Flanc } from '@/components/Flanc';
 import { marque, type EntiteSlug } from '@/lib/marques';
 import { format } from '@/lib/formats';
 import { publications, compteursMenu, LIBELLE_STATUT } from '@/lib/requetes';
-import { SEQUENCE_LANCEMENT } from '@/lib/calendrier';
+import { SEQUENCE_LANCEMENT, lundiDe, iso } from '@/lib/calendrier';
+import { recalerCalendrier } from '@/app/actions';
 
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
-export default async function Calendrier({ params }: { params: Promise<{ entite: string }> }) {
+const COURT = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+const court = (d: string) => COURT.format(new Date(`${d}T12:00:00`));
+
+export default async function Calendrier({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ entite: string }>;
+  searchParams: Promise<{ recale?: string }>;
+}) {
   const { entite } = await params;
+  const { recale } = await searchParams;
   const e = entite as EntiteSlug;
   const m = marque(e);
   const tout = publications(e);
@@ -19,6 +30,12 @@ export default async function Calendrier({ params }: { params: Promise<{ entite:
     if (!parSemaine.has(s)) parSemaine.set(s, []);
     parSemaine.get(s)!.push(p);
   }
+
+  // Le premier lundi actuel, et celui qu'on propose : le lundi qui vient.
+  const s1 = parSemaine.get(1)?.[0]?.date_prevue;
+  const debutActuel = s1 ? iso(lundiDe(new Date(`${s1}T12:00:00`))) : null;
+  const prochain = lundiDe(new Date());
+  prochain.setDate(prochain.getDate() + 7);
 
   return (
     <>
@@ -35,6 +52,45 @@ export default async function Calendrier({ params }: { params: Promise<{ entite:
           </p>
         </header>
 
+        {recale === '1' ? (
+          <div className="encart" style={{ marginBottom: 14 }}>
+            ✅ Calendrier recalé pour Veolt et MagistrIA. Les brouillons n&apos;ont pas bougé, seules les dates ont changé.
+          </div>
+        ) : null}
+
+        <form action={recalerCalendrier} className="encart" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end', marginBottom: 18 }}>
+          <input type="hidden" name="entite" value={e} />
+          <div style={{ flex: '1 1 260px' }}>
+            <strong>Recaler les 12 semaines</strong>
+            <div className="aide">
+              {debutActuel ? <>Aujourd&apos;hui la semaine 1 commence le {court(debutActuel)}. </> : null}
+              S&apos;applique aux deux entités. Les textes ne changent pas, les publications déjà parties non plus.
+            </div>
+          </div>
+          <label>
+            <div className="aide">Premier lundi</div>
+            <input type="date" name="depart" defaultValue={iso(prochain)} required />
+          </label>
+          <label>
+            <div className="aide">Pause après la semaine</div>
+            <select name="pause_apres" defaultValue="0">
+              <option value="0">aucune pause</option>
+              {Array.from({ length: 11 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>S{n}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <div className="aide">Durée de la pause</div>
+            <select name="pause_semaines" defaultValue="0">
+              {[0, 1, 2, 3].map((n) => (
+                <option key={n} value={n}>{n} semaine{n > 1 ? 's' : ''}</option>
+              ))}
+            </select>
+          </label>
+          <button className="bouton" type="submit">Recaler</button>
+        </form>
+
         {[...parSemaine.entries()].map(([s, pubs]) => {
           const phase = SEQUENCE_LANCEMENT.find((x) => x.semaine === s);
           const parJour = new Map<number, typeof pubs>();
@@ -47,6 +103,11 @@ export default async function Calendrier({ params }: { params: Promise<{ entite:
             <section key={s}>
               <div className="ban-semaine">
                 <h2>Semaine {s}</h2>
+                {pubs.length ? (
+                  <span className="int">
+                    {court(pubs[0].date_prevue)} → {court(pubs[pubs.length - 1].date_prevue)}
+                  </span>
+                ) : null}
                 {phase ? <span className="ph">{phase.nom}</span> : null}
                 {phase ? <span className="int">{phase.intention}</span> : <span className="int">Semaine type.</span>}
                 <span className="int" style={{ marginLeft: 'auto' }}>

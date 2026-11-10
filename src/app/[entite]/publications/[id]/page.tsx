@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation';
 import { Flanc } from '@/components/Flanc';
 import { marque, type EntiteSlug } from '@/lib/marques';
 import { format, type FormatSlug } from '@/lib/formats';
-import { publication, compteursMenu, formaterDate, LIBELLE_STATUT, sousForums, joursDepuis, mediasDePublication } from '@/lib/requetes';
-import { controler, estValidable } from '@/lib/garde-fous';
+import { publication, compteursMenu, formaterDate, LIBELLE_STATUT, sousForums, mediasDePublication } from '@/lib/requetes';
+import { constatsDe, lienVisuel as lienVisuelDe, texteAColler as texteDuPost } from '@/lib/fiche';
 import { diagnostiquer, CONNEXIONS, type ReseauConnectable } from '@/lib/connecteurs';
-import { gabaritPour, deuxLignes, GABARITS } from '@/lib/visuels';
+import { gabaritPour, GABARITS } from '@/lib/visuels';
 import { controlerMedia, attendu } from '@/lib/conformite-media';
 import { poids, duree, estVideo } from '@/lib/medias';
 import { db } from '@/lib/db';
@@ -28,24 +28,7 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
   const examines = apportes.map((m) => ({ m, constats: controlerMedia(p.format_slug, m) }));
   const publiables = examines.filter((x) => !x.constats.some((k) => k.niveau === 'blocage'));
   const fs = sousForums();
-  const sfChoisi = fs.find((x) => x.nom === p.sous_forum);
-
-  const constats = controler({
-    entite: e,
-    formatSlug: p.format_slug as FormatSlug,
-    accroche: p.accroche,
-    corps: p.corps,
-    appel: p.appel,
-    hashtags: p.hashtags,
-    persona: p.persona,
-    pilier: p.pilier,
-    preuve: p.preuve,
-    indicateur: p.indicateur,
-    sousForum: p.sous_forum,
-    joursDepuisDernierPostSousForum: joursDepuis(sfChoisi?.dernier_post ?? null),
-    plafondJoursSousForum: sfChoisi?.plafond_jours ?? null,
-  });
-  const validable = estValidable(constats);
+  const { constats, validable } = constatsDe(p);
   const total = `${p.accroche}\n${p.corps}\n${p.appel}`.trim().length;
 
   const connectable = f.reseau !== 'blog';
@@ -56,24 +39,11 @@ export default async function Composeur({ params }: { params: Promise<{ entite: 
     .prepare('SELECT * FROM metriques WHERE publication_id=? ORDER BY id DESC')
     .all(p.id) as Array<{ impressions: number | null; interactions: number | null; clics: number | null; duree_s: number | null; note: string | null; releve_le: string }>;
 
-  const texteAColler = [p.accroche, p.corps, p.appel, p.hashtags].filter(Boolean).join('\n\n');
+  const texteAColler = texteDuPost(p);
 
   // Le visuel qui va avec ce post, pré-rempli de son propre texte.
   const slugVisuel = gabaritPour(p.format_slug, p.pilier);
-  let lienVisuel: string | null = null;
-  if (slugVisuel) {
-    const { ligne1, ligne2 } = deuxLignes(p.titre ?? '');
-    const q = new URLSearchParams({ ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) });
-    if (slugVisuel === 'chiffre') {
-      // Sur ce gabarit c'est la grande valeur qui porte : on prend le premier
-      // nombre ou la première référence d'article trouvée dans l'accroche.
-      const trouve = p.accroche.match(/(?:art\.?\s*)?[LRD]\.?\s*\d+(?:-\d+)?|\d[\d  ]*(?:\s*€|\s*%)?/i);
-      q.set('chiffre', (trouve?.[0] ?? '—').trim());
-      q.set('legende', p.preuve ?? '');
-      q.set('sousTitre', p.accroche.slice(0, 180));
-    }
-    lienVisuel = `/${e}/visuels/${slugVisuel}?${q.toString()}`;
-  }
+  const lienVisuel = lienVisuelDe(p);
 
   return (
     <>

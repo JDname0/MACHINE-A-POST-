@@ -61,6 +61,28 @@ export function iso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * La date d'un créneau une fois le calendrier recalé.
+ *
+ * Calculée depuis la **position** du créneau (numéro de semaine + jour de la
+ * semaine), jamais en ajoutant un écart à la date actuelle : recaler deux fois
+ * de suite, ou recaler avec une pause déjà posée, donne le même résultat
+ * qu'une seule fois. Une pause de N semaines décale tout ce qui suit la
+ * semaine `pauseApres` — les semaines gardent leur numéro, donc leur phase.
+ */
+export function dateRecalee(
+  dateActuelle: string,
+  semaine: number,
+  premierLundi: Date,
+  pause: { apres: number; semaines: number } = { apres: 0, semaines: 0 },
+): string {
+  const jour = (new Date(`${dateActuelle}T12:00:00`).getDay() + 6) % 7;
+  const d = lundiDe(premierLundi);
+  const decalagePause = pause.apres > 0 && semaine > pause.apres ? pause.semaines * 7 : 0;
+  d.setDate(d.getDate() + (semaine - 1) * 7 + jour + decalagePause);
+  return iso(d);
+}
+
 export interface CreneauDate extends Creneau {
   date: string;
   semaine: number;

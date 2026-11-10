@@ -62,7 +62,12 @@ export function compteursMenu(entite: EntiteSlug): Record<string, number> {
   const articles = d.prepare("SELECT COUNT(*) AS n FROM articles WHERE entite=? AND statut='a-ecrire'").get(entite) as { n: number };
   const campagnes = d.prepare("SELECT COUNT(*) AS n FROM campagnes WHERE entite=? AND statut='active'").get(entite) as { n: number };
   const medias = d.prepare('SELECT COUNT(*) AS n FROM medias WHERE entite=?').get(entite) as { n: number };
-  return { publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n, visuels: medias.n };
+  // La file de validation compte toute la semaine en cours de traitement,
+  // pas seulement les sept jours qui viennent : on valide avec de l'avance.
+  const aValider = d
+    .prepare("SELECT COUNT(*) AS n FROM publications WHERE entite=? AND semaine IS NOT NULL AND statut IN ('brouillon','a-relire')")
+    .get(entite) as { n: number };
+  return { valider: aValider.n, publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n, visuels: medias.n };
 }
 
 export function statsEntite(entite: EntiteSlug) {

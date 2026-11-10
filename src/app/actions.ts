@@ -78,6 +78,41 @@ export async function changerStatut(fd: FormData) {
   revalidatePath(`/${entite}`);
 }
 
+/**
+ * La décision prise depuis la file de validation : valider ou renvoyer en
+ * relecture, un post à la fois.
+ *
+ * Le garde-fou est **revérifié ici**, côté serveur : un bouton grisé dans la
+ * page n'empêche pas un formulaire envoyé à la main. Un post bloqué ne passe
+ * jamais en « validé », quelle que soit la page d'où vient la demande.
+ */
+export async function trancher(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const decision = String(fd.get('decision'));
+  const retour = String(fd.get('retour') ?? `/${entite}/valider`);
+  const { publication } = await import('@/lib/requetes');
+  const { constatsDe } = await import('@/lib/fiche');
+  const p = publication(id);
+  if (!p || p.entite !== entite || p.statut === 'publie') redirect(retour);
+
+  if (decision === 'valide') {
+    if (!constatsDe(p).validable) redirect(`${retour}${retour.includes('?') ? '&' : '?'}bloque=${id}#p${id}`);
+    db().prepare("UPDATE publications SET statut='valide', maj_le=datetime('now') WHERE id=?").run(id);
+    tracer('validé depuis la file', `publication ${id}`, entite);
+  } else if (decision === 'a-relire') {
+    db().prepare("UPDATE publications SET statut='a-relire', maj_le=datetime('now') WHERE id=?").run(id);
+    tracer('renvoyé en relecture', `publication ${id}`, entite);
+  } else {
+    redirect(retour);
+  }
+  await sauvegarder();
+  revalidatePath(`/${entite}`);
+  revalidatePath(`/${entite}/publications`);
+  revalidatePath(`/${entite}/publications/${id}`);
+  redirect(`${retour}#p${id}`);
+}
+
 export async function marquerPublie(fd: FormData) {
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
@@ -320,6 +355,57 @@ export async function creerPublication(fd: FormData) {
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   redirect(`/${entite}/publications/${info.lastInsertRowid}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calendrier — recaler les 12 semaines
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Recale le calendrier des **deux** entités sur un nouveau premier lundi.
+ *
+ * Ne re-sème rien : seules les dates bougent, pour garder chaque brouillon
+ * déjà retouché. Les semaines gardent leur numéro, donc leur phase de
+ * lancement. Une publication déjà partie garde sa date — elle a eu lieu — et
+ * les publications créées hors calendrier (sans semaine) ne bougent pas.
+ *
+ * Mise à jour en deux temps : décaler ligne à ligne sous la contrainte
+ * `UNIQUE (entite, date_prevue, format_slug, pilier)` peut heurter
+ * provisoirement une ligne pas encore déplacée.
+ */
+export async function recalerCalendrier(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const depart = String(fd.get('depart') ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(depart)) redirect(`/${entite}/calendrier?recale=erreur`);
+  const pause = {
+    apres: Math.max(0, Math.min(12, Number(fd.get('pause_apres') ?? 0) || 0)),
+    semaines: Math.max(0, Math.min(4, Number(fd.get('pause_semaines') ?? 0) || 0)),
+  };
+  const { dateRecalee } = await import('@/lib/calendrier');
+  const premierLundi = new Date(`${depart}T12:00:00`);
+
+  const d = db();
+  const lignes = d
+    .prepare("SELECT id, date_prevue, semaine FROM publications WHERE semaine IS NOT NULL AND statut != 'publie'")
+    .all() as Array<{ id: number; date_prevue: string; semaine: number }>;
+  const temp = d.prepare("UPDATE publications SET date_prevue = '~' || id WHERE id = ?");
+  const finale = d.prepare("UPDATE publications SET date_prevue = ?, maj_le = datetime('now') WHERE id = ?");
+  d.transaction(() => {
+    const cibles = lignes.map((l) => [l.id, dateRecalee(l.date_prevue, l.semaine, premierLundi, pause)] as const);
+    for (const [id] of cibles) temp.run(id);
+    for (const [id, date] of cibles) finale.run(date, id);
+  })();
+
+  const detail = `premier lundi ${depart}${pause.semaines ? `, pause de ${pause.semaines} sem. après S${pause.apres}` : ''} — ${lignes.length} publications`;
+  tracer('calendrier recalé', detail);
+  await sauvegarder();
+  for (const e of ['veolt', 'magistria']) {
+    revalidatePath(`/${e}`);
+    revalidatePath(`/${e}/calendrier`);
+    revalidatePath(`/${e}/publications`);
+    revalidatePath(`/${e}/valider`);
+  }
+  redirect(`/${entite}/calendrier?recale=1`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

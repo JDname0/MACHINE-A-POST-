@@ -3,6 +3,7 @@ import { marque, type EntiteSlug } from '@/lib/marques';
 
 const PAGES = [
   ['', 'Tableau de bord'],
+  ['valider', 'À valider'],
   ['calendrier', 'Calendrier éditorial'],
   ['publications', 'Publications'],
   ['formats', 'Formats 2026'],
