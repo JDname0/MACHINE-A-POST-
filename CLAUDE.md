@@ -97,10 +97,20 @@ rendues par `next/og`. Trois choses à savoir avant d'y toucher :
 - **La route PNG ne traverse pas le `layout`**, donc elle porte sa propre
   vérification de session. La retirer ouvrirait le générateur à tous.
 
-⚠️ **La charte MagistrIA est bordeaux `#7B2D3E` sur fond clair, avec Spectral.**
-Le cadrage de mai décrit encore un bleu `#0D1B2A` et un or `#D4AF37` avec
-Playfair : c'est périmé. Sur l'identité visuelle, le code livré de
-`magistria-mvp` prime sur le document de cadrage. Veolt, lui, est confirmé.
+⚠️ **La charte MagistrIA est celle du site en ligne `magistrai.fr`** (relevée
+le 2026-11-10) : fond nuit `#03050A`, titres Spectral en blanc, texte Inter
+`#E9EEF5`, sur-titres JetBrains Mono en capitales cyan, logotype « Magistr » +
+« IA » or `#E0B85A`, accents cyan `#3CC8FF` et ambre `#FF9A3C`, grille fine
+bleutée ; le bordeaux `#7B2D3E` ne sert qu'au bouton d'action. Le blanc +
+bordeaux du dépôt `magistrai` et le bleu/or du cadrage de mai sont **périmés**
+pour les contenus. Veolt suit `veolt.fr` : fond `#0C0C0C`, Bebas Neue + Kanit,
+dégradé de texte `#B600A8 → #C79BFF`, dégradé signature `#18011F → #B600A8 →
+#7621B0 → #BE4C00`, titres qui se « décodent » lettre à lettre.
+
+**Vidéos** : `src/lib/fabrique-video.ts` dessine le titre sur le fond de carte
+(gabarit sans texte) pour l'animer — décodage pour Veolt, montée douce pour
+MagistrIA — avec sur-titre du pilier en ouverture, lueur mobile et barre de
+progression. Le style de chaque marque est dans `themeStudio()` (`production.ts`).
 
 `src/lib/axe-visuel.ts` porte les sept décisions reprises de la référence de
 lancement et les quatre refus — écrits pour que personne ne les « corrige ».

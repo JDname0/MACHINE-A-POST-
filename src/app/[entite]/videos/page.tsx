@@ -11,9 +11,8 @@ import { iaDisponible } from '@/lib/ia';
 import { texteAColler } from '@/lib/fiche';
 import { duree as libelleDuree, poids } from '@/lib/medias';
 import { videosDe } from '@/lib/videos';
-import { THEMES, theme } from '@/lib/visuels';
 import { depotDirect, plafondDepotVideo } from '@/lib/medias';
-import { echeancesVideo, imagesMemoire, montageParDefaut, montagePret, reglagesVideo, formatsVideoDe, videosProduites, DELAIS, type EtatVideo } from '@/lib/production';
+import { echeancesVideo, imagesMemoire, montageParDefaut, montagePret, themeStudio, nomPilier, reglagesVideo, formatsVideoDe, videosProduites, DELAIS, type EtatVideo } from '@/lib/production';
 import { memoriserSemaine, creerVideoDepuisPost } from '@/app/actions';
 import { ReglagesProduction } from '@/components/ReglagesProduction';
 import { BoutonVideo } from '@/components/BoutonVideo';
@@ -49,12 +48,6 @@ export default async function Videos({
   const memoire = imagesMemoire(e);
   const generees = memoire.filter((x) => x.origine === 'genere').length;
   const images = memoire.map((x) => ({ id: x.id, url: `/${e}/medias/${x.id}`, nom: x.nom, origine: x.origine }));
-  // Veolt n'a qu'un registre (son site est déjà sombre) : `theme()` retombe alors sur la charte principale.
-  const aVariante = Boolean(THEMES[e].sombre);
-  const th = (v: 'clair' | 'sombre') => {
-    const t = theme(e, v);
-    return { fond: t.fond, encre: t.encre, accent: t.accent, policeTitre: t.policeTitre };
-  };
   const rythme = e === 'veolt' ? ('sec' as const) : ('pose' as const);
   const direct = depotDirect();
 
@@ -261,7 +254,8 @@ export default async function Videos({
               plansInitiaux={montage.plans}
               cartes={montage.cartes}
               images={images}
-              themes={{ clair: th('clair'), sombre: aVariante ? th('sombre') : null }}
+              themes={{ clair: themeStudio(e), sombre: null }}
+              surTitre={nomPilier(p)}
               rythme={rythme}
               direct={direct}
               plafondOctets={plafondDepotVideo()}

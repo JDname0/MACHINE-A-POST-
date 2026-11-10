@@ -32,6 +32,8 @@ interface Props {
   /** Une vidéo du studio existe déjà pour ce post : l'enregistrer la remplacera. */
   aDejaVideo?: boolean;
   legende: string;
+  /** Sur-titre du plan d'ouverture (le pilier du post). */
+  surTitre?: string;
   /** Le texte à publier avec la vidéo (légende du réseau). */
   legendePublication: string;
   conseil: { conseil: [number, number]; max: number; pourquoi: string } | null;
@@ -76,6 +78,7 @@ export function StudioVideo(p: Props) {
     plafondOctets: p.plafondOctets,
     legende: p.legende,
     variante: p.themes.sombre ? variante : 'clair',
+    surTitre: p.surTitre,
   });
 
   const maj = (i: number, champ: Partial<PlanMontage>) => setPlans((ps) => ps.map((x, k) => (k === i ? { ...x, ...champ } : x)));

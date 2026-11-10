@@ -22,6 +22,7 @@ export const FICHIERS_POLICES = [
   'Inter-Regular.ttf',
   'Inter-SemiBold.ttf',
   'PlayfairDisplay-Bold.ttf',
+  'JetBrainsMono-Medium.woff',
 ] as const;
 
 const lire = (f: string) => readFileSync(path.join(DOSSIER_POLICES, f));
@@ -37,6 +38,7 @@ export function chargerPolices() {
     { name: 'Spectral', data: lire('Spectral-SemiBold.ttf'), weight: 600, style: 'normal' },
     { name: 'Inter', data: lire('Inter-Regular.ttf'), weight: 400, style: 'normal' },
     { name: 'Inter', data: lire('Inter-SemiBold.ttf'), weight: 600, style: 'normal' },
+    { name: 'Mono', data: lire('JetBrainsMono-Medium.woff'), weight: 600, style: 'normal' },
   ];
   return cache;
 }

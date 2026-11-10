@@ -104,6 +104,16 @@ interface ThemeVisuel {
   filet: string;
   /** Encre posée SUR l'accent — l'or veut du sombre, le bordeaux du blanc. */
   surAccent: string;
+  /**
+   * Logotype en mots, quand la marque n'a pas de pictogramme : [début, fin,
+   * couleur de la fin]. MagistrIA s'écrit « Magistr » + « IA » en or, comme
+   * sur son site. Absent : pictogramme carré + nom (Veolt).
+   */
+  logotype?: [string, string, string];
+  /** Trame posée sous les halos (grille fine du site MagistrIA). */
+  trame?: string;
+  /** Sur-titre en petites capitales espacées, et sa couleur (police Mono). */
+  surTitre?: { texte: string; couleur: string };
 }
 
 export type Variante = 'clair' | 'sombre';
@@ -114,11 +124,10 @@ export type Variante = 'clair' | 'sombre';
  * Veolt vient du site en ligne (`veoltproduction.fr`) : fond quasi noir,
  * dégradé magenta → violet → orange, Bebas Neue et Kanit.
  *
- * MagistrIA vient du **produit livré** (`magistria-mvp/src/app/globals.css`),
- * relevé le 2026-10-21 — et non du cadrage de mai, qui portait encore un bleu
- * et un or que la marque a quittés. C'est du **bordeaux sur fond clair**, avec
- * Spectral en affichage. Une marque claire ne se met pas en scène comme une
- * marque sombre : d'où la variante, plutôt qu'une transposition forcée.
+ * MagistrIA vient du **site en ligne** (`magistrai.fr`, relevé le 2026-11-10) :
+ * nuit profonde, Spectral blanc, sur-titres Mono cyan, « IA » or, grille et
+ * lueurs. Le blanc + bordeaux du dépôt et le bleu/or du cadrage de mai sont
+ * périmés pour les contenus — c'est le site public qui fait foi.
  */
 export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
   veolt: {
@@ -134,7 +143,8 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
         'radial-gradient(760px 700px at 78% 96%, rgba(118,33,176,0.40) 0%, rgba(118,33,176,0) 66%)',
       policeTitre: 'Bebas',
       policeAffiche: 'Kanit',
-      titreDegrade: 'linear-gradient(96deg, #FF4FD8 0%, #C79BFF 48%, #FF8A3D 100%)',
+      // Le dégradé de texte du site en ligne (veolt.fr, relevé le 10/11) : magenta → lavande.
+      titreDegrade: 'linear-gradient(100deg, #B600A8 0%, #C79BFF 100%)',
       marque: 'Veolt',
       signature: 'Studio Créatif',
       services: 'Business plan  •  Sites & web 3D  •  Vidéo & 3D',
@@ -148,14 +158,22 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
     sombre: null as unknown as ThemeVisuel,
   },
   magistria: {
+    // Relevée sur le site en ligne magistrai.fr le 2026-11-10 : nuit profonde,
+    // titres Spectral en blanc, sur-titres JetBrains Mono en capitales cyan,
+    // logotype « Magistr » + « IA » or, grille fine bleutée et deux lueurs
+    // (bleue, ambre). Le bordeaux ne sert plus qu'au bouton d'action.
     clair: {
-      fond: '#FFFFFF',
-      encre: '#15121A',
-      encreDouce: '#6E6B78',
-      accent: '#7B2D3E',
-      accentDoux: '#B8962E',
-      // Un seul voile, très pâle. La sobriété est l'argument de vente.
-      halos: 'radial-gradient(1100px 820px at 78% 6%, rgba(123,45,62,0.09) 0%, rgba(123,45,62,0) 70%)',
+      fond: '#03050A',
+      encre: '#FFFFFF',
+      encreDouce: '#9AA9BB',
+      accent: '#3CC8FF',
+      accentDoux: '#E0B85A',
+      halos:
+        'radial-gradient(1000px 900px at 62% 58%, rgba(28,86,160,0.34) 0%, rgba(28,86,160,0) 66%),' +
+        'radial-gradient(760px 760px at 96% 78%, rgba(255,154,60,0.12) 0%, rgba(255,154,60,0) 62%)',
+      trame:
+        'repeating-linear-gradient(0deg, rgba(80,190,255,0.07) 0px, rgba(80,190,255,0.07) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 54px),' +
+        'repeating-linear-gradient(90deg, rgba(80,190,255,0.07) 0px, rgba(80,190,255,0.07) 1px, rgba(0,0,0,0) 1px, rgba(0,0,0,0) 54px)',
       policeTitre: 'Spectral',
       policeAffiche: 'Spectral',
       titreDegrade: null,
@@ -163,30 +181,14 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
       signature: "L'intelligence au service du droit",
       services: 'Analyse  •  Rédaction  •  Conformité',
       adresse: 'magistrai.fr',
-      surface: '#F5F5F7',
-      filet: '#E6E6EB',
-      surAccent: '#FFFFFF',
+      surface: 'rgba(233,238,245,0.05)',
+      filet: 'rgba(80,190,255,0.22)',
+      surAccent: '#03050A',
+      logotype: ['Magistr', 'IA', '#E0B85A'],
+      surTitre: { texte: 'L’intelligence au service du droit', couleur: '#7FB7D9' },
     },
-    sombre: {
-      fond: '#15121A',
-      encre: '#F5F5F7',
-      encreDouce: '#9A95A3',
-      // Sur l'encre, c'est l'or qui tient le contraste ; le bordeaux s'y noie
-      // et sert donc de halo plutôt que d'accent.
-      accent: '#B8962E',
-      accentDoux: '#7B2D3E',
-      halos: 'radial-gradient(1100px 860px at 80% 8%, rgba(123,45,62,0.55) 0%, rgba(123,45,62,0) 68%)',
-      policeTitre: 'Spectral',
-      policeAffiche: 'Spectral',
-      titreDegrade: null,
-      marque: 'MagistrIA',
-      signature: "L'intelligence au service du droit",
-      services: 'Analyse  •  Rédaction  •  Conformité',
-      adresse: 'magistrai.fr',
-      surface: 'rgba(245,245,247,0.05)',
-      filet: 'rgba(245,245,247,0.14)',
-      surAccent: '#15121A',
-    },
+    // Une seule charte, comme Veolt : le site est sombre de bout en bout.
+    sombre: null as unknown as ThemeVisuel,
   },
 };
 
@@ -276,6 +278,22 @@ export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function Identite({ t, taille = 1 }: { t: ThemeVisuel; taille?: number }) {
+  if (t.logotype) {
+    const [debut, fin, couleur] = t.logotype;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 * taille }}>
+        <div style={{ display: 'flex', fontFamily: t.policeAffiche, fontSize: 40 * taille, color: t.encre, lineHeight: 1.05 }}>
+          <span>{debut}</span>
+          <span style={{ color: couleur }}>{fin}</span>
+        </div>
+        {t.surTitre ? (
+          <div style={{ display: 'flex', fontFamily: 'Mono', fontSize: 15 * taille, letterSpacing: 4 * taille, color: t.surTitre.couleur }}>
+            {t.surTitre.texte.toUpperCase()}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 18 * taille }}>
       <div
@@ -461,6 +479,9 @@ function Titre({
   taille: number;
 }) {
   const ligne2 = c.ligne2.split('\n');
+  // Titre vide : la carte sert de fond (studio vidéo, qui dessine le titre
+  // lui-même pour l'animer) — ni texte ni filet.
+  if (!c.ligne1 && !c.ligne2.trim()) return <div style={{ display: 'flex' }} />;
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {c.ligne1 ? (
@@ -521,7 +542,7 @@ export function rendre(
     justifyContent: 'space-between',
     padding: marge,
     backgroundColor: t.fond,
-    backgroundImage: t.halos,
+    backgroundImage: t.trame ? `${t.halos},${t.trame}` : t.halos,
   };
 
   if (gabarit === 'chiffre') {

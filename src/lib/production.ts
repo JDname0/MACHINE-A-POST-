@@ -19,7 +19,7 @@ import { videosDe } from './videos';
 import { cadreVideo, plansDepuisPost, plansDepuisScript, type PlanMontage } from './montage';
 import { deuxLignes, THEMES } from './visuels';
 import { TYPES_IMAGE, depotDirect, plafondDepotVideo } from './medias';
-import type { Montage } from './fabrique-video';
+import type { Montage, ThemeStudio } from './fabrique-video';
 import { marque, type EntiteSlug } from './marques';
 
 /** Horizon de l'anticipation : ce qui sera dû dans les sept jours. */
@@ -153,8 +153,7 @@ export interface MontageParDefaut {
  * pilier s'il existe, sinon des plans tirés du texte du post.
  *
  * Les images viennent de la mémoire, sans rien inventer :
- *  - en ouverture, le visuel **généré** du post lui-même s'il est mémorisé —
- *    il porte le titre, à la charte : c'est un premier plan tout fait ;
+ *  - en ouverture, la carte animée (le titre du post, avec son entrée) ;
  *  - au milieu, les images **apportées** (rendus 3D, Higgsfield, photos)
  *    rattachées au post, puis celles de la même semaine ;
  *  - la fermeture garde la carte : l'appel à l'action doit rester lisible.
@@ -166,8 +165,9 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
   const conseil = dureeConseillee(p.format_slug)?.conseil;
   const plans = script ? plansDepuisScript(script) : plansDepuisPost(p, conseil);
 
-  const ouverture = memoire.find((m) => m.origine === 'genere' && m.publication_id === p.id);
-  if (ouverture && plans.length) plans[0] = { ...plans[0], source: { type: 'media', id: ouverture.id } };
+  // L'ouverture reste la carte animée (sur-titre + titre qui entre) : les trois
+  // premières secondes décident de la rétention, une image fixe les gâche. Les
+  // visuels mémorisés restent au choix dans le studio, plan par plan.
 
   const matiere = [
     ...memoire.filter((m) => m.origine === 'apporte' && m.publication_id === p.id),
@@ -195,11 +195,52 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
   return { plans, cartes, largeur: cadre.largeur, hauteur: cadre.hauteur, ratio: cadre.ratio, scriptRef: script?.ref ?? null };
 }
 
+/**
+ * Le style vidéo de chaque marque, relevé sur son site en ligne le 10/11/2026.
+ *  - Veolt (veolt.fr) : Bebas en capitales, seconde ligne en dégradé magenta →
+ *    lavande, titres qui se « décodent » lettre à lettre comme sur le site,
+ *    barre au dégradé signature magenta → violet → orange.
+ *  - MagistrIA (magistrai.fr) : Spectral blanc sur nuit, sur-titre JetBrains
+ *    Mono cyan, entrée douce ligne à ligne, filet et barre cyan.
+ */
+export function themeStudio(e: EntiteSlug): ThemeStudio {
+  const t = THEMES[e].clair;
+  if (e === 'veolt') {
+    return {
+      fond: t.fond,
+      encre: t.encre,
+      accent: t.accent,
+      policeTitre: 'Bebas',
+      degrade: ['#B600A8', '#C79BFF'],
+      barre: ['#B600A8', '#7621B0', '#BE4C00'],
+      animation: 'brouillage',
+      surTitre: { couleur: '#C79BFF', police: 'Bebas' },
+      lueur: 'rgba(182,0,168,0.13)',
+      majuscules: true,
+    };
+  }
+  return {
+    fond: t.fond,
+    encre: t.encre,
+    accent: t.accent,
+    policeTitre: 'Spectral',
+    barre: ['#3CC8FF'],
+    animation: 'montee',
+    surTitre: { couleur: '#7FB7D9', police: 'Mono' },
+    lueur: 'rgba(60,200,255,0.08)',
+    majuscules: false,
+  };
+}
+
+/** Le nom lisible du pilier d'un post, pour le sur-titre d'ouverture. */
+export function nomPilier(p: LignePublication): string {
+  return marque(p.entite as EntiteSlug).piliers.find((x) => x.slug === p.pilier)?.nom ?? '';
+}
+
 /** Le montage complet d'un post, prêt à fabriquer dans le navigateur (studio, lot, boutons). */
 export function montagePret(p: LignePublication, memoire: ImageMemoire[], scriptRef?: string): Montage {
   const e = p.entite as EntiteSlug;
   const md = montageParDefaut(p, memoire, scriptRef);
-  const t = THEMES[e].clair;
   return {
     entite: e,
     publicationId: p.id,
@@ -208,7 +249,8 @@ export function montagePret(p: LignePublication, memoire: ImageMemoire[], script
     plans: md.plans,
     cartes: md.cartes,
     images: memoire.map((x) => ({ id: x.id, url: `/${e}/medias/${x.id}`, nom: x.nom, origine: x.origine })),
-    theme: { fond: t.fond, encre: t.encre, accent: t.accent, policeTitre: t.policeTitre },
+    theme: themeStudio(e),
+    surTitre: nomPilier(p),
     rythme: e === 'veolt' ? 'sec' : 'pose',
     direct: depotDirect(),
     plafondOctets: plafondDepotVideo(),

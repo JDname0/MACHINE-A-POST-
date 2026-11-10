@@ -287,7 +287,7 @@ export const MARQUES: Record<EntiteSlug, Marque> = {
       },
     ],
     contraintes: [
-      'Charte réelle : bordeaux #7B2D3E, bordeaux profond #521D29, or #B8962E, encre #15121A, fond blanc ; Spectral en affichage, Inter en texte.',
+      'Charte réelle (site en ligne magistrai.fr, relevé le 10/11/2026) : fond nuit #03050A, titres Spectral en blanc, texte Inter #E9EEF5, sur-titres JetBrains Mono en capitales cyan, logotype « Magistr » + « IA » or #E0B85A, accents cyan #3CC8FF et ambre #FF9A3C, bordeaux #7B2D3E réservé au bouton d’action. Ton : sobre, précis, jamais publicitaire.',
       'Cœur de cible MVP : assureurs et mutuelles (cadrage §5), puis cabinets et directions juridiques.',
       "Toute affirmation de droit exige une référence : un article, une décision, une date.",
       'Marché comparable : Ordalie 69–105 €, Lexbase ~116 €, GenIA-L dès 213 €, Predictice dès 250 €. Nos prix se défendent par palier.',

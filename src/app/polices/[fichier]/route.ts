@@ -10,6 +10,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ fichier: s
   const octets = lirePolice(fichier);
   if (!octets) return new Response('Introuvable', { status: 404 });
   return new Response(new Uint8Array(octets), {
-    headers: { 'Content-Type': 'font/ttf', 'Cache-Control': 'public, max-age=31536000, immutable' },
+    headers: { 'Content-Type': fichier.endsWith('.woff') ? 'font/woff' : 'font/ttf', 'Cache-Control': 'public, max-age=31536000, immutable' },
   });
 }
