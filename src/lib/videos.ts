@@ -44,6 +44,12 @@ export interface ScriptVideo {
   entite: EntiteSlug;
   formatSlug: FormatSlug;
   pilier: string;
+  /**
+   * Le sujet du réservoir (`sujets.ts`) que ce script met en images. C'est par
+   * lui, et non par le pilier, qu'un post reçoit ce script : deux sujets du
+   * même pilier ne disent pas la même chose.
+   */
+  sujet?: string;
   duree: number;
   /** Ce qui rend ce script tournable sans moyens. */
   tournage: string;
@@ -60,6 +66,7 @@ export const VIDEOS: ScriptVideo[] = [
   // ── Veolt ───────────────────────────────────────────────────────────────
   {
     ref: 'vid-v-1',
+    sujet: 'v-mt-1',
     titre: 'Photo studio ou packshot 3D',
     entite: 'veolt',
     formatSlug: 'ig-reel',
@@ -80,6 +87,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-2',
+    sujet: 'v-dc-2',
     titre: 'Les trois lignes qu’un banquier regarde',
     entite: 'veolt',
     formatSlug: 'ig-reel',
@@ -100,6 +108,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-3',
+    sujet: 'v-mt-3',
     titre: 'Sept étapes d’une publicité 3D',
     entite: 'veolt',
     formatSlug: 'tiktok-video',
@@ -122,6 +131,7 @@ export const VIDEOS: ScriptVideo[] = [
   // ── MagistrIA ───────────────────────────────────────────────────────────
   {
     ref: 'vid-m-1',
+    sujet: 'm-sd-1',
     titre: 'Trois phrases décident de la garantie',
     entite: 'magistria',
     formatSlug: 'ig-reel',
@@ -142,6 +152,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-m-2',
+    sujet: 'm-pi-1',
     titre: 'L’outil qui sait dire « je ne peux pas conclure »',
     entite: 'magistria',
     formatSlug: 'ig-reel',

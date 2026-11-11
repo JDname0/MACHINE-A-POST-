@@ -184,9 +184,16 @@ export interface MontageParDefaut {
  */
 export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], scriptRef?: string): MontageParDefaut {
   const scripts = videosDe(p.entite as EntiteSlug);
-  // Le script écrit pour ce post (vidéo cas d'usage), sinon celui du format et du pilier.
+  // Le script écrit pour ce post (vidéo cas d'usage), sinon celui écrit pour
+  // son **sujet**, dans un format au même cadre. Jamais par le seul pilier : un
+  // post « avant / après » recevait sinon le script du packshot 3D, parce que
+  // les deux sont du pilier « montrer le travail ». Sans script, les plans
+  // viennent du texte du post.
+  const vertical = new Set(['ig-reel', 'tiktok-video']);
+  const memeCadre = (a: string, b: string) => a === b || (vertical.has(a) && vertical.has(b));
   const auto =
-    scripts.find((s) => s.ref === p.sujet_ref) ?? scripts.find((s) => !s.casUsage && s.formatSlug === p.format_slug && s.pilier === p.pilier);
+    scripts.find((s) => s.ref === p.sujet_ref) ??
+    scripts.find((s) => !s.casUsage && !!s.sujet && s.sujet === p.sujet_ref && memeCadre(s.formatSlug, p.format_slug));
   const script = scriptRef === 'post' ? undefined : scripts.find((s) => s.ref === scriptRef) ?? auto;
   const conseil = dureeConseillee(p.format_slug)?.conseil;
   const plans = script ? plansDepuisScript(script) : plansDepuisPost(p, conseil);
