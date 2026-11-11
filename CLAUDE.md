@@ -92,8 +92,17 @@ laissés par l'IA bloquent la validation. La page calendrier exporte
 ## Production
 
 - **URL** : https://machine-a-post.vercel.app — équipe `jonathandubost-heticnets-projects`.
-- **Déploiement** : `npx vercel deploy --prod --yes` depuis ce dossier. Aucun
-  dépôt Git relié, donc aucun déploiement automatique.
+- **Déploiement : automatique à chaque push sur `main`.** Le projet Vercel est
+  relié au dépôt GitHub `JDname0/MACHINE-A-POST-` (alias
+  `machine-a-post-git-main-…`, constaté le 11/11/2026). « Ne pas déployer »
+  veut donc dire **ne pas pousser sur `main`** : travailler sur une branche.
+  `npx vercel deploy --prod --yes` reste possible depuis ce dossier.
+- **Le code part avec le push, pas les données.** La base et les médias faits
+  en local (vidéos, photos, voix, articles) ne vont en ligne que par
+  `scripts/envoyer-en-ligne.mjs` (`--medias`, puis `--base`) : il sauvegarde la
+  base en ligne dans `data/machine-prod-<date>.db` et refuse de l'écraser si
+  elle contient des actions absentes de la base locale. Pousser ensuite sur
+  `main` : le redéploiement fait relire la nouvelle base aux instances.
 - **Persistance** : store Blob privé `machine-a-post-base`, connecté en **OIDC**.
   Donc `blobActif()` teste `BLOB_STORE_ID` et pas seulement
   `BLOB_READ_WRITE_TOKEN` — ne pas « simplifier » ce test, ça ferait retomber
