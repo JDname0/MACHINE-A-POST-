@@ -63,6 +63,12 @@ export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; cont
     const n = [...p.corps.matchAll(/PAGE\s+\d+\s*[—–-]/g)].length;
     contenu.pagination = n ? `1 / ${n}` : '';
   }
+  if (slug === 'couverture') {
+    // Le titre d'un article est déjà la requête (et l'accroche le répète) :
+    // la couverture porte plutôt la première phrase de la réponse.
+    const reponse = p.corps.replace(/^#+[^\n]*\n/, '').split(/(?<=[.?!])\s+/)[0] ?? '';
+    contenu.sousTitre = reponse.length > 150 ? `${reponse.slice(0, reponse.lastIndexOf(' ', 148))}…` : reponse;
+  }
   if (slug === 'chiffre' && trouve) {
     // Sur ce gabarit c'est la grande valeur qui porte : le premier nombre ou la
     // première référence d'article trouvée dans l'accroche.
@@ -92,20 +98,45 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
   const photo = pages.length ? photoDuPost(p) : null;
   return pages.map((texte, i) => {
     const [premiere, ...reste] = texte.split(/(?<=[.:!?])\s+/);
-    const titre = premiere.length > 70 ? texte.slice(0, 70) : premiere;
+    // Une première phrase trop longue pour le titre se coupe à une pause
+    // (virgule, deux-points, tiret) ou entre deux mots — jamais dans un mot.
+    // Quelques caractères de trop ne justifient pas de laisser un mot orphelin en sous-titre.
+    const [titre, suite] = premiere.length > 82 ? couperTitre(premiere, 70) : [premiere, ''];
     const { ligne1, ligne2 } = deuxLignes(titre);
     return {
       slug: 'carrousel' as GabaritSlug,
       contenu: {
         ligne1,
         ligne2,
-        sousTitre: (premiere.length > 70 ? texte.slice(70) : reste.join(' ')).slice(0, 200),
+        sousTitre: borner([suite, ...reste].filter(Boolean).join(' '), 230),
         pagination: `${i + 1} / ${pages.length}`,
         // La couverture du carrousel porte la photo ; les pages restent nettes, pour la lecture.
         ...(i === 0 && photo ? { photo: String(photo) } : {}),
       },
     };
   });
+}
+
+/** Coupe un titre trop long à la dernière pause avant `max`, sinon au dernier espace ; la suite repart avec « … ». */
+function couperTitre(phrase: string, max: number): [string, string] {
+  const tete = phrase.slice(0, max + 1);
+  const pause = Math.max(tete.lastIndexOf(', '), tete.lastIndexOf(' : '), tete.lastIndexOf(' — '));
+  if (pause >= 25) {
+    const signe = phrase[pause] === ',' ? '' : phrase.slice(pause, pause + 2).trim();
+    return [`${phrase.slice(0, pause).trim()}${signe ? ` ${signe}` : ''}`, phrase.slice(pause + (phrase[pause] === ',' ? 1 : 2)).trim()];
+  }
+  const espace = tete.lastIndexOf(' ');
+  const coupe = espace > 20 ? espace : max;
+  return [`${phrase.slice(0, coupe).trim()}…`, `…${phrase.slice(coupe).trim()}`];
+}
+
+/** Borne un sous-titre à `max` caractères, en finissant sur une phrase ou un mot entier. */
+function borner(texte: string, max: number): string {
+  if (texte.length <= max) return texte;
+  const tete = texte.slice(0, max);
+  const phrase = Math.max(tete.lastIndexOf('. '), tete.lastIndexOf('? '), tete.lastIndexOf('! '));
+  if (phrase > max * 0.6) return tete.slice(0, phrase + 1);
+  return `${tete.slice(0, tete.lastIndexOf(' ')).replace(/[,;:—–-]\s*$/, '')}…`;
 }
 
 /** Tous les visuels d'un post : son visuel principal, puis les pages s'il s'agit d'un carrousel. */
@@ -122,5 +153,8 @@ export function urlVisuel(entite: string, v: { slug: GabaritSlug; contenu: Parti
 }
 
 export function texteAColler(p: LignePublication): string {
-  return [p.accroche, p.corps, p.appel, p.hashtags].filter(Boolean).join('\n\n');
+  // Un carrousel porte ses pages en images (ou en PDF) : la légende ne les
+  // répète pas. Ce qui précède « PAGE 1 — » reste, s'il y en a.
+  const corps = /carrousel/.test(p.format_slug) ? p.corps.replace(/PAGE\s+\d+\s*[—–-][\s\S]*$/, '').trim() : p.corps;
+  return [p.accroche, corps, p.appel, p.hashtags].filter(Boolean).join('\n\n');
 }

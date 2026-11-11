@@ -4,8 +4,11 @@ import { formaterDate, LIBELLE_STATUT, mediasDePublication, type LignePublicatio
 import { constatsDe, lienVisuel, pagesCarrousel, urlVisuel, texteAColler } from '@/lib/fiche';
 import { attendu } from '@/lib/conformite-media';
 import { DELAIS, imagesMemoire, montagePret, reglagesVideo } from '@/lib/production';
-import { trancher, memoriserVisuel } from '@/app/actions';
+import { trancher, memoriserVisuel, regenererTexte } from '@/app/actions';
+import { sujet } from '@/lib/sujets';
+import { AssistantIA } from './AssistantIA';
 import { BoutonVideo } from './BoutonVideo';
+import { BoutonCopier } from './BoutonCopier';
 import type { EntiteSlug } from '@/lib/marques';
 
 /**
@@ -13,7 +16,7 @@ import type { EntiteSlug } from '@/lib/marques';
  * pages de carrousel ou vidéo — avec ce qu'il faut pour le produire et le
  * valider sans quitter le calendrier.
  */
-export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string }) {
+export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer: string; notice?: string }) {
   const e = p.entite as EntiteSlug;
   const f = format(p.format_slug);
   const { constats, validable } = constatsDe(p);
@@ -29,6 +32,10 @@ export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string 
   const echeance = new Date(`${p.date_prevue}T12:00:00Z`);
   echeance.setUTCDate(echeance.getUTCDate() - reglages.delai);
   const ici = `${fermer}${fermer.includes('?') ? '&' : '?'}apercu=${p.id}`;
+  // Un article de blog n'exige pas d'image, mais son lien circule avec une couverture.
+  const couverture = f.reseau === 'blog' && !!visuel;
+  const s = p.sujet_ref ? sujet(p.sujet_ref) : undefined;
+  const refaisable = !!s && p.statut !== 'publie';
 
   return (
     <>
@@ -58,6 +65,11 @@ export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string 
           </Link>
         </div>
         <h2 style={{ marginBottom: 8 }}>{p.titre}</h2>
+        {notice ? (
+          <div className="encart" style={{ marginBottom: 10 }}>
+            {notice}
+          </div>
+        ) : null}
         <div className="rang" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           <span className="pastille" data-t={p.statut === 'valide' || p.statut === 'publie' ? 'ok' : p.statut === 'a-relire' ? 'alerte' : undefined}>
             {LIBELLE_STATUT[p.statut]}
@@ -87,6 +99,9 @@ export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string 
                   style={{ width: '100%', maxHeight: 520, borderRadius: 10, background: '#000', marginTop: 8 }}
                 />
                 <div className="rang" style={{ gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+                  <a className="bouton" href={`/${e}/medias/${video.id}`} download={`${e}-${p.id}.mp4`}>
+                    Télécharger la vidéo
+                  </a>
                   <BoutonVideo montage={montagePret(p, imagesMemoire(e))} libelle="Régénérer la vidéo" />
                   <Link className="lien-accent" href={`/${e}/videos?p=${p.id}`}>
                     Retoucher les plans dans le studio →
@@ -115,34 +130,75 @@ export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string 
             <h3>Carrousel · {pages.length} pages</h3>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8, paddingBottom: 4 }}>
               {pages.map((v, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={i}
-                  src={urlVisuel(e, v)}
-                  alt={`Page ${i + 1}`}
-                  loading="lazy"
-                  style={{ width: 200, flex: '0 0 auto', borderRadius: 8, border: '1px solid var(--ligne)' }}
-                />
+                <div key={i} style={{ flex: '0 0 auto', width: 200 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={urlVisuel(e, v)}
+                    alt={`Page ${i + 1}`}
+                    loading="lazy"
+                    style={{ width: 200, borderRadius: 8, border: '1px solid var(--ligne)', display: 'block' }}
+                  />
+                  <a className="lien-accent" href={urlVisuel(e, v)} download={`${e}-${p.id}-page-${i + 1}.png`} style={{ fontSize: 12 }}>
+                    ↓ page {i + 1}
+                  </a>
+                </div>
               ))}
             </div>
+            <div className="rang" style={{ gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+              {f.reseau === 'linkedin' ? (
+                <a className="bouton" href={`/${e}/publications/${p.id}/carrousel`} download={`${e}-carrousel-${p.id}.pdf`}>
+                  Télécharger le PDF (document LinkedIn)
+                </a>
+              ) : (
+                <span className="aide">Instagram prend les images une à une : télécharge chaque page, dans l&apos;ordre.</span>
+              )}
+            </div>
           </div>
-        ) : visuel && veut === 'image' ? (
+        ) : visuel && (veut === 'image' || couverture) ? (
           <div className="carte" style={{ marginBottom: 12 }}>
-            <h3>Visuel</h3>
+            <h3>{couverture ? 'Couverture de l’article · aperçu du lien' : 'Visuel'}</h3>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={visuel} alt={`Visuel — ${p.titre}`} style={{ width: '100%', borderRadius: 10, border: '1px solid var(--ligne)', marginTop: 8 }} />
+            <div className="rang" style={{ marginTop: 10 }}>
+              <a className="bouton" href={visuel} download={`${e}-${p.id}.png`}>
+                {couverture ? 'Télécharger la couverture' : 'Télécharger le visuel'}
+              </a>
+            </div>
           </div>
         ) : veut === 'aucun' ? (
           <div className="encart" style={{ marginBottom: 12 }}>
-            {f.reseau === 'blog' ? 'Article de blog : texte seul.' : 'Post textuel : pas de média, c’est voulu sur ce réseau.'}
+            Post textuel : pas de média, c’est voulu sur ce réseau.
           </div>
         ) : null}
 
         <div className="carte" style={{ marginBottom: 12 }}>
-          <h3>Texte</h3>
+          <div className="rang" style={{ justifyContent: 'space-between', gap: 8 }}>
+            <h3>{pages.length ? 'Légende' : 'Texte'}</h3>
+            <BoutonCopier texte={texteAColler(p)} />
+          </div>
           <pre className="bloc" style={{ whiteSpace: 'pre-wrap', maxHeight: 360, overflow: 'auto', marginTop: 8 }}>
             {texteAColler(p) || '(texte vide)'}
           </pre>
+          {refaisable ? (
+            <details style={{ marginTop: 8 }}>
+              <summary className="aide" style={{ cursor: 'pointer' }}>
+                {f.reseau === 'blog' ? 'Régénérer l’article' : 'Régénérer le texte'} depuis le sujet « {s!.titre} »
+              </summary>
+              <form action={regenererTexte} style={{ marginTop: 8 }}>
+                <input type="hidden" name="id" value={p.id} />
+                <input type="hidden" name="entite" value={e} />
+                <input type="hidden" name="retour" value={ici} />
+                <p className="aide" style={{ margin: '0 0 8px' }}>
+                  Retaille le texte depuis le sujet et le moule du format ({f.nom}), sans IA et sans crédit. Le texte
+                  actuel est gardé au journal ; le post repasse en brouillon, à relire et valider.
+                </p>
+                <button type="submit" className="fantome">
+                  {f.reseau === 'blog' ? 'Régénérer l’article' : 'Régénérer le texte'}
+                </button>
+              </form>
+            </details>
+          ) : null}
+          <AssistantIA p={p} retour={ici} />
         </div>
 
         {blocages.length ? (
@@ -180,13 +236,13 @@ export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string 
               </form>
             </>
           ) : null}
-          {veut !== 'aucun' && (visuel || pages.length) ? (
+          {(veut !== 'aucun' || couverture) && (visuel || pages.length) ? (
             <form action={memoriserVisuel}>
               <input type="hidden" name="id" value={p.id} />
               <input type="hidden" name="entite" value={e} />
               <input type="hidden" name="retour" value={ici} />
-              <button type="submit" className="fantome">
-                {pages.length ? 'Générer les pages' : 'Générer le visuel'}
+              <button type="submit" className="fantome" title="Range le rendu dans la médiathèque (et la mémoire des vidéos), à jour du texte et de la photo actuels.">
+                {`${generes ? 'Régénérer' : 'Générer'} ${pages.length ? 'les pages' : couverture ? 'la couverture' : 'le visuel'}`}
               </button>
             </form>
           ) : null}

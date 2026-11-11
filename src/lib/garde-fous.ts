@@ -52,6 +52,22 @@ export function controler(b: BrouillonAControler): Constat[] {
   const texte = `${b.accroche}\n${b.corps}\n${b.appel}`;
   const total = texte.trim().length;
 
+  // ─── 0. Cases laissées vides par le moule ────────────────────────────────
+  // Les gabarits marquent « [?] » ce qu'ils ne savent pas : une référence à
+  // viser, un titre de section à écrire, des liens internes à poser. Publié
+  // tel quel, le marqueur s'imprime sur le visuel et dans le texte — et une
+  // référence non vérifiée devient une preuve inventée (règle 2).
+  const trous = [...texte.matchAll(/\[\?\][^\n.]{0,60}/g)].map((x) => x[0].trim());
+  if (trous.length) {
+    out.push({
+      niveau: 'blocage',
+      regle: 'Texte — case à remplir',
+      message: `${trous.length} marqueur${trous.length > 1 ? 's' : ''} « [?] » dans le texte : « ${trous[0]}${trous[0].length >= 60 ? '…' : ''} »${trous.length > 1 ? ', …' : ''}.`,
+      remede:
+        "Remplacer chaque « [?] » par l'information vérifiée (avec sa source), ou retirer la phrase. Ne jamais le remplir de mémoire : une référence approximative est pire qu'une absence.",
+    });
+  }
+
   // ─── 1. Preuves interdites, propres à l'entité ───────────────────────────
   for (const interdit of m.preuvesInterdites) {
     const trouve = texte.match(interdit.motif);

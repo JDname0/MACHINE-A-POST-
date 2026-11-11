@@ -15,7 +15,7 @@
 
 import type { EntiteSlug } from './marques';
 
-export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel';
+export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel' | 'couverture';
 
 export interface Gabarit {
   slug: GabaritSlug;
@@ -73,6 +73,15 @@ export const GABARITS: Record<GabaritSlug, Gabarit> = {
     ratio: '9:16',
     usage: 'Instagram Reel · TikTok (Veolt)',
     intention: "La première image du montage. Elle doit être lisible sans son et sans logo imposant.",
+  },
+  couverture: {
+    slug: 'couverture',
+    nom: "Couverture d'article",
+    largeur: 1200,
+    hauteur: 630,
+    ratio: '1,91:1',
+    usage: "Article de blog · aperçu du lien partagé (LinkedIn, Open Graph)",
+    intention: "L'image qui accompagne le lien de l'article partout où il circule. Le titre y est la requête, rien de plus.",
   },
 };
 
@@ -241,6 +250,11 @@ export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
       ligne2: 'ou packshot 3D ?',
       sousTitre: 'La différence n’est pas celle qu’on croit.',
     },
+    couverture: {
+      ligne1: 'Combien coûte un site',
+      ligne2: 'pour un artisan ?',
+      sousTitre: 'Ce qui fait varier un devis, ligne par ligne.',
+    },
   },
   magistria: {
     lancement: {
@@ -271,6 +285,11 @@ export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
       ligne1: 'Un rapport cyber',
       ligne2: 'de quarante pages.',
       sousTitre: 'Trois phrases décident de la garantie.',
+    },
+    couverture: {
+      ligne1: 'Refus de garantie :',
+      ligne2: 'les vérifications à faire',
+      sousTitre: 'Avant de répondre à l’assureur.',
     },
   },
 };
@@ -615,6 +634,30 @@ function rendreSansPhoto(
     );
   }
 
+  if (gabarit === 'couverture') {
+    // Paysage 1,91:1 : le titre est la requête de l'article, il peut être
+    // long — la taille suit sa longueur pour tenir sur trois lignes au plus.
+    const long = `${c.ligne1} ${c.ligne2}`.trim().length;
+    const taille = (entite === 'veolt' ? 1.3 : 1) * (long > 80 ? 46 : long > 55 ? 54 : 64);
+    return (
+      <div style={{ ...base, padding: '56px 64px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Identite t={t} taille={0.8} />
+          <div style={{ display: 'flex', fontFamily: 'Mono', fontSize: 16, letterSpacing: 4, color: t.surTitre?.couleur ?? t.accent }}>
+            ARTICLE
+          </div>
+        </div>
+        <Titre t={t} c={c} taille={taille} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 28 }}>
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 22, color: t.encreDouce, lineHeight: 1.4, maxWidth: 720 }}>
+            {c.sousTitre}
+          </div>
+          <Pastille t={t} taille={0.72} />
+        </div>
+      </div>
+    );
+  }
+
   if (gabarit === 'affirmation') {
     return (
       <div style={base}>
@@ -730,7 +773,8 @@ function rendreSansPhoto(
  * l'autre a ses propres illustrations de section.
  */
 export function gabaritPour(formatSlug: string, pilier: string): GabaritSlug | null {
-  if (formatSlug === 'reddit-texte' || formatSlug === 'blog-article') return null;
+  if (formatSlug === 'reddit-texte') return null;
+  if (formatSlug === 'blog-article') return 'couverture';
   if (formatSlug === 'li-carrousel' || formatSlug === 'ig-carrousel') return 'carrousel';
   if (formatSlug === 'ig-reel' || formatSlug === 'tiktok-video') return 'reel';
   // Les deux piliers qui portent un chiffre ou une référence méritent le

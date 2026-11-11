@@ -331,6 +331,50 @@ function avecParam(url: string, cle: string, val: string): string {
   return `${base}${base.includes('?') ? '&' : '?'}${cle}=${encodeURIComponent(val)}${ancre ? `#${ancre}` : ''}`;
 }
 
+/**
+ * « Refaire le texte depuis le sujet » : le post est retaillé à partir de son
+ * sujet et de son format (`gabarits.ts`), comme au semis du calendrier — utile
+ * après une retouche ratée ou une mise à jour des gabarits. Aucune IA, aucun
+ * crédit. Le texte remplacé part au journal en entier : rien ne se perd. Un
+ * texte neuf n'a pas été relu, donc le post repasse en brouillon même s'il
+ * était validé (règle 1). Un post déjà publié n'est jamais touché.
+ */
+export async function regenererTexte(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const retour = retourSur(fd, entite, id);
+  const { publication } = await import('@/lib/requetes');
+  const { sujet } = await import('@/lib/sujets');
+  const { fabriquer } = await import('@/lib/gabarits');
+  const p = publication(id);
+  if (!p || p.entite !== entite || p.statut === 'publie' || !p.sujet_ref) redirect(retour);
+  const s = sujet(p.sujet_ref);
+  // La cloison : un sujet de l'autre entité ne retaille jamais ce post.
+  if (!s || !s.ref.startsWith(entite === 'veolt' ? 'v-' : 'm-')) redirect(retour);
+  const f = fabriquer(s, p.format_slug as Parameters<typeof fabriquer>[1], entite as 'veolt' | 'magistria');
+  const titre = f.titre ?? s.titre;
+  // Rien n'a changé : on ne touche ni au texte ni au statut (une relecture déjà faite reste faite).
+  if ([titre, f.accroche, f.corps, f.appel, f.hashtags].join('\u0000') === [p.titre, p.accroche, p.corps, p.appel, p.hashtags].join('\u0000')) {
+    redirect(avecParam(retour, 'refait', `${id}-identique`));
+  }
+  tracer(
+    'texte refait depuis le sujet',
+    JSON.stringify({ publication: id, statutAvant: p.statut, avant: { titre: p.titre, accroche: p.accroche, corps: p.corps, appel: p.appel, hashtags: p.hashtags } }),
+    entite,
+  );
+  db()
+    .prepare(
+      `UPDATE publications SET titre=?, accroche=?, corps=?, appel=?, hashtags=?, consignes_visuel=?, statut='brouillon',
+         maj_le=datetime('now') WHERE id=?`,
+    )
+    .run(titre, f.accroche, f.corps, f.appel, f.hashtags, f.consignesVisuel.join('\n'), id);
+  await sauvegarder();
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/valider`);
+  revalidatePath(`/${entite}/publications/${id}`);
+  redirect(avecParam(retour, 'refait', String(id)));
+}
+
 /** Demande une réécriture à l'IA. Le post n'est pas touché : la proposition attend une décision. */
 export async function demanderIA(fd: FormData) {
   const id = Number(fd.get('id'));
@@ -792,13 +836,35 @@ export async function majMedia(fd: FormData) {
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const rattache = String(fd.get('publication_id') ?? '').trim();
-  db()
-    .prepare('UPDATE medias SET legende=?, publication_id=? WHERE id=? AND entite=?')
-    .run(String(fd.get('legende') ?? '').trim() || null, rattache ? Number(rattache) : null, id, entite);
+  const d = db();
+  const avant = d.prepare('SELECT origine, type_mime FROM medias WHERE id=? AND entite=?').get(id, entite) as
+    | { origine: string; type_mime: string }
+    | undefined;
+  d.prepare('UPDATE medias SET legende=?, publication_id=? WHERE id=? AND entite=?').run(
+    String(fd.get('legende') ?? '').trim() || null,
+    rattache ? Number(rattache) : null,
+    id,
+    entite,
+  );
+  // « Photo de fond » : une image apportée devient le fond du visuel de son
+  // post. Une seule par post — l'ancienne redevient une image ordinaire, elle
+  // reste dans la médiathèque et peut être recochée.
+  if (avant && avant.type_mime.startsWith('image/') && (avant.origine === 'apporte' || avant.origine === 'photo')) {
+    const fond = fd.get('fond') === 'on' && !!rattache;
+    if (fond) {
+      d.prepare("UPDATE medias SET origine='apporte' WHERE publication_id=? AND origine='photo' AND id<>?").run(Number(rattache), id);
+      d.prepare("UPDATE medias SET origine='photo' WHERE id=?").run(id);
+    } else if (avant.origine === 'photo') {
+      d.prepare("UPDATE medias SET origine='apporte' WHERE id=?").run(id);
+    }
+    if (fond !== (avant.origine === 'photo')) tracer(fond ? 'photo de fond posée' : 'photo de fond retirée', `média ${id}`, entite);
+  }
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/visuels`);
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/valider`);
   if (rattache) revalidatePath(`/${entite}/publications/${rattache}`);
 }
 

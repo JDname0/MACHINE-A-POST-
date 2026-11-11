@@ -278,6 +278,18 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
                       <label>Publication</label>
                       <Choix valeur={m.publication_id} />
                     </div>
+                    {!video && (m.origine === 'apporte' || m.origine === 'photo') ? (
+                      <label className="rang" style={{ gap: 6, fontSize: 12.5, margin: '2px 0 10px' }}>
+                        <input type="checkbox" name="fond" defaultChecked={m.origine === 'photo'} />
+                        Photo de fond du visuel de ce post
+                      </label>
+                    ) : null}
+                    {!video && (m.origine === 'apporte' || m.origine === 'photo') ? (
+                      <div className="aide" style={{ marginBottom: 8 }}>
+                        Elle passe sous le titre, avec le voile de la marque. Les visuels déjà en mémoire gardent
+                        l&apos;ancienne : « Régénérer » depuis le calendrier.
+                      </div>
+                    ) : null}
                     <button type="submit" className="fantome">Enregistrer</button>
                   </form>
                   <form action={supprimerMedia} style={{ marginTop: 10 }}>

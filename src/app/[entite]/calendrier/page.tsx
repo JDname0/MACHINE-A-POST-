@@ -7,7 +7,7 @@ import { ApercuPost } from '@/components/ApercuPost';
 import { ReglagesProduction } from '@/components/ReglagesProduction';
 import { attendu } from '@/lib/conformite-media';
 import { SEQUENCE_LANCEMENT, lundiDe, iso } from '@/lib/calendrier';
-import { recalerCalendrier } from '@/app/actions';
+import { recalerCalendrier, memoriserSemaine } from '@/app/actions';
 import { BoutonVideo } from '@/components/BoutonVideo';
 import { ProductionLot } from '@/components/ProductionLot';
 import { echeancesVideo, imagesMemoire, montagePret } from '@/lib/production';
@@ -22,10 +22,10 @@ export default async function Calendrier({
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ recale?: string; apercu?: string; reglages?: string }>;
+  searchParams: Promise<{ recale?: string; apercu?: string; reglages?: string; refait?: string; memorises?: string }>;
 }) {
   const { entite } = await params;
-  const { recale, apercu, reglages } = await searchParams;
+  const { recale, apercu, reglages, refait, memorises } = await searchParams;
   const ouvert = apercu ? publication(Number(apercu)) : undefined;
   const e = entite as EntiteSlug;
   const m = marque(e);
@@ -67,6 +67,12 @@ export default async function Calendrier({
             carrousel ou vidéo — et le produire ou le valider d&apos;ici.
           </p>
         </header>
+
+        {memorises != null && !apercu ? (
+          <div className="encart" style={{ marginBottom: 14 }}>
+            ✅ Visuels de la semaine rangés dans la médiathèque : {memorises} nouveau(x) — les autres étaient déjà à jour.
+          </div>
+        ) : null}
 
         {recale === '1' ? (
           <div className="encart" style={{ marginBottom: 14 }}>
@@ -132,6 +138,14 @@ export default async function Calendrier({
                   {pubs.length} publication{pubs.length > 1 ? 's' : ''}
                 </span>
               </div>
+              <form action={memoriserSemaine} style={{ display: 'inline-block', margin: '6px 12px 0 0' }}>
+                <input type="hidden" name="entite" value={e} />
+                <input type="hidden" name="semaine" value={s} />
+                <input type="hidden" name="retour" value={`/${e}/calendrier`} />
+                <button type="submit" className="fantome" style={{ padding: '3px 10px', fontSize: 12.5 }}>
+                  🖼️ Générer les visuels de la semaine {s}
+                </button>
+              </form>
               {(() => {
                 const aFaire = pubs.filter((x) => montages.has(x.id));
                 if (aFaire.length < 2) return null;
@@ -209,7 +223,21 @@ export default async function Calendrier({
           le refaire avec des mesures plutôt qu&apos;avec des hypothèses.
         </div>
       </main>
-      {ouvert && ouvert.entite === e ? <ApercuPost p={ouvert} fermer={`/${e}/calendrier`} /> : null}
+      {ouvert && ouvert.entite === e ? (
+        <ApercuPost
+          p={ouvert}
+          fermer={`/${e}/calendrier`}
+          notice={
+            refait === String(ouvert.id)
+              ? 'Texte refait depuis le sujet. L’ancien est gardé au journal ; le post est repassé en brouillon.'
+              : refait === `${ouvert.id}-identique`
+                ? 'Le texte est déjà celui du sujet : rien n’a changé, le statut non plus.'
+              : memorises != null
+                ? 'Rendu rangé dans la médiathèque, à jour du texte et de la photo.'
+                : undefined
+          }
+        />
+      ) : null}
     </>
   );
 }

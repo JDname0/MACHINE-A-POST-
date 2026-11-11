@@ -51,6 +51,28 @@ l'interface**. Poser la variable le ferme.
   Jamais `NEXT_PUBLIC_*`, jamais réaffichés dans l'interface, jamais au dépôt.
 - La machine **ne relève aucune statistique automatiquement**. Tous les chiffres
   d'indicateurs sont saisis à la main. Ne pas laisser croire le contraire.
+- Le marqueur **« [?] »** posé par les gabarits (référence à viser, titre de
+  section, liens internes, chiffre réel à fournir) **bloque la validation**
+  (`garde-fous.ts`, règle 0). Ne jamais le remplir de mémoire pour débloquer un
+  post : c'est exactement la preuve inventée de la règle 2.
+
+## Générer / régénérer depuis le calendrier
+
+L'aperçu d'un post (`ApercuPost.tsx`, ouvert d'un clic dans le calendrier) porte
+tout ce qu'il faut pour le produire et le poster, selon le format :
+
+| Format | Générer / Régénérer | Prêt à poster |
+|---|---|---|
+| Image (LinkedIn, Instagram) | « Générer / Régénérer le visuel » → médiathèque | Télécharger le visuel |
+| Carrousel | « Générer / Régénérer les pages » | PDF pour LinkedIn (`publications/[id]/carrousel`), PNG page par page pour Instagram |
+| Article de blog | « Régénérer l'article » + couverture 1200 × 630 (gabarit `couverture`) | Télécharger la couverture |
+| Vidéo | « Générer / Régénérer la vidéo » (navigateur), lot par semaine | Télécharger la vidéo |
+| Tous | « Régénérer le texte » depuis le sujet (sans IA), « Réécrire avec l'IA » (proposition à adopter) | « Copier le texte » (légende seule pour un carrousel) |
+
+« Régénérer le texte » met l'ancien texte au journal et repasse le post en
+brouillon s'il a changé. Une ligne par semaine du calendrier lance les visuels
+de la semaine. **Rien de tout ça ne publie** : Valider reste le geste de Jonathan.
+La route PDF, comme la route PNG, vérifie la session elle-même.
 
 ## Production
 
