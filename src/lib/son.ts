@@ -56,6 +56,8 @@ export interface OptionsSon {
   /** 0 à 1 ; 0,55 par défaut — la musique porte, elle ne couvre pas. */
   volumeMusique?: number;
   voix?: VoixOff[];
+  /** Un morceau déposé (Higgsfield / ElevenLabs Music, Suno…) à la place de la musique synthétisée. */
+  musiqueUrl?: string;
 }
 
 export const SON_PAR_DEFAUT: Pick<OptionsSon, 'musique' | 'bruitages'> = { musique: true, bruitages: true };
@@ -568,7 +570,23 @@ export async function composerBandeSon(duree: number, reperes: Repere[], o: Opti
 
   const b: Bus = { ac, musique, bruitages, rev, alea, bruitBlanc: bruit(ac, 4, alea) };
 
-  if (o.musique) {
+  // Un morceau déposé passe avant la musique synthétisée ; s'il est illisible,
+  // la synthèse reprend la main — la vidéo ne sort jamais muette par accident.
+  let morceau: AudioBuffer | null = null;
+  if (o.musique && o.musiqueUrl) {
+    try {
+      morceau = await niveler(await ac.decodeAudioData(await (await fetch(o.musiqueUrl)).arrayBuffer()), o.voix?.length ? -21 : -18);
+    } catch {
+      morceau = null;
+    }
+  }
+  if (morceau) {
+    const s = ac.createBufferSource();
+    s.buffer = morceau;
+    s.loop = morceau.duration < duree;
+    s.connect(musique);
+    s.start(0);
+  } else if (o.musique) {
     if (o.style === 'veolt') musiqueVeolt(b, duree);
     else musiqueMagistria(b, duree);
   }
@@ -581,7 +599,8 @@ export async function composerBandeSon(duree: number, reperes: Repere[], o: Opti
   for (const v of o.voix ?? []) {
     try {
       const donnees = await (await fetch(v.url)).arrayBuffer();
-      const buf = await ac.decodeAudioData(donnees);
+      // Chaque phrase au même niveau, quelle que soit la voix ou le service.
+      const buf = await niveler(await ac.decodeAudioData(donnees), -16);
       const s = ac.createBufferSource();
       s.buffer = buf;
       const g = ac.createGain();
@@ -635,6 +654,18 @@ async function loudness(b: AudioBuffer): Promise<number> {
   const moyenne = absolus.reduce((a, b2) => a + b2, 0) / absolus.length;
   const relatifs = absolus.filter((p) => lufs(p) > lufs(moyenne) - 10);
   return lufs(relatifs.reduce((a, b2) => a + b2, 0) / Math.max(1, relatifs.length));
+}
+
+/** Ramène un morceau ou une voix à une loudness donnée, sans limiteur (le mixage final s'en charge). */
+async function niveler(b: AudioBuffer, cible: number): Promise<AudioBuffer> {
+  const mesure = await loudness(b);
+  if (mesure <= -69) return b;
+  const gain = Math.min(10 ** ((cible - mesure) / 20), 8);
+  for (let c = 0; c < b.numberOfChannels; c++) {
+    const d = b.getChannelData(c);
+    for (let i = 0; i < d.length; i++) d[i] *= gain;
+  }
+  return b;
 }
 
 /**

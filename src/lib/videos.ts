@@ -34,6 +34,8 @@ export interface Plan {
   sousTitre?: string;
   /** Couche 3D de particules, reprise des sites. */
   noyau?: Noyau3D;
+  /** Clip vidéo de la médiathèque posé en fond (nom du fichier sans extension). */
+  clip?: string;
 }
 
 export interface ScriptVideo {
@@ -878,24 +880,25 @@ export const VIDEOS: ScriptVideo[] = [
     cadre: '9:16',
     casUsage: true,
     pilier: 'sinistre-decortique',
-    duree: 50,
+    duree: 50.5,
     tournage:
       "Tout est dessiné par le studio, son compris (musique et bruitages synthétisés). La 3D reprend le cerveau de particules et le cadran de magistrai.fr. Dossier d'EXEMPLE, mention à l'écran. Articles cités réels (C. assur. L. 113-1, L. 112-4). Prix et freemium tels qu'affichés.",
     plans: [
       {
         de: 0,
-        a: 5,
-        image: 'Le cerveau de particules se construit ; la question en titre.',
+        a: 5.5,
+        image: 'Le bureau de nuit, les pièces et le stylo (clip Higgsfield) ; sans clip : le cerveau de particules se construit.',
+        clip: 'magistria-bureau',
         texte: 'Un sinistre. Trois pièces.',
         accent: 'Une seule question : est-il couvert ?',
         centre: true,
         fond: 'etoiles',
         noyau: { forme: 'cerveau', place: 'fond', construction: true, cadran: true, intensite: 0.22 },
       },
-      { de: 5, a: 9, image: 'La marque, l’onde de choc traverse le cerveau.', texte: '', fond: 'etoiles', scene: { type: 'marque' }, noyau: { forme: 'cerveau', place: 'fond', onde: true, cadran: true, intensite: 0.2 } },
+      { de: 5.5, a: 9.5, image: 'Le logotype en 3D (Blender) ; sans clip : la marque et l’onde de choc dans le cerveau.', clip: 'magistria-logo-3d', texte: '', fond: 'etoiles', scene: { type: 'marque' }, noyau: { forme: 'cerveau', place: 'fond', onde: true, cadran: true, intensite: 0.2 } },
       {
-        de: 9,
-        a: 18.5,
+        de: 9.5,
+        a: 19,
         image: 'Les pièces lues, la chronologie posée ; derrière le verre, les particules forment un document.',
         texte: 'Le dossier, lu pour vous.',
         chapitre: '01 / 03 · Analyse de sinistre',
@@ -927,9 +930,10 @@ export const VIDEOS: ScriptVideo[] = [
         },
       },
       {
-        de: 18.5,
-        a: 31,
-        image: 'La question, les sources, la réponse sourcée ; la balance en particules derrière.',
+        de: 19,
+        a: 31.5,
+        image: 'La question, les sources, la réponse sourcée ; derrière le verre, le réseau de nœuds (clip Higgsfield).',
+        clip: 'magistria-reseau',
         texte: 'Chaque phrase, sa source.',
         chapitre: '02 / 03 · Recherche juridique',
         fond: 'etoiles',
@@ -957,8 +961,8 @@ export const VIDEOS: ScriptVideo[] = [
         },
       },
       {
-        de: 31,
-        a: 39.5,
+        de: 31.5,
+        a: 40,
         image: 'Le courrier qui s’écrit, puis la validation au bouton bordeaux.',
         texte: 'Le courrier, prêt à relire.',
         chapitre: '03 / 03 · Rédaction',
@@ -982,8 +986,8 @@ export const VIDEOS: ScriptVideo[] = [
         },
       },
       {
-        de: 39.5,
-        a: 45,
+        de: 40,
+        a: 45.5,
         image: 'Les tuiles de verre s’assemblent : principe, sources, méthodes, prix.',
         texte: 'Ce que vous avez en main',
         fond: 'etoiles',
@@ -1000,8 +1004,8 @@ export const VIDEOS: ScriptVideo[] = [
         },
       },
       {
-        de: 45,
-        a: 50,
+        de: 45.5,
+        a: 50.5,
         image: 'Écran de fin, le cadran tourne derrière.',
         texte: '',
         fond: 'etoiles',
@@ -1034,13 +1038,14 @@ export const VIDEOS: ScriptVideo[] = [
       {
         de: 0,
         a: 4.5,
-        image: 'La sphère de particules se construit derrière le titre.',
+        image: 'L’orbite (clip Higgsfield) ; sans clip : la sphère de particules se construit.',
+        clip: 'veolt-orbite',
         texte: 'Trois métiers. Une seule équipe.',
         centre: true,
         fond: 'horizon',
         noyau: { forme: 'sphere', place: 'fond', construction: true, intensite: 0.22 },
       },
-      { de: 4.5, a: 8, image: 'La marque ; éclat sur la sphère.', texte: '', fond: 'horizon', scene: { type: 'marque' }, noyau: { forme: 'sphere', place: 'fond', onde: true, intensite: 0.22 } },
+      { de: 4.5, a: 8, image: 'Le logotype en 3D (Blender) ; sans clip : la marque et l’éclat sur la sphère.', clip: 'veolt-logo-3d', texte: '', fond: 'horizon', scene: { type: 'marque' }, noyau: { forme: 'sphere', place: 'fond', onde: true, intensite: 0.22 } },
       {
         de: 8,
         a: 13.5,
@@ -1074,7 +1079,8 @@ export const VIDEOS: ScriptVideo[] = [
       {
         de: 24.5,
         a: 33,
-        image: 'La demande d’analyse arrive dans l’écran de verre ; on répond.',
+        image: 'La demande d’analyse arrive dans l’écran de verre ; derrière, le téléphone qui s’allume (clip Higgsfield).',
+        clip: 'veolt-telephone',
         texte: 'Tout commence par une analyse gratuite.',
         fond: 'horizon',
         noyau: { forme: 'sphere', place: 'fond', activite: 0.5 },

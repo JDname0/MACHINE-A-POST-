@@ -75,6 +75,8 @@ export interface Env {
   repere: (type: TypeRepere, tl: number, fin?: number) => void;
   /** Teinte des cartes en verre hors écran produit. */
   teinteVerre: string;
+  /** Le plan en cours a un clip en fond (Higgsfield, Blender…). */
+  clip?: boolean;
 }
 
 type Ctx = CanvasRenderingContext2D & { letterSpacing: string };
@@ -345,6 +347,26 @@ function logotype(cx: C2D, e: Env, y: number, taille: number, a: number, reflet:
 export function sceneMarque(cx: C2D, e: Env, sc: Extract<Scene, { type: 'marque' }>, tl: number) {
   const taille = e.L * (e.majuscules ? 0.2 : 0.13);
   const a = apparition(tl, 0.1, 0.7);
+  if (e.clip) {
+    // Le logotype est dans le clip (rendu 3D Blender) : seulement la phrase de
+    // marque, au-dessus, quand le mot s'est posé.
+    e.repere('impact', 0.2);
+    e.repere('scintille', 1.6, 2.6);
+    const slogan = sc.slogan ?? e.slogan;
+    if (!slogan) return;
+    const ts = e.L * (e.majuscules ? 0.042 : 0.04);
+    cx.font = fonte(e.majuscules ? e.f.etiquette : e.f.italique, ts);
+    if (e.majuscules) espacer(cx, Math.round(ts * 0.08));
+    const txt = e.majuscules ? slogan.toUpperCase() : slogan;
+    const w = cx.measureText(txt).width;
+    const as = apparition(tl, 1.8, 0.6);
+    cx.globalAlpha = as;
+    cx.fillStyle = e.majuscules ? e.accent2 : e.douce;
+    cx.fillText(txt, (e.L - w) / 2, e.H * 0.36 + (1 - as) * 12);
+    espacer(cx, 0);
+    cx.globalAlpha = 1;
+    return;
+  }
   e.repere('montee', -1.1, 0.12);
   e.repere('impact', 0.12);
   e.repere('scintille', 0.6, 1.5);

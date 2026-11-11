@@ -139,6 +139,30 @@ export function imagesMemoire(entite: EntiteSlug): ImageMemoire[] {
     .all(entite, ...types) as ImageMemoire[];
 }
 
+/** Les clips vidéo de la médiathèque (Higgsfield, Blender…), utilisables comme fonds de plan. */
+export function clipsMemoire(entite: EntiteSlug): Array<{ id: number; nom: string; origine: string }> {
+  return db()
+    .prepare("SELECT id, nom, origine FROM medias WHERE entite=? AND origine='clip' AND type_mime LIKE 'video/%' ORDER BY id DESC")
+    .all(entite) as Array<{ id: number; nom: string; origine: string }>;
+}
+
+/** Les images et les clips proposés au studio, sous la forme qu'attend le rendu. */
+export function matiereStudio(entite: EntiteSlug, memoire: ImageMemoire[]) {
+  return [
+    ...memoire.map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'image' as const })),
+    ...clipsMemoire(entite).map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'video' as const })),
+  ];
+}
+
+/** Les morceaux de musique déposés pour une entité (Higgsfield / ElevenLabs Music, Suno…). */
+export function musiquesDe(entite: EntiteSlug): Array<{ id: number; nom: string; url: string; publication_id: number | null }> {
+  return (
+    db()
+      .prepare("SELECT id, nom, publication_id FROM medias WHERE entite=? AND origine='musique' AND type_mime LIKE 'audio/%' ORDER BY id DESC")
+      .all(entite) as Array<{ id: number; nom: string; publication_id: number | null }>
+  ).map((m) => ({ ...m, url: `/${entite}/medias/${m.id}` }));
+}
+
 export interface MontageParDefaut {
   plans: PlanMontage[];
   cartes: string[];
@@ -166,6 +190,12 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
   const script = scriptRef === 'post' ? undefined : scripts.find((s) => s.ref === scriptRef) ?? auto;
   const conseil = dureeConseillee(p.format_slug)?.conseil;
   const plans = script ? plansDepuisScript(script) : plansDepuisPost(p, conseil);
+  // Les clips nommés par le script (« veolt-orbite ») pris dans la médiathèque.
+  const clips = clipsMemoire(p.entite as EntiteSlug);
+  plans.forEach((x, i) => {
+    const c = x.clip ? clips.find((k) => k.nom.replace(/\.[a-z0-9]+$/i, '') === x.clip) : undefined;
+    if (c) plans[i] = { ...x, source: { type: 'media', id: c.id } };
+  });
 
   // L'ouverture reste la carte animée (sur-titre + titre qui entre) : les trois
   // premières secondes décident de la rétention, une image fixe les gâche. Les
@@ -328,13 +358,33 @@ export function montagePret(p: LignePublication, memoire: ImageMemoire[], script
     hauteur: md.hauteur,
     plans: md.plans,
     cartes: md.cartes,
-    images: memoire.map((x) => ({ id: x.id, url: `/${e}/medias/${x.id}`, nom: x.nom, origine: x.origine })),
+    images: matiereStudio(e, memoire),
     theme: themeStudio(e),
     surTitre: nomPilier(p),
     rythme: e === 'veolt' ? 'sec' : 'pose',
     direct: depotDirect(),
     plafondOctets: plafondDepotVideo(),
     legende: p.titre ?? '',
+    son: sonParDefaut(p, md.plans),
+  };
+}
+
+/**
+ * La bande-son par défaut d'un post : le morceau rattaché au post s'il y en a
+ * un (sinon la musique synthétisée de la marque), les bruitages, et les voix
+ * off du post, chacune au début de son plan.
+ */
+export function sonParDefaut(p: LignePublication, plans: Array<{ duree: number }>) {
+  const e = p.entite as EntiteSlug;
+  const debut = (k: number) => plans.slice(0, k).reduce((n, x) => n + x.duree, 0) + 0.25;
+  const morceau = musiquesDe(e).find((m) => m.publication_id === p.id);
+  return {
+    musique: true,
+    bruitages: true,
+    musiqueUrl: morceau?.url,
+    voix: voixDuPost(p.id, e)
+      .filter((v) => v.plan < plans.length)
+      .map((v) => ({ t: debut(v.plan), url: v.url })),
   };
 }
 

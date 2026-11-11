@@ -9,7 +9,7 @@ import { publication, publications, compteursMenu, formaterDate, LIBELLE_STATUT 
 import { dureeConseillee, attendu } from '@/lib/conformite-media';
 import { iaDisponible } from '@/lib/ia';
 import { texteAColler } from '@/lib/fiche';
-import { voixDuPost } from '@/lib/production';
+import { voixDuPost, matiereStudio, musiquesDe } from '@/lib/production';
 import { duree as libelleDuree, poids } from '@/lib/medias';
 import { videosDe } from '@/lib/videos';
 import { depotDirect, plafondDepotVideo } from '@/lib/medias';
@@ -48,7 +48,7 @@ export default async function Videos({
   const echeances = echeancesVideo(e);
   const memoire = imagesMemoire(e);
   const generees = memoire.filter((x) => x.origine === 'genere').length;
-  const images = memoire.map((x) => ({ id: x.id, url: `/${e}/medias/${x.id}`, nom: x.nom, origine: x.origine }));
+  const images = matiereStudio(e, memoire);
   const rythme = e === 'veolt' ? ('sec' as const) : ('pose' as const);
   const direct = depotDirect();
 
@@ -293,6 +293,7 @@ export default async function Videos({
               iaDispo={iaDisponible()}
               voixDispo={Boolean(process.env.ELEVENLABS_API_KEY)}
               voixInitiales={voixDuPost(p.id, e)}
+              musiques={musiquesDe(e)}
             />
           </>
         ) : null}

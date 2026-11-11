@@ -44,6 +44,8 @@ interface Props {
   voixDispo?: boolean;
   /** Voix off déjà générées pour ce post, plan par plan. */
   voixInitiales?: Array<{ plan: number; url: string }>;
+  /** Morceaux déposés pour la marque (Higgsfield / ElevenLabs Music, Suno…). */
+  musiques?: Array<{ id: number; nom: string; url: string; publication_id: number | null }>;
 }
 
 type Etat =
@@ -66,6 +68,8 @@ export function StudioVideo(p: Props) {
   const [ia, setIa] = useState<{ t: 'repos' | 'enCours' | 'note' | 'erreur'; texte?: string }>({ t: 'repos' });
   const [copie, setCopie] = useState(false);
   const [son, setSon] = useState({ musique: true, bruitages: true, volume: 0.55 });
+  // Le morceau rattaché au post s'il y en a un ; sinon la musique synthétisée de la marque.
+  const [morceau, setMorceau] = useState<string>(p.musiques?.find((m) => m.publication_id === p.publicationId)?.url ?? '');
   const [voix, setVoix] = useState<Array<{ plan: number; url: string }>>(p.voixInitiales ?? []);
   const [voixEtat, setVoixEtat] = useState<{ t: 'repos' | 'enCours' | 'erreur'; texte?: string }>({ t: 'repos' });
   const consigneIA = useRef<HTMLInputElement>(null);
@@ -92,6 +96,7 @@ export function StudioVideo(p: Props) {
       musique: son.musique,
       bruitages: son.bruitages,
       volume: son.volume,
+      musiqueUrl: morceau || undefined,
       // Chaque voix démarre au début de son plan (un quart de seconde après l'entrée).
       voix: voix
         .filter((v) => v.plan < plans.length)
@@ -383,6 +388,16 @@ export function StudioVideo(p: Props) {
             <label className="aide" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
               <input type="checkbox" checked={son.musique} onChange={(e) => setSon({ ...son, musique: e.target.checked })} /> Musique de marque
             </label>
+            {p.musiques?.length ? (
+              <select value={morceau} onChange={(e) => setMorceau(e.target.value)} aria-label="Musique" disabled={!son.musique}>
+                <option value="">Musique synthétisée de la marque</option>
+                {p.musiques.map((m) => (
+                  <option key={m.id} value={m.url}>
+                    🎵 {m.nom}
+                  </option>
+                ))}
+              </select>
+            ) : null}
             <label className="aide" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
               <input type="checkbox" checked={son.bruitages} onChange={(e) => setSon({ ...son, bruitages: e.target.checked })} /> Bruitages calés sur l&apos;image
             </label>

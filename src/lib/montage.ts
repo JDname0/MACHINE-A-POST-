@@ -158,6 +158,11 @@ export interface PlanMontage {
   sousTitre?: string;
   /** Couche 3D de particules (sphère Veolt, cerveau MagistrIA). */
   noyau?: Noyau3D;
+  /**
+   * Clip vidéo de la médiathèque (Higgsfield, Blender…) à poser en fond, par son
+   * nom de fichier sans extension. Résolu au montage ; introuvable : la carte.
+   */
+  clip?: string;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
@@ -183,6 +188,7 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     ...(p.centre ? { centre: true } : {}),
     ...(p.sousTitre ? { sousTitre: p.sousTitre } : {}),
     ...(p.noyau ? { noyau: p.noyau } : {}),
+    ...(p.clip ? { clip: p.clip } : {}),
   }));
 }
 

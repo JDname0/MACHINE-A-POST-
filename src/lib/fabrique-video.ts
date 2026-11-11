@@ -47,6 +47,8 @@ export interface ImageDispo {
   url: string;
   nom: string;
   origine: string;
+  /** Un clip vidéo (Higgsfield, Blender…) plutôt qu'une image. */
+  type?: 'image' | 'video';
 }
 
 export interface ThemeStudio {
@@ -111,7 +113,7 @@ export interface Montage {
   /** Sur-titre du plan d'ouverture (le pilier du post). */
   surTitre?: string;
   /** Bande-son : musique de marque, bruitages calés sur l'image, voix off. Absent : musique et bruitages. */
-  son?: { musique: boolean; bruitages: boolean; volume?: number; voix?: VoixOff[] };
+  son?: { musique: boolean; bruitages: boolean; volume?: number; voix?: VoixOff[]; musiqueUrl?: string };
 }
 
 const FPS = 30;
@@ -155,12 +157,52 @@ function charger(src: string): Promise<HTMLImageElement> {
   });
 }
 
-/** Image en « cover » avec un léger zoom lent — le mouvement qui fait d'une image fixe un plan. */
-function couvrir(ctx: CanvasRenderingContext2D, img: HTMLImageElement, l: number, h: number, zoom: number) {
-  const r = Math.max(l / img.naturalWidth, h / img.naturalHeight) * zoom;
-  const w = img.naturalWidth * r;
-  const hh = img.naturalHeight * r;
+type Source = HTMLImageElement | HTMLVideoElement;
+const largeurDe = (s: Source) => (s instanceof HTMLVideoElement ? s.videoWidth : s.naturalWidth);
+const hauteurDe = (s: Source) => (s instanceof HTMLVideoElement ? s.videoHeight : s.naturalHeight);
+
+/** Image ou clip en « cover » avec un léger zoom lent — le mouvement qui fait d'une image fixe un plan. */
+function couvrir(ctx: CanvasRenderingContext2D, img: Source, l: number, h: number, zoom: number) {
+  const r = Math.max(l / largeurDe(img), h / hauteurDe(img)) * zoom;
+  const w = largeurDe(img) * r;
+  const hh = hauteurDe(img) * r;
   ctx.drawImage(img, (l - w) / 2, (h - hh) / 2, w, hh);
+}
+
+/** Un clip vidéo prêt à être positionné image par image (muet : le son vient de la bande-son). */
+function chargerVideo(src: string): Promise<HTMLVideoElement> {
+  return new Promise((ok, ko) => {
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    const delai = setTimeout(() => ko(new Error(`Clip illisible : ${src.slice(0, 80)}`)), 30000);
+    v.onloadeddata = () => {
+      clearTimeout(delai);
+      ok(v);
+    };
+    v.onerror = () => {
+      clearTimeout(delai);
+      ko(new Error(`Clip illisible : ${src.slice(0, 80)}`));
+    };
+    v.src = src;
+  });
+}
+
+/** Amène un clip à l'instant voulu et attend que l'image soit prête. */
+function positionner(v: HTMLVideoElement, temps: number): Promise<void> {
+  const cible = Math.max(0, Math.min(temps, (v.duration || 0) - 0.04));
+  if (Math.abs(v.currentTime - cible) < 1 / 90) return Promise.resolve();
+  return new Promise((ok) => {
+    const fini = () => {
+      clearTimeout(delai);
+      v.removeEventListener('seeked', fini);
+      ok();
+    };
+    const delai = setTimeout(fini, 3000);
+    v.addEventListener('seeked', fini);
+    v.currentTime = cible;
+  });
 }
 
 function lignes(ctx: CanvasRenderingContext2D, texte: string, max: number): string[] {
@@ -204,7 +246,9 @@ async function preparerRendu(m: Montage) {
     plans.map((x, i) => {
       if (x.source.type === 'media') {
         const id = x.source.id;
-        return charger(m.images.find((k) => k.id === id)?.url ?? carteDe(i));
+        const media = m.images.find((k) => k.id === id);
+        if (media?.type === 'video') return chargerVideo(media.url).catch(() => charger(carteDe(i)));
+        return charger(media?.url ?? carteDe(i));
       }
       const u = new URL(carteDe(i), window.location.origin);
       for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'legende', 'pagination', 'chiffre']) u.searchParams.set(cle, '');
@@ -842,6 +886,7 @@ async function preparerRendu(m: Montage) {
     const u = tl / (b - a);
     debutPlan = a;
     env.t = t;
+    env.clip = img instanceof HTMLVideoElement;
     env.repere(i === 0 ? 'whoosh' : 'transition', i === 0 ? 0.1 : 0);
     cx.globalAlpha = 1;
     cx.fillStyle = th.fond;
@@ -849,6 +894,7 @@ async function preparerRendu(m: Montage) {
     // Coupe sèche (Veolt) : un léger « punch » d'entrée, comme un raccord de montage.
     const punch = m.rythme === 'sec' ? 0.06 * Math.pow(1 - borne(tl / 0.22), 2) : 0;
     const genere = x.source.type === 'media' && m.images.find((k) => x.source.type === 'media' && k.id === x.source.id)?.origine === 'genere';
+    const clip = img instanceof HTMLVideoElement;
 
     const decor = x.source.type === 'carte' ? (x.fond ?? th.fondDefaut ?? 'carte') : 'carte';
     if (x.source.type === 'carte' && decor !== 'carte') {
@@ -864,6 +910,22 @@ async function preparerRendu(m: Montage) {
     } else if (genere) {
       // Un visuel généré porte déjà son texte à la charte : il passe tel quel.
       couvrir(cx, img, L, H, 1 + 0.04 * u + punch);
+    } else if (clip && x.scene?.type === 'marque') {
+      // Le logotype en 3D (Blender) : plein cadre, sans voile — c'est le sujet.
+      couvrir(cx, img, L, H, 1 + punch);
+    } else if (clip) {
+      // Un clip (Higgsfield, Blender…) : plein cadre, une poussée lente, puis
+      // la teinte de la marque et un voile pour que le texte reste lisible.
+      couvrir(cx, img, L, H, 1.02 + 0.05 * u + punch);
+      cx.fillStyle = `${th.fond}59`;
+      cx.fillRect(0, 0, L, H);
+      const g = cx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, `${th.fond}99`);
+      g.addColorStop(0.3, `${th.fond}00`);
+      g.addColorStop(0.62, `${th.fond}00`);
+      g.addColorStop(1, `${th.fond}E6`);
+      cx.fillStyle = g;
+      cx.fillRect(0, 0, L, H);
     } else {
       couvrir(cx, img, L, H, 1 + 0.08 * u + punch);
       // Voile en bas pour que le texte reste lisible sur n'importe quelle image.
@@ -892,7 +954,7 @@ async function preparerRendu(m: Montage) {
 
     if (!genere) {
       if (x.scene && x.scene.type !== 'titre') dessinerScene(cx, i, tl, t, x.scene, b - a);
-      else dessinerTitre(cx, i, tl, t, x.source.type === 'media' ? 'bas' : 'centre');
+      else dessinerTitre(cx, i, tl, t, x.source.type === 'media' && !x.centre ? 'bas' : 'centre');
       if (x.annotation) {
         // La note manuscrite en bas à droite de la scène, et sa flèche qui
         // remonte vers ce qu'elle désigne.
@@ -987,9 +1049,33 @@ async function preparerRendu(m: Montage) {
     barre(t);
   };
 
+  /**
+   * Avant de dessiner l'image `k` : chaque clip visible est amené à son instant.
+   * Un clip plus court que son plan est ralenti pour le couvrir (5 s de
+   * Higgsfield sur un plan de 8 s : ralenti doux, jamais d'image figée).
+   */
+  const clips = sources.map((s) => (s instanceof HTMLVideoElement ? s : null));
+  const preparer = async (k: number) => {
+    if (!clips.some(Boolean)) return;
+    const t = k / FPS;
+    let i = bornes.findIndex(([a2, b2]) => t >= a2 && t < b2);
+    if (i < 0) i = plans.length - 1;
+    const attentes: Array<Promise<void>> = [];
+    for (const j of [i - 1, i, i + 1]) {
+      const v = clips[j];
+      if (!v) continue;
+      const [a2, b2] = bornes[j];
+      const tl = Math.min(Math.max(0, t - a2), b2 - a2);
+      const vitesse = Math.min(1, ((v.duration || 5) - 0.1) / (b2 - a2));
+      attentes.push(positionner(v, tl * vitesse));
+    }
+    await Promise.all(attentes);
+  };
+
   return {
     canvas: c,
     dessiner,
+    preparer,
     bornes,
     nbImages: Math.round(t0 * FPS),
     duree: t0,
@@ -1012,13 +1098,20 @@ export async function fabriquerVideo(
   const r = await preparerRendu(m);
   const reglage = m.son ?? { musique: true, bruitages: true };
   const avecSon = reglage.musique || reglage.bruitages || Boolean(reglage.voix?.length);
-  const opts: OptionsSon = { musique: reglage.musique, bruitages: reglage.bruitages, style: r.marque, volumeMusique: reglage.volume, voix: reglage.voix };
+  const opts: OptionsSon = {
+    musique: reglage.musique,
+    bruitages: reglage.bruitages,
+    style: r.marque,
+    volumeMusique: reglage.volume,
+    voix: reglage.voix,
+    musiqueUrl: reglage.musiqueUrl,
+  };
   let bandeSon: AudioBuffer | null = null;
   // Les repères sont collectés pendant le dessin : la bande-son se compose une
   // fois toutes les images passées.
   const composer = async () => (bandeSon = await composerBandeSon(r.duree, r.reperes, opts));
   try {
-    const sortieV = await encoder(r.canvas, r.dessiner, r.nbImages, r.duree, m.plafondOctets, progres, avecSon ? composer : null);
+    const sortieV = await encoder(r.canvas, r.dessiner, r.nbImages, r.duree, m.plafondOctets, progres, avecSon ? composer : null, r.preparer);
     return { ...sortieV, bandeSon };
   } finally {
     r.fermer();
@@ -1037,15 +1130,17 @@ export async function apercusPlans(m: Montage, largeur = 216): Promise<string[]>
   try {
   v.height = Math.round((largeur * m.hauteur) / m.largeur);
   const vctx = v.getContext('2d')!;
-  return r.bornes.map(([a, b]) => {
+  const vignettes: string[] = [];
+  for (const [i, [a, b]] of r.bornes.entries()) {
     // Une fois l'entrée du titre jouée : c'est l'image qu'on retient du plan.
-    const i = r.bornes.findIndex(([x]) => x === a);
     const scene = m.plans[i]?.scene;
     const t = a + (scene && scene.type !== 'titre' ? (b - a) * 0.9 : Math.min(1.5, (b - a) * 0.8));
+    await r.preparer(Math.floor(t * FPS));
     r.dessiner(Math.floor(t * FPS));
     vctx.drawImage(r.canvas, 0, 0, v.width, v.height);
-    return v.toDataURL('image/jpeg', 0.82);
-  });
+    vignettes.push(v.toDataURL('image/jpeg', 0.82));
+  }
+  return vignettes;
   } finally {
     r.fermer();
   }
@@ -1100,6 +1195,8 @@ async function encoder(
   progres: (pourcent: number) => void,
   /** Compose la bande-son une fois toutes les images dessinées (les repères viennent du dessin). */
   bandeSon: (() => Promise<AudioBuffer>) | null,
+  /** Prépare l'image `k` (clips positionnés) avant son dessin. */
+  preparer: (k: number) => Promise<void> = async () => {},
 ): Promise<{ fichier: File; mode: string }> {
   // 8 Mbit/s : net en 1080p pour des plans fixes animés. Si le chemin de dépôt
   // est plus étroit, on descend juste ce qu'il faut pour tenir dessous.
@@ -1130,6 +1227,7 @@ async function encoder(
       const enc = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => (erreur = e) });
       enc.configure({ codec, width: c.width, height: c.height, bitrate: debit, framerate: FPS });
       for (let k = 0; k < nbImages; k++) {
+        await preparer(k);
         dessiner(k);
         const vf = new VideoFrame(c, { timestamp: Math.round((k * 1e6) / FPS), duration: Math.round(1e6 / FPS) });
         enc.encode(vf, { keyFrame: k % (FPS * 2) === 0 });
@@ -1166,6 +1264,7 @@ async function encoder(
   let actx: AudioContext | null = null;
   if (bandeSon) {
     for (let k = 0; k < nbImages; k += 1) {
+      await preparer(k);
       dessiner(k);
       if (k % 30 === 0) await new Promise((r) => setTimeout(r, 0));
     }
@@ -1185,6 +1284,7 @@ async function encoder(
   lecteur?.start();
   const debut = performance.now();
   for (let k = 0; k < nbImages; k++) {
+    await preparer(k);
     dessiner(k);
     piste.requestFrame?.();
     const attente = debut + ((k + 1) * 1000) / FPS - performance.now();
