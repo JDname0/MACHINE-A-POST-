@@ -21,6 +21,7 @@ import { deuxLignes, THEMES } from './visuels';
 import { TYPES_IMAGE, depotDirect, plafondDepotVideo } from './medias';
 import type { Montage, ThemeStudio } from './fabrique-video';
 import { marque, type EntiteSlug } from './marques';
+import { sujet } from './sujets';
 
 /** Horizon de l'anticipation : ce qui sera dû dans les sept jours. */
 export const HORIZON_LOT_JOURS = 7;
@@ -354,9 +355,16 @@ export function actionMarque(e: EntiteSlug): string {
   return e === 'veolt' ? 'Demander l’analyse gratuite' : 'Essayer gratuitement';
 }
 
-/** Le nom lisible du pilier d'un post, pour le sur-titre d'ouverture. */
+/**
+ * Le nom lisible du pilier, pour le sur-titre d'ouverture d'une vidéo : celui
+ * du **sujet** — ce dont la vidéo parle — et non celui du créneau. Le semis
+ * place parfois un sujet dans une case d'un autre pilier (semaine de lancement
+ * à pilier forcé) : une vidéo « pipeline 3D » s'ouvrait alors sur
+ * « Positionnement et prix ».
+ */
 export function nomPilier(p: LignePublication): string {
-  return marque(p.entite as EntiteSlug).piliers.find((x) => x.slug === p.pilier)?.nom ?? '';
+  const slug = (p.sujet_ref ? sujet(p.sujet_ref)?.pilier : undefined) ?? p.pilier;
+  return marque(p.entite as EntiteSlug).piliers.find((x) => x.slug === slug)?.nom ?? '';
 }
 
 /** Le montage complet d'un post, prêt à fabriquer dans le navigateur (studio, lot, boutons). */
