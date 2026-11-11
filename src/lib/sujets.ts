@@ -12,6 +12,8 @@
  */
 
 import type { EntiteSlug } from './marques';
+import { ARTICLES_VEOLT } from './articles-veolt';
+import { ARTICLES_MAGISTRIA } from './articles-magistria';
 
 export interface Sujet {
   ref: string;
@@ -33,6 +35,16 @@ export interface Sujet {
    * Reportée dans les consignes de production, jamais dans le texte publié.
    */
   source?: string;
+  /**
+   * Articles de blog uniquement (`articles-*.ts`). La grappe du plan de
+   * référencement et la requête visée ; les titres de section, en question
+   * réelle, un par paragraphe à partir de `corps[2]` ; les points « À retenir »
+   * écrits pour l'article. Sans eux, le moule laisse des « [?] ».
+   */
+  grappe?: string;
+  requete?: string;
+  questions?: string[];
+  aRetenir?: string[];
 }
 
 export const SUJETS: Record<EntiteSlug, Sujet[]> = {
@@ -571,6 +583,19 @@ export const SUJETS: Record<EntiteSlug, Sujet[]> = {
         "Architecture du produit : classement vérifié / inconnu / hors-corpus, et périmètre de huit référentiels (RGPD, NIS 2, DORA, MiCA, règlement IA, ACPR / code des assurances, LPM 2024-2030, code pénal — cybercriminalité). Article L. 113-1 du code des assurances. Grappe « IA et droit », article pilier déjà en base.",
       enseignement:
         "La liste de ce qu'un outil juridique refuse de faire est plus informative que la liste de ses fonctions.",
+      grappe: 'IA et droit',
+      requete: 'vérifier fiabilité IA juridique sources',
+      questions: [
+        "L'outil affiche-t-il l'état de chaque citation ?",
+        "L'outil déclare-t-il son périmètre ?",
+        'Une affirmation de droit peut-elle sortir sans référence ?',
+        "Que répond l'outil face à un dossier incomplet ?",
+      ],
+      aRetenir: [
+        'Chaque citation doit porter un état : vérifiée, inconnue ou hors-corpus.',
+        'Un périmètre déclaré se vérifie ; hors de lui, la réponse est « hors-corpus ».',
+        'Un outil utilisable sait répondre que les pièces ne permettent pas de conclure.',
+      ],
       appel: "Lequel de ces quatre tests votre outil actuel échoue-t-il ?",
       indicateur: 'part des requêtes de la grappe en top 10, et citations par les IA (relevé manuel)',
     },
@@ -668,6 +693,42 @@ export function sujetsDe(entite: EntiteSlug, pilier?: string) {
   return pilier ? tous.filter((s) => s.pilier === pilier) : tous;
 }
 
+/**
+ * Les articles de blog du plan de référencement, dans l'ordre où le calendrier
+ * les pose : les grappes alternent, pour que chaque série avance en parallèle.
+ * `m-pi-5` (déjà écrit, hors calendrier) ouvre la grappe « IA et droit ».
+ */
+export const ARTICLES: Record<EntiteSlug, Sujet[]> = {
+  veolt: ARTICLES_VEOLT,
+  magistria: [...ARTICLES_MAGISTRIA, ...SUJETS.magistria.filter((s) => s.ref === 'm-pi-5')],
+};
+
+const ORDRE_CALENDRIER: Record<EntiteSlug, string[]> = {
+  veolt: [
+    'v-art-bp-1', 'v-art-site-1', 'v-art-3d-1', 'v-art-bp-3', 'v-art-site-2', 'v-art-bp-2',
+    'v-art-3d-2', 'v-art-bp-4', 'v-art-site-3', 'v-art-3d-3', 'v-art-bp-5', 'v-art-site-6',
+    // Réserve, au-delà des douze semaines :
+    'v-art-bp-6', 'v-art-site-4', 'v-art-site-5', 'v-art-3d-4', 'v-art-3d-5',
+  ],
+  magistria: [
+    'm-art-sin-1', 'm-art-conf-1', 'm-art-ia-2', 'm-art-sin-2', 'm-art-conf-2', 'm-art-ia-6',
+    'm-art-sin-3', 'm-art-conf-3', 'm-art-ia-3', 'm-art-sin-4', 'm-art-conf-4', 'm-art-sin-6',
+    // Réserve, au-delà des douze semaines :
+    'm-art-sin-5', 'm-art-conf-5', 'm-art-ia-4', 'm-art-ia-5',
+  ],
+};
+
+/** Les articles d'une entité dans l'ordre du calendrier. */
+export function articlesDe(entite: EntiteSlug): Sujet[] {
+  return ORDRE_CALENDRIER[entite].map((ref) => ARTICLES[entite].find((s) => s.ref === ref)!).filter(Boolean);
+}
+
+/** Les autres articles de la même grappe — la série affichée en fin d'article. */
+export function serieDe(s: Sujet, entite: EntiteSlug): Sujet[] {
+  if (!s.grappe) return [];
+  return ARTICLES[entite].filter((x) => x.grappe === s.grappe && x.ref !== s.ref);
+}
+
 export function sujet(ref: string): Sujet | undefined {
-  return [...SUJETS.veolt, ...SUJETS.magistria].find((s) => s.ref === ref);
+  return [...SUJETS.veolt, ...SUJETS.magistria, ...ARTICLES_VEOLT, ...ARTICLES_MAGISTRIA].find((s) => s.ref === ref);
 }

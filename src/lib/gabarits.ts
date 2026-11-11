@@ -7,7 +7,7 @@
  */
 
 import { format, type FormatSlug } from './formats';
-import type { Sujet } from './sujets';
+import { serieDe, type Sujet } from './sujets';
 import { marque, type EntiteSlug } from './marques';
 
 export interface Brouillon {
@@ -185,6 +185,7 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug): Brouillo
 
     // ── Article : la réponse dans les 100 premiers mots ─────────────────
     case 'blog-article': {
+      const serie = serieDe(s, entite);
       const corps = [
         `## La réponse, en bref`,
         `${s.accroche} ${s.corps[0]}`,
@@ -192,13 +193,19 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug): Brouillo
         `## Pourquoi la question se pose`,
         s.corps[1] ?? '[?] à développer',
         '',
-        ...s.corps.slice(2).flatMap((p, i) => [`## ${i + 1}. [?] titre sous forme de question`, p, '']),
+        ...s.corps.slice(2).flatMap((p, i) => [`## ${i + 1}. ${s.questions?.[i] ?? '[?] titre sous forme de question'}`, p, '']),
         `## À retenir`,
-        ...s.corps.slice(0, 3).map((p) => `- ${tronquer(p, 160)}`),
+        ...(s.aRetenir ?? s.corps.slice(0, 3).map((p) => tronquer(p, 160))).map((p) => `- ${p}`),
         `- ${s.enseignement}`,
         '',
-        `## Pour aller plus loin`,
-        '[?] 3 à 5 liens internes vers les autres articles de la grappe — et remonter ces articles pour qu\'ils pointent ici.',
+        // Un article de la grappe annonce sa série ; les liens se posent à la
+        // mise en ligne, vers ceux qui sont déjà publiés (consigne ci-dessous).
+        ...(serie.length
+          ? [`## Dans la même série`, ...serie.map((x) => `- ${x.titre}`)]
+          : [
+              `## Pour aller plus loin`,
+              '[?] 3 à 5 liens internes vers les autres articles de la grappe — et remonter ces articles pour qu\'ils pointent ici.',
+            ]),
       ].join('\n');
       return {
         titre: s.titre,
@@ -210,6 +217,12 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug): Brouillo
           'Une illustration par section, seulement si elle apporte une information.',
           'Date de mise à jour visible : les URL citées par les IA sont ~26 % plus récentes.',
           'Le bloc « La réponse, en bref » doit être autonome — c\'est lui qui se fait citer.',
+          ...(s.requete ? [`REQUÊTE VISÉE — « ${s.requete} » (grappe « ${s.grappe} »).`] : []),
+          ...(serie.length
+            ? [
+                'MAILLAGE — à la mise en ligne, lier chaque titre de « Dans la même série » déjà publié, retirer ceux qui ne le sont pas encore, et ajouter un lien vers cet article dans les articles de la série déjà en ligne.',
+              ]
+            : []),
         ],
       };
     }

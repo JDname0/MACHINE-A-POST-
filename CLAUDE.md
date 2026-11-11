@@ -24,6 +24,7 @@ fichier fasse autorité. Il ne dépend d'aucun autre projet et n'en modifie aucu
 | `src/lib/marques.ts` | identités, piliers, personas, preuves autorisées et interdites |
 | `src/lib/formats.ts` | les 9 formats, leurs limites et leurs ossatures (relevé 2026-10-06) |
 | `src/lib/sujets.ts` | le réservoir de sujets, écrits un par un |
+| `src/lib/articles-veolt.ts`, `articles-magistria.ts` | un article de blog par titre du plan de grappes (questions de section, « À retenir », source) ; ordre de pose dans `sujets.ts` (`ORDRE_CALENDRIER`) |
 | `src/lib/gabarits.ts` | sujet × format → brouillon taillé au bon moule |
 | `src/lib/calendrier.ts` | semaine type + séquence de lancement |
 | `src/lib/garde-fous.ts` | blocage / alerte / conseil — chaque règle dit son remède |
@@ -55,6 +56,12 @@ l'interface**. Poser la variable le ferme.
   section, liens internes, chiffre réel à fournir) **bloque la validation**
   (`garde-fous.ts`, règle 0). Ne jamais le remplir de mémoire pour débloquer un
   post : c'est exactement la preuve inventée de la règle 2.
+- Les créneaux « blog » prennent **un article différent chacun** (`articlesDe`),
+  jamais un sujet court répété. `poserArticles()` (`db.ts`) a converti les
+  anciens créneaux le 11/11 — seulement les brouillons non retouchés, tracés au
+  journal. Un article MagistrIA ne cite une décision que si elle est certaine ;
+  les points à revérifier avant publication sont dans `source` (consignes),
+  pas dans le texte.
 
 ## Générer / régénérer depuis le calendrier
 

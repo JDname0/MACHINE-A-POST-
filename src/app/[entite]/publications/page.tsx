@@ -5,7 +5,7 @@ import { format, RESEAUX } from '@/lib/formats';
 import { publications, compteursMenu, formaterDate, LIBELLE_STATUT, STATUTS } from '@/lib/requetes';
 import { controler, compter } from '@/lib/garde-fous';
 import { TOUS_FORMATS } from '@/lib/formats';
-import { sujetsDe } from '@/lib/sujets';
+import { sujetsDe, articlesDe } from '@/lib/sujets';
 import { creerPublication } from '@/app/actions';
 import { iso } from '@/lib/calendrier';
 import type { FormatSlug } from '@/lib/formats';
@@ -74,11 +74,20 @@ export default async function Publications({
               <label>Sujet du réservoir</label>
               <select name="sujet_ref" defaultValue="">
                 <option value="">— brouillon vide —</option>
-                {sujetsDe(e).map((s) => (
-                  <option key={s.ref} value={s.ref}>
-                    {s.titre}
-                  </option>
-                ))}
+                <optgroup label="Sujets courts (réseaux)">
+                  {sujetsDe(e).map((s) => (
+                    <option key={s.ref} value={s.ref}>
+                      {s.titre}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Articles de blog (plan de référencement)">
+                  {articlesDe(e).map((s) => (
+                    <option key={s.ref} value={s.ref}>
+                      {s.titre}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
             </div>
             <button type="submit">Créer</button>

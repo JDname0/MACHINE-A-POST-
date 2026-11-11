@@ -12,7 +12,7 @@ import Database from 'better-sqlite3';
 import { ENTITES, type EntiteSlug } from './marques';
 import { CHEMIN_BASE, EN_SERVERLESS, hydrater, sauvegarder } from './persistance';
 import { deroule } from './calendrier';
-import { sujetsDe } from './sujets';
+import { ARTICLES, articlesDe, sujet, sujetsDe } from './sujets';
 import { fabriquer } from './gabarits';
 
 /**
@@ -35,7 +35,8 @@ async function initialiser() {
   schema(d);
   migrer(d);
   const aSeme = semer(d);
-  if (aSeme) await sauvegarder();
+  const articlesPoses = poserArticles(d);
+  if (aSeme || articlesPoses) await sauvegarder();
   return { d, niveau };
 }
 
@@ -241,6 +242,61 @@ function migrer(d: Database.Database) {
   }
 }
 
+/**
+ * Les créneaux « blog » semés avant l'écriture des articles (11/11/2026)
+ * reprenaient six sujets courts — le même article jusqu'à dix fois, ce qui
+ * aurait publié du contenu dupliqué. Chaque créneau reçoit désormais un
+ * article du plan de référencement (`articles-*.ts`), dans l'ordre du
+ * calendrier.
+ *
+ * Gardé, parce qu'il réécrit du contenu : seulement les brouillons du
+ * calendrier dont le texte est encore **exactement** celui que le moule tire
+ * de leur sujet — rien de retouché à la main n'est touché. Un post qui porte
+ * déjà un article est ignoré : la migration ne joue qu'une fois par post.
+ * Chaque remplacement est tracé au journal avec la référence d'origine.
+ */
+function poserArticles(d: Database.Database): number {
+  const refsArticles = new Set([...ARTICLES.veolt, ...ARTICLES.magistria].map((a) => a.ref));
+  let poses = 0;
+  for (const ent of ENTITES) {
+    const posts = d
+      .prepare(
+        "SELECT * FROM publications WHERE entite=? AND format_slug='blog-article' AND semaine IS NOT NULL ORDER BY date_prevue, id",
+      )
+      .all(ent.slug) as Array<Record<string, string | null> & { id: number }>;
+    const dejaPris = new Set(
+      (d.prepare("SELECT sujet_ref FROM publications WHERE entite=? AND format_slug='blog-article'").all(ent.slug) as Array<{
+        sujet_ref: string | null;
+      }>).map((x) => x.sujet_ref),
+    );
+    const libres = articlesDe(ent.slug).filter((a) => !dejaPris.has(a.ref));
+    for (const p of posts) {
+      if (!libres.length) break;
+      if (p.statut !== 'brouillon' || !p.sujet_ref || refsArticles.has(p.sujet_ref)) continue;
+      const ancien = sujet(p.sujet_ref);
+      if (!ancien) continue;
+      const avant = fabriquer(ancien, 'blog-article', ent.slug);
+      const intact =
+        [avant.titre ?? ancien.titre, avant.accroche, avant.corps, avant.appel, avant.hashtags].join('\u0000') ===
+        [p.titre, p.accroche, p.corps, p.appel, p.hashtags].join('\u0000');
+      if (!intact) continue;
+      const a = libres.shift()!;
+      const b = fabriquer(a, 'blog-article', ent.slug);
+      d.prepare(
+        `UPDATE publications SET sujet_ref=?, pilier=?, persona=?, titre=?, accroche=?, corps=?, appel=?, hashtags=?,
+           consignes_visuel=?, preuve=?, indicateur=?, maj_le=datetime('now') WHERE id=?`,
+      ).run(a.ref, a.pilier, a.persona, b.titre ?? a.titre, b.accroche, b.corps, b.appel, b.hashtags, b.consignesVisuel.join('\n'), a.preuve, a.indicateur, p.id);
+      d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+        ent.slug,
+        'article posé sur le calendrier',
+        `publication ${p.id} (${p.date_prevue}) : sujet ${p.sujet_ref} → article ${a.ref} « ${a.titre} »`,
+      );
+      poses++;
+    }
+  }
+  return poses;
+}
+
 export function tracer(action: string, detail?: string, entite?: string) {
   db().prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(entite ?? null, action, detail ?? null);
 }
@@ -428,7 +484,36 @@ function semer(d: Database.Database): boolean {
       // les quatre semaines de lancement le pilier est forcé, et un pilier à deux
       // sujets se répéterait sinon du lundi au jeudi.
       const vusSemaine = new Map<number, Set<string>>();
+      // Les créneaux « blog » prennent les articles du plan de référencement,
+      // dans l'ordre du calendrier (les grappes alternent), pas les sujets courts.
+      const articles = articlesDe(ent.slug);
+      let rangArticle = 0;
       for (const c of deroule(ent.slug, depart, 12)) {
+        if (c.formatSlug === 'blog-article' && articles.length) {
+          const a = articles[rangArticle++ % articles.length];
+          const b = fabriquer(a, c.formatSlug, ent.slug);
+          ins.run({
+            entite: ent.slug,
+            format_slug: c.formatSlug,
+            pilier: a.pilier,
+            persona: a.persona,
+            sujet_ref: a.ref,
+            date_prevue: c.date,
+            semaine: c.semaine,
+            phase: c.phase,
+            raison: c.raison,
+            statut: 'brouillon',
+            titre: b.titre ?? a.titre,
+            accroche: b.accroche,
+            corps: b.corps,
+            appel: b.appel,
+            hashtags: b.hashtags,
+            consignes_visuel: b.consignesVisuel.join('\n'),
+            preuve: a.preuve,
+            indicateur: a.indicateur,
+          });
+          continue;
+        }
         const candidats = sujetsDe(ent.slug, c.pilier);
         const pool = candidats.length ? candidats : sujetsDe(ent.slug);
         const i = compteur.get(c.pilier) ?? 0;

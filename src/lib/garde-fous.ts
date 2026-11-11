@@ -235,10 +235,12 @@ export function controler(b: BrouillonAControler): Constat[] {
 
   // ─── 11. MagistrIA : toute affirmation de droit exige une référence ──────
   if (b.entite === 'magistria') {
+    // « CE » (Conseil d'État) se teste en capitales : avec le drapeau `i`, le
+    // simple mot « ce » déclenchait la règle sur n'importe quel texte.
     const affirmeDuDroit =
-      /\b(?:article|art\.)\s*(?:L\.?|R\.?|D\.?)?\s*\d|\bCass\.|\bCE\b|\barrêt\b|\bjurisprudence\b|\bcode (?:des assurances|civil|de commerce|pénal)\b|\bRGPD\b|\bNIS\s?2\b/i.test(
+      /\b(?:article|art\.)\s*(?:L\.?|R\.?|D\.?)?\s*\d|\bCass\.|\barrêt\b|\bjurisprudence\b|\bcode (?:des assurances|civil|de commerce|pénal)\b|\bRGPD\b|\bNIS\s?2\b/i.test(
         texte,
-      );
+      ) || /\bCE\b/.test(texte);
     const aUneReference =
       /\b(?:art(?:icle)?\.?\s*(?:L|R|D)?\.?\s*\d+|n°\s*\d|\d{2}-\d{4,5}|\b(?:19|20)\d{2}\b)/i.test(texte);
     if (affirmeDuDroit && !aUneReference) {
