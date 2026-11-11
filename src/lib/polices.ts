@@ -23,6 +23,8 @@ export const FICHIERS_POLICES = [
   'Inter-SemiBold.ttf',
   'PlayfairDisplay-Bold.ttf',
   'JetBrainsMono-Medium.woff',
+  'Spectral-MediumItalic.woff',
+  'Caveat-SemiBold.woff',
 ] as const;
 
 const lire = (f: string) => readFileSync(path.join(DOSSIER_POLICES, f));

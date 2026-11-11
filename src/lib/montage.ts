@@ -14,6 +14,29 @@ export type SourcePlan = { type: 'carte' } | { type: 'media'; id: number };
 
 export type EtatCitation = 'verifiee' | 'inconnue' | 'hors-corpus';
 
+/** Décor animé d'un plan, dessiné dans le navigateur. `carte` : le fond de marque généré (logo, pied). */
+export type FondPlan = 'carte' | 'etoiles' | 'horizon' | 'rayons';
+
+/**
+ * Ce qui apparaît, l'un après l'autre, dans l'écran produit d'une scène `app`.
+ * Tout y est marqué comme exemple : l'interface est fidèle, les données fictives.
+ */
+export type ElementApp =
+  | { type: 'fichiers'; items: Array<{ nom: string; etat: string }>; chronologie?: Array<{ quand: string; texte: string; tag?: string }> }
+  /** Tapée dans le champ de saisie, puis posée en bulle « Vous : … ». */
+  | { type: 'question'; texte: string }
+  | { type: 'sources'; items: string[] }
+  /** `**gras**` et renvois `[1]` reconnus. */
+  | { type: 'reponse'; titre?: string; texte: string }
+  | { type: 'bloc'; titre: string; texte?: string; items?: string[]; ton?: 'neutre' | 'alerte' }
+  | { type: 'courrier'; titre: string; texte: string; tag?: string }
+  /** Une réponse d'IA générique, puis barrée : « le piège, une réponse sans source ». */
+  | { type: 'piege'; question: string; reponse: string; alerte: string }
+  /** Des notifications qui arrivent en direct (« Nouvelle demande de devis »). */
+  | { type: 'notifications'; items: Array<{ titre: string; detail?: string }> }
+  /** Le curseur va sur le bouton, clique : le statut change, une bulle confirme. */
+  | { type: 'clic'; avant: string; libelle: string; bouton: string; apres: string; toast?: string };
+
 /**
  * Ce qui se passe dans un plan, au-delà du titre animé. Chaque scène est
  * dessinée et animée dans le navigateur, aux couleurs de la marque — c'est ce
@@ -49,8 +72,32 @@ export type Scene =
       lignes: Array<{ libelle: string; valeurs: string[] }>;
       reperes: Array<{ ligne: number; note: string }>;
     }
-  /** Écran de fin : titre, bouton d'action, adresse du site. */
-  | { type: 'fin'; action: string; adresse?: string };
+  /** Écran de fin : marque, slogan, public visé, bouton d'action, adresse, petite ligne. */
+  | { type: 'fin'; action: string; adresse?: string; slogan?: string[]; public?: string; note?: string }
+  /** Écran produit vivant : saisie, sources, réponse, blocs, courrier… dans une fenêtre d'application. */
+  | { type: 'app'; fenetre: string; onglets?: string[]; saisie?: string; elements: ElementApp[]; flux?: string[]; mention?: string }
+  /** Apparition de la marque : logotype, puis sa phrase. */
+  | { type: 'marque'; slogan?: string }
+  /** Des pièces papier qui se posent et s'empilent, puis s'éparpillent. */
+  | { type: 'documents'; items: string[]; dispersion?: boolean }
+  /** Récapitulatif coché, élément par élément. */
+  | { type: 'recap'; items: string[] }
+  /**
+   * Un site d'artisan ou de commerçant qui défile dans un téléphone — une
+   * MAQUETTE d'exemple, dessinée pour la vidéo et présentée comme telle.
+   */
+  | {
+      type: 'site';
+      nom: string;
+      metier: string;
+      accroche: string;
+      action: string;
+      services: string[];
+      horaires?: string[];
+      couleur?: string;
+      reperes?: string[];
+      mention?: string;
+    };
 
 export interface PlanMontage {
   duree: number;
@@ -60,6 +107,18 @@ export interface PlanMontage {
   source: SourcePlan;
   /** La scène du plan ; absente : titre animé seul. */
   scene?: Scene;
+  /** Repère de chapitre au-dessus du titre (« 01 / 06 · Posez votre question »). */
+  chapitre?: string;
+  /** Phrase d'accent sous le titre, en italique (« le sinistre est-il couvert ? »). */
+  accent?: string;
+  /** Annotation manuscrite (« ← souvent oublié »). */
+  annotation?: string;
+  /** Décor du plan ; absent : celui de la marque. */
+  fond?: FondPlan;
+  /** Titre centré (accroche, phrase forte) plutôt qu'aligné à gauche. */
+  centre?: boolean;
+  /** Sous-titre « karaoké » en bas d'écran : le mot en cours surligné. */
+  sousTitre?: string;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
@@ -78,6 +137,12 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     image: p.image,
     source: { type: 'carte' },
     ...(p.scene ? { scene: p.scene } : {}),
+    ...(p.chapitre ? { chapitre: p.chapitre } : {}),
+    ...(p.accent ? { accent: p.accent } : {}),
+    ...(p.annotation ? { annotation: p.annotation } : {}),
+    ...(p.fond ? { fond: p.fond } : {}),
+    ...(p.centre ? { centre: true } : {}),
+    ...(p.sousTitre ? { sousTitre: p.sousTitre } : {}),
   }));
 }
 

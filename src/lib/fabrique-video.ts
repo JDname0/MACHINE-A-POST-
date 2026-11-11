@@ -18,6 +18,23 @@
  */
 
 import type { PlanMontage, Scene } from './montage';
+import {
+  dessinerFond,
+  dessinerChapitre,
+  dessinerAccent,
+  dessinerAnnotation,
+  sceneApp,
+  sceneMarque,
+  sceneDocuments,
+  sceneRecap,
+  sceneFinV2,
+  sceneSite,
+  dessinerSousTitre,
+  dessinerFleche,
+  hauteurSousTitre,
+  type CarteApp,
+  type Env,
+} from './rendu-scenes';
 import { deuxLignes } from './coupe';
 import { enregistrerTeleversement, deposerVideoMontee } from '@/app/actions';
 
@@ -57,6 +74,18 @@ export interface ThemeStudio {
   bouton?: { fond: string[]; encre: string };
   /** L'adresse affichée sous le bouton de fin. */
   adresse?: string;
+  /** Second accent : phrase en italique, annotations, étoiles colorées. */
+  accent2?: string;
+  /** Couleurs de l'arc d'horizon et des rayons. */
+  arc?: string[];
+  rayons?: string[];
+  /** Décor par défaut des plans (sinon le fond de marque généré). */
+  fondDefaut?: 'carte' | 'etoiles' | 'horizon' | 'rayons';
+  /** Logotype en mots : [début, fin, couleur de la fin] ; et la phrase de marque. */
+  motMarque?: [string, string, string];
+  slogan?: string;
+  /** Couleurs de l'écran produit (l'application elle-même). */
+  app?: CarteApp;
 }
 
 export interface Montage {
@@ -88,6 +117,8 @@ const POLICES: Record<string, { fichier: string; poids: string }> = {
   Inter: { fichier: 'Inter-SemiBold.ttf', poids: '600' },
   Mono: { fichier: 'JetBrainsMono-Medium.woff', poids: '500' },
   InterR: { fichier: 'Inter-Regular.ttf', poids: '400' },
+  Italique: { fichier: 'Spectral-MediumItalic.woff', poids: '500' },
+  Manuscrite: { fichier: 'Caveat-SemiBold.woff', poids: '600' },
 };
 const GLYPHES = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+';
 
@@ -158,6 +189,8 @@ async function preparerRendu(m: Montage) {
   const corps = await chargerPolice('Inter');
   const corpsL = await chargerPolice('InterR');
   const mono = await chargerPolice('Mono');
+  const italique = await chargerPolice('Italique');
+  const manuscrite = await chargerPolice('Manuscrite');
 
   // Les cartes donnent le fond à la charte (logo, pied, halos, trame) SANS
   // texte : le titre est dessiné ici, pour pouvoir l'animer.
@@ -184,6 +217,43 @@ async function preparerRendu(m: Montage) {
   const vertical = H > L * 1.4;
   const marge = vertical ? 92 : 80;
   const largeurTexte = L - marge * 2;
+
+  const appDefaut: CarteApp = {
+    fond: '#FFFFFF',
+    encre: '#15121A',
+    douce: '#6E6B78',
+    accent: th.accent,
+    filet: '#E6E6EB',
+    puce: '#EEF6EE',
+    alerte: '#FFF4D6',
+    alerteEncre: '#8A5A00',
+    neutre: '#F3F3F6',
+    ok: '#2E7D32',
+  };
+  const env: Env = {
+    L,
+    H,
+    vertical,
+    marge,
+    largeurTexte,
+    encre: th.encre,
+    douce: th.douce ?? 'rgba(255,255,255,0.62)',
+    accent: th.accent,
+    accent2: th.accent2 ?? th.accent,
+    fond: th.fond,
+    degrade: th.degrade,
+    arc: th.arc ?? [th.accent],
+    rayons: th.rayons ?? [th.accent],
+    majuscules: Boolean(th.majuscules),
+    motMarque: th.motMarque ?? ['Marque', '', th.encre],
+    slogan: th.slogan ?? '',
+    app: th.app ?? appDefaut,
+    bouton: th.bouton ?? { fond: [th.accent], encre: '#FFFFFF' },
+    adresse: th.adresse ?? '',
+    // Veolt n'a pas d'italique dans sa charte : ses phrases d'accent sont en Bebas lavande.
+    f: { titre, corps, corpsL, mono, italique: th.policeTitre === 'Bebas' ? titre : italique, manuscrite, etiquette: sur ?? mono },
+    lignes,
+  };
 
   type Zone = 'centre' | 'bas' | 'haut' | 'fin';
   const ECHELLE: Record<Zone, number> = { centre: 1, bas: 0.78, haut: 0.6, fin: 0.85 };
@@ -231,33 +301,40 @@ async function preparerRendu(m: Montage) {
             : H * 0.47 - hauteurBloc / 2 + taille;
     cx.textBaseline = 'alphabetic';
 
-    // Sur-titre : le pilier du post, sur le plan d'ouverture seulement.
-    if (i === 0 && sur && th.surTitre && m.surTitre) {
+    const centre = Boolean(plans[i].centre);
+    const xLigne = (w: number) => (centre ? (L - w) / 2 : marge);
+
+    // Chapitre (« 01 / 06 · … »), sinon le pilier du post sur le plan d'ouverture.
+    if (plans[i].chapitre) {
+      dessinerChapitre(cx, env, plans[i].chapitre!, tl, y - taille - L * 0.035, centre);
+    } else if (i === 0 && sur && th.surTitre && m.surTitre) {
       const ts = Math.round(L * (th.surTitre.police === 'Mono' ? 0.021 : 0.034));
       cx.font = `${sur.poids} ${ts}px "${sur.famille}", monospace`;
       (cx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${Math.round(ts * 0.28)}px`;
       cx.globalAlpha = sortie(tl / 0.35);
       cx.fillStyle = th.surTitre.couleur;
-      cx.fillText(m.surTitre.toUpperCase(), marge, y - taille - ts * 1.4);
+      const st = m.surTitre.toUpperCase();
+      cx.fillText(st, xLigne(cx.measureText(st).width), y - taille - ts * 1.4);
       (cx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px';
       cx.globalAlpha = 1;
     }
 
     cx.font = `${titre.poids} ${taille}px "${titre.famille}", sans-serif`;
     ls.forEach((ligne, j) => {
-      const remplissage = (largeur: number): string | CanvasGradient => {
+      const largeur = cx.measureText(ligne.t).width;
+      const x0 = xLigne(largeur);
+      const remplissage = (): string | CanvasGradient => {
         if (!ligne.accent || !th.degrade) return th.encre;
-        const g = cx.createLinearGradient(marge, 0, marge + Math.max(largeur, L * 0.4), 0);
+        const g = cx.createLinearGradient(x0, 0, x0 + Math.max(largeur, L * 0.4), 0);
         th.degrade.forEach((col, k) => g.addColorStop(k / Math.max(1, th.degrade!.length - 1), col));
         return g;
       };
-      const largeur = cx.measureText(ligne.t).width;
       if (th.animation === 'brouillage') {
         // Comme sur veolt.fr : les lettres défilent puis se fixent, de gauche à droite.
         const p = borne((tl - (0.05 + j * 0.07)) / 0.42);
         const fixes = Math.floor(p * ligne.t.length);
-        cx.fillStyle = remplissage(largeur);
-        let x = marge;
+        cx.fillStyle = remplissage();
+        let x = x0;
         for (let k = 0; k < ligne.t.length; k++) {
           const vrai = ligne.t[k];
           const montre = k < fixes || vrai === ' ' ? vrai : GLYPHES[Math.floor(hasard(Math.floor(t * 15) * 97 + k * 31 + j * 7 + i * 13) * GLYPHES.length)];
@@ -269,16 +346,18 @@ async function preparerRendu(m: Montage) {
       } else {
         const e = sortie((tl - (0.08 + j * 0.11)) / 0.6);
         cx.globalAlpha = e;
-        cx.fillStyle = remplissage(largeur);
-        cx.fillText(ligne.t, marge, y + (1 - e) * 28);
+        cx.fillStyle = remplissage();
+        cx.fillText(ligne.t, x0, y + (1 - e) * 28);
         cx.globalAlpha = 1;
       }
       y += interligne;
     });
 
-    // Le filet sous le titre, comme sur les visuels (marque sans dégradé).
-    const bas = y - interligne + taille * 0.42;
-    if (!th.degrade) {
+    let bas = y - interligne + taille * 0.42;
+    if (plans[i].accent) {
+      bas = dessinerAccent(cx, env, plans[i].accent!, tl, bas - taille * 0.2, centre);
+    } else if (!th.degrade && !centre) {
+      // Le filet sous le titre, comme sur les visuels (marque sans dégradé).
       const e = sortie((tl - (0.1 + ls.length * 0.11)) / 0.5);
       cx.fillStyle = th.accent;
       cx.fillRect(marge, bas, 190 * (L / 1080) * e, 5);
@@ -637,44 +716,21 @@ async function preparerRendu(m: Montage) {
     });
   };
 
-  const sceneFin = (cx: CanvasRenderingContext2D, i: number, sc: Extract<Scene, { type: 'fin' }>, tl: number, t: number) => {
-    const bas = dessinerTitre(cx, i, tl, t, 'fin');
-    const fb = L * (vertical ? 0.04 : 0.035);
-    cx.font = fonte(corps, fb);
-    const tw = cx.measureText(sc.action).width;
-    const px = fb * 1.3;
-    const py = fb * 0.85;
-    const bw = tw + px * 2;
-    const bh = fb + py * 2;
-    const by = bas + L * 0.08;
-    const a = apparition(tl, 0.55, 0.5);
-    const pulse = tl > 1.2 ? 1 + 0.022 * Math.sin((tl - 1.2) * 4.5) : 1;
-    cx.save();
-    cx.globalAlpha = a;
-    cx.translate(marge + bw / 2, by + bh / 2);
-    cx.scale(pulse, pulse);
-    const fond = th.bouton?.fond ?? [th.accent];
-    const g = cx.createLinearGradient(-bw / 2, 0, bw / 2, 0);
-    fond.forEach((col, k) => g.addColorStop(fond.length === 1 ? 0 : k / (fond.length - 1), col));
-    if (fond.length === 1) g.addColorStop(1, fond[0]);
-    boite(cx, -bw / 2, -bh / 2, bw, bh, bh / 2, g);
-    cx.fillStyle = th.bouton?.encre ?? '#FFFFFF';
-    cx.fillText(sc.action, -bw / 2 + px, fb * 0.36);
-    cx.restore();
-    cx.globalAlpha = apparition(tl, 0.9, 0.5);
-    etiquette(cx, `${(sc.adresse ?? th.adresse ?? '').toUpperCase()}  →`, marge, by + bh + fb * 1.9, fb * 0.55, douce);
-    cx.globalAlpha = 1;
-  };
-
   const dessinerScene = (cx: CanvasRenderingContext2D, i: number, tl: number, t: number, sc: Scene, d: number) => {
-    if (sc.type === 'fin') return sceneFin(cx, i, sc, tl, t);
+    if (sc.type === 'fin') return sceneFinV2(cx, env, sc, plans[i].texte, tl);
+    if (sc.type === 'marque') return sceneMarque(cx, env, sc, tl);
     const y0 = dessinerTitre(cx, i, tl, t, 'haut') + L * 0.055;
-    const y1 = H - (vertical ? 250 : 175);
+    // Un sous-titre karaoké réserve le bas de l'écran.
+    const y1 = H - (vertical ? 250 : 175) - (plans[i].sousTitre ? hauteurSousTitre(env) : 0);
     if (sc.type === 'chiffre') sceneChiffre(cx, sc, tl, y0, y1);
     else if (sc.type === 'liste') sceneListe(cx, sc, tl, y0, y1, d);
     else if (sc.type === 'comparatif') sceneComparatif(cx, sc, tl, y0, y1);
     else if (sc.type === 'analyse') sceneAnalyse(cx, sc, tl, y0, y1, d);
     else if (sc.type === 'tableur') sceneTableur(cx, sc, tl, y0, y1, d);
+    else if (sc.type === 'app') sceneApp(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'documents') sceneDocuments(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'recap') sceneRecap(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'site') sceneSite(cx, env, sc, tl, d, y0, y1);
   };
 
   // Toile de travail pour les fondus : le plan entrant y est dessiné, puis
@@ -697,7 +753,16 @@ async function preparerRendu(m: Montage) {
     const punch = m.rythme === 'sec' ? 0.06 * Math.pow(1 - borne(tl / 0.22), 2) : 0;
     const genere = x.source.type === 'media' && m.images.find((k) => x.source.type === 'media' && k.id === x.source.id)?.origine === 'genere';
 
-    if (x.source.type === 'carte') {
+    const decor = x.source.type === 'carte' ? (x.fond ?? th.fondDefaut ?? 'carte') : 'carte';
+    if (x.source.type === 'carte' && decor !== 'carte') {
+      cx.save();
+      const z = 1 + punch * 0.6;
+      cx.translate(L / 2, H / 2);
+      cx.scale(z, z);
+      cx.translate(-L / 2, -H / 2);
+      dessinerFond(cx, env, decor, t);
+      cx.restore();
+    } else if (x.source.type === 'carte') {
       couvrir(cx, img, L, H, 1 + 0.03 * u + punch);
     } else if (genere) {
       // Un visuel généré porte déjà son texte à la charte : il passe tel quel.
@@ -728,6 +793,15 @@ async function preparerRendu(m: Montage) {
     if (!genere) {
       if (x.scene && x.scene.type !== 'titre') dessinerScene(cx, i, tl, t, x.scene, b - a);
       else dessinerTitre(cx, i, tl, t, x.source.type === 'media' ? 'bas' : 'centre');
+      if (x.annotation) {
+        // La note manuscrite en bas à droite de la scène, et sa flèche qui
+        // remonte vers ce qu'elle désigne.
+        const ax = L * (vertical ? 0.5 : 0.55);
+        const ay = H - (vertical ? 250 : 175) - (x.sousTitre ? hauteurSousTitre(env) : 0) - L * 0.01;
+        dessinerAnnotation(cx, env, x.annotation, tl, b - a, ax, ay);
+        dessinerFleche(cx, env, ax - L * 0.03, ay - L * 0.035, ax - L * 0.12, ay - L * 0.13, borne((tl - (b - a) * 0.5 - 0.5) / 0.5));
+      }
+      if (x.sousTitre) dessinerSousTitre(cx, env, x.sousTitre, tl, b - a);
     }
   };
 

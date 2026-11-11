@@ -153,6 +153,19 @@
   liste des livrables du business plan Veolt.
 - [ ] [J] Adresse Veolt dans les visuels : veoltproduction.fr (racine = page
   de connexion de la prospection) ou veolt.fr (vitrine en ligne) ?
+- [x] [C] Motion design inspiré des vidéos de lancement fournies (11/11) :
+  décors animés (étoiles, arc d'horizon, rayons), chapitres numérotés, écran
+  produit vivant (saisie tapée, sources, réponse sourcée, blocs, courrier tapé,
+  piège barré, notifications, curseur qui clique), documents qui se posent,
+  apparition de la marque, récap coché, sous-titres karaoké, annotations
+  manuscrites avec flèche, maquette de site d'artisan dans un téléphone, fin
+  complète (slogan, public, bouton, adresse, petite ligne). 4 vidéos :
+  « Du dossier au courrier », « Ce que reçoit l'assuré » (MagistrIA),
+  « Vos clients voient ça », « Le site d'un artisan » (Veolt).
+- [ ] [C] Piste son : ambiance discrète + sons d'interface (frappe, clic),
+  générés et mixés dans le navigateur, désactivables.
+- [ ] [J] Benchmark Sowego / Instagram : envoyer captures ou vidéos des posts
+  (Instagram est illisible depuis l'outil).
 - [ ] [C] Plans vidéo dans le studio : accepter des clips (Higgsfield,
   Blender, After Effects) en plus des images, découpés au bon plan.
 - [ ] [C] Musique et sous-titres : piste son libre de droits, optionnelle.

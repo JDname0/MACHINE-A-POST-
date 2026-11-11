@@ -14,7 +14,7 @@
 
 import type { EntiteSlug } from './marques';
 import type { FormatSlug } from './formats';
-import type { Scene } from './montage';
+import type { Scene, FondPlan } from './montage';
 
 export interface Plan {
   /** Repère temporel, en secondes. */
@@ -26,6 +26,12 @@ export interface Plan {
   texte: string;
   /** La scène dessinée dans le studio (écran produit, chiffre, liste…) ; absente : titre seul. */
   scene?: Scene;
+  chapitre?: string;
+  accent?: string;
+  annotation?: string;
+  fond?: FondPlan;
+  centre?: boolean;
+  sousTitre?: string;
 }
 
 export interface ScriptVideo {
@@ -441,6 +447,423 @@ export const VIDEOS: ScriptVideo[] = [
     ],
     legende:
       "Un risque « élevé » ne se budgète pas. La méthode FAIR décompose un risque en fréquence et en ampleur de perte, puis produit une distribution en euros.\n\nDans MagistrIA, les hypothèses restent affichées à côté du résultat : on peut en changer une sans refaire l'autre.",
+    indicateur: 'taux de visionnage complet',
+  },
+
+  // ── Motion design (11/11) : inspirés des vidéos de lancement fournies ────
+  //
+  // Chapitres, écran produit vivant, sous-titres karaoké, documents, marque,
+  // récap coché, fin complète. Interfaces fidèles, données d'EXEMPLE dites.
+  {
+    ref: 'vid-m-v2-1',
+    titre: 'Du dossier au courrier de position',
+    entite: 'magistria',
+    formatSlug: 'li-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'sinistre-decortique',
+    duree: 50,
+    tournage:
+      "Tout est dessiné par le studio. Dossier d'EXEMPLE, mention à l'écran. Les deux articles cités (C. assur. L. 113-1 et L. 112-4) sont réels ; aucune décision de justice n'est citée faute de référence vérifiée.",
+    plans: [
+      {
+        de: 0,
+        a: 6.5,
+        image: 'Trois pièces qui se posent, puis s’éparpillent.',
+        texte: 'Un rapport d’expertise. Des conditions générales.',
+        accent: 'Une question : le sinistre est-il couvert ?',
+        centre: true,
+        fond: 'etoiles',
+        scene: { type: 'documents', items: ['Rapport d’expertise', 'Conditions générales', 'Contrat'], dispersion: true },
+      },
+      { de: 6.5, a: 10, image: 'La marque apparaît.', texte: '', fond: 'etoiles', scene: { type: 'marque' } },
+      {
+        de: 10,
+        a: 18,
+        image: 'Les pièces lues, la chronologie posée.',
+        texte: 'Le dossier lu pour vous.',
+        chapitre: '01 / 03 · Analyse de sinistre',
+        fond: 'horizon',
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Analyse', 'Recherche juridique', 'Rédaction'],
+          elements: [
+            {
+              type: 'fichiers',
+              items: [
+                { nom: 'Rapport_expertise_cyber.pdf', etat: '✓ lu' },
+                { nom: 'Police_assurance.pdf', etat: '✓ lu' },
+                { nom: 'Constat_huissier.jpg', etat: '✓ OCR' },
+              ],
+              chronologie: [
+                { quand: 'J', texte: 'Intrusion détectée', tag: 'Rapport p. 4' },
+                { quand: 'J+2', texte: 'Sinistre déclaré', tag: 'Police art. 7' },
+              ],
+            },
+          ],
+          flux: ['Rapport', 'Police', 'Chronologie'],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 18,
+        a: 31,
+        image: 'La question, les sources, la réponse sourcée.',
+        texte: 'Chaque phrase, sa source.',
+        chapitre: '02 / 03 · Recherche juridique',
+        fond: 'horizon',
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Recherche juridique', 'Jurisprudence', 'Conformité'],
+          elements: [
+            { type: 'question', texte: 'Une clause d’exclusion pour défaut de mise à jour est-elle opposable à l’assuré ?' },
+            { type: 'sources', items: ['C. assur., art. L. 113-1', 'C. assur., art. L. 112-4'] },
+            {
+              type: 'reponse',
+              titre: 'Réponse · Assurance',
+              texte:
+                'Une exclusion n’est opposable que si elle est **formelle et limitée** [1] et rédigée en **caractères très apparents** [2]. Ici, le « défaut de mise à jour » n’est pas défini : son caractère limité est discutable.',
+            },
+            {
+              type: 'bloc',
+              titre: 'À vérifier avant de conclure',
+              ton: 'alerte',
+              items: ['La police produite est-elle celle en vigueur au jour du sinistre ?', 'La clause figure-t-elle aux conditions particulières ?'],
+            },
+          ],
+          flux: ['Textes', 'Réponse', 'Points à vérifier'],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 31,
+        a: 40,
+        image: 'Le courrier qui s’écrit, puis la validation.',
+        texte: 'Le courrier, prêt à relire.',
+        chapitre: '03 / 03 · Rédaction',
+        fond: 'horizon',
+        annotation: 'vous relisez,\nvous signez',
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Rédaction', 'Analyse', 'Recherche juridique'],
+          elements: [
+            {
+              type: 'courrier',
+              titre: 'Courrier de position',
+              tag: 'Brouillon · à valider',
+              texte: 'Madame, Monsieur,\nNous accusons réception de votre déclaration de sinistre. Après analyse des pièces versées, nous vous informons de notre position sur la garantie.',
+            },
+            { type: 'clic', avant: 'Brouillon', libelle: 'Courrier de position', bouton: 'Valider', apres: 'Validé par vous', toast: 'Rien ne part sans votre accord' },
+          ],
+          flux: ['Analyse', 'Brouillon', 'Validation'],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 40,
+        a: 45,
+        image: 'Récapitulatif coché.',
+        texte: 'Ce que l’outil fait pour vous',
+        chapitre: 'Récap',
+        fond: 'etoiles',
+        scene: { type: 'recap', items: ['Le dossier analysé', 'Les sources vérifiées', 'Le courrier préparé'] },
+      },
+      {
+        de: 45,
+        a: 50,
+        image: 'Écran de fin.',
+        texte: '',
+        fond: 'etoiles',
+        scene: {
+          type: 'fin',
+          action: 'Essayer gratuitement',
+          slogan: ['L’IA propose.', 'Vous décidez.'],
+          public: 'Conçu pour les assureurs et mutuelles',
+          note: 'Sans carte bancaire · chaque source vérifiable',
+        },
+      },
+    ],
+    legende:
+      "Un rapport d'expertise, des conditions générales, et une question : le sinistre est-il couvert ?\n\nMagistrIA lit le dossier, cite chaque source (C. assur., art. L. 113-1 et L. 112-4), dit ce qu'il reste à vérifier, et prépare le courrier. Vous relisez, vous décidez.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-m-v2-2',
+    titre: 'Ce que reçoit l’assuré, ce que vous voyez',
+    entite: 'magistria',
+    formatSlug: 'li-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'position-ia',
+    duree: 31,
+    tournage: "Tout est dessiné par le studio, sur un dossier d'EXEMPLE. Sous-titres karaoké : la vidéo se comprend sans le son.",
+    plans: [
+      {
+        de: 0,
+        a: 6.5,
+        image: 'Le courrier reçu par l’assuré.',
+        texte: 'Votre assuré reçoit ça.',
+        fond: 'horizon',
+        sousTitre: 'Ça, c’est ce que votre assuré reçoit : un courrier clair.',
+        scene: {
+          type: 'app',
+          fenetre: 'Courrier · exemple',
+          elements: [
+            {
+              type: 'courrier',
+              titre: 'Position sur la garantie',
+              texte: 'Madame, Monsieur,\nAprès analyse des pièces de votre dossier, la clause d’exclusion invoquée doit être formelle et limitée pour vous être opposée.',
+            },
+          ],
+          mention: 'Exemple · données fictives',
+        },
+      },
+      {
+        de: 6.5,
+        a: 14,
+        image: 'Les sources derrière chaque phrase.',
+        texte: 'Vous, vous voyez ça.',
+        fond: 'horizon',
+        annotation: 'les sources !',
+        sousTitre: 'Vous, vous voyez chaque source, phrase par phrase.',
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Recherche juridique', 'Jurisprudence', 'Conformité'],
+          elements: [
+            { type: 'sources', items: ['C. assur., art. L. 113-1', 'C. assur., art. L. 112-4'] },
+            {
+              type: 'reponse',
+              titre: 'Réponse · Assurance',
+              texte: 'L’exclusion doit être **formelle et limitée** [1] et figurer en **caractères très apparents** [2].',
+            },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 14,
+        a: 20.5,
+        image: 'Ce qu’il reste à vérifier.',
+        texte: 'Et ce qu’il reste à vérifier.',
+        fond: 'horizon',
+        sousTitre: 'Et ce qu’il reste à vérifier avant de conclure.',
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          elements: [
+            {
+              type: 'bloc',
+              titre: 'À vérifier avant de conclure',
+              ton: 'alerte',
+              items: ['La police en vigueur au jour du sinistre', 'La clause aux conditions particulières', 'Le lien entre le manquement et le sinistre'],
+            },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 20.5,
+        a: 26,
+        image: 'Un clic : c’est vous qui validez.',
+        texte: 'Et en un clic, vous validez.',
+        fond: 'horizon',
+        sousTitre: 'Un clic, et c’est vous qui validez.',
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          elements: [{ type: 'clic', avant: 'Brouillon', libelle: 'Courrier de position', bouton: 'Valider', apres: 'Validé', toast: 'Rien ne part sans votre accord' }],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 26,
+        a: 31,
+        image: 'Écran de fin.',
+        texte: '',
+        fond: 'etoiles',
+        scene: {
+          type: 'fin',
+          action: 'Essayer gratuitement',
+          slogan: ['Des sources vérifiées,', 'jamais inventées.'],
+          public: 'Conçu pour les assureurs et mutuelles',
+          note: 'Essai gratuit · sans carte bancaire',
+        },
+      },
+    ],
+    legende:
+      "Votre assuré reçoit un courrier clair. Vous, vous voyez chaque source, phrase par phrase, et ce qu'il reste à vérifier.\n\nL'IA propose, vous validez. Rien ne part sans votre accord.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-v-v2-1',
+    titre: 'Vos clients voient votre site. Vous, vous voyez leurs demandes.',
+    entite: 'veolt',
+    formatSlug: 'ig-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'montrer-le-travail',
+    duree: 31,
+    tournage: "Tout est dessiné par le studio : site et boîte de réception sont des MAQUETTES d'exemple, et l'écran le dit.",
+    plans: [
+      {
+        de: 0,
+        a: 7,
+        image: 'Le site qui défile dans le téléphone.',
+        texte: 'Vos clients voient ça.',
+        fond: 'horizon',
+        sousTitre: 'Ça, c’est ce que vos clients voient.',
+        scene: {
+          type: 'site',
+          nom: 'Maison Exemple',
+          metier: 'Menuiserie sur mesure',
+          accroche: 'Des cuisines faites pour durer.',
+          action: 'Demander un devis',
+          services: ['Cuisines sur mesure', 'Escaliers', 'Rénovation'],
+          horaires: ['Lundi – vendredi · 8 h – 18 h', 'Samedi · sur rendez-vous'],
+          couleur: '#8A5A3C',
+          reperes: ['Ce que vous faites, en une phrase', 'Le bouton devis, toujours visible'],
+        },
+      },
+      {
+        de: 7,
+        a: 14,
+        image: 'Les demandes qui arrivent.',
+        texte: 'Vous, vous voyez ça.',
+        fond: 'horizon',
+        annotation: 'vos demandes !',
+        sousTitre: 'Vous, chaque demande arrive directement chez vous.',
+        scene: {
+          type: 'app',
+          fenetre: 'Boîte de réception · exemple',
+          elements: [
+            {
+              type: 'notifications',
+              items: [
+                { titre: 'Nouvelle demande de devis', detail: 'Formulaire du site · cuisine sur mesure' },
+                { titre: 'Rappel demandé', detail: 'Bouton « Appeler » · 18 h 05' },
+                { titre: 'Question sur les délais', detail: 'Formulaire du site' },
+              ],
+            },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 14,
+        a: 21,
+        image: 'Un clic pour répondre.',
+        texte: 'Et en un clic, vous répondez.',
+        fond: 'horizon',
+        sousTitre: 'Un clic, et votre client a sa réponse.',
+        scene: {
+          type: 'app',
+          fenetre: 'Boîte de réception · exemple',
+          elements: [
+            { type: 'clic', avant: 'Nouveau', libelle: 'Devis · cuisine sur mesure', bouton: 'Répondre', apres: 'Répondu', toast: 'Réponse envoyée' },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 21,
+        a: 26,
+        image: 'Le prix affiché, qui défile.',
+        texte: 'Sites web et web 3D',
+        fond: 'rayons',
+        sousTitre: 'Sites web et web 3D, dès 1 490 euros HT.',
+        scene: { type: 'chiffre', valeur: '1 490 €', legende: 'HT, à partir de — le prix affiché' },
+      },
+      {
+        de: 26,
+        a: 31,
+        image: 'Écran de fin.',
+        texte: '',
+        fond: 'horizon',
+        scene: {
+          type: 'fin',
+          action: 'Demander l’analyse gratuite',
+          slogan: ['Votre site,', 'votre meilleur commercial.'],
+          public: 'Sites web · Vidéo & 3D · Business plan',
+          note: 'Devis sous 24 h · prix affichés',
+        },
+      },
+    ],
+    legende:
+      "Vos clients voient votre site. Vous, vous voyez leurs demandes, au fil de la journée.\n\nSites web et web 3D dès 1 490 € HT. On commence par une analyse gratuite de votre projet.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-v-v2-2',
+    titre: 'Le site d’un artisan, de A à Z',
+    entite: 'veolt',
+    formatSlug: 'ig-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'pedagogie-dirigeant',
+    duree: 39,
+    tournage: "Tout est dessiné par le studio. Le site est une MAQUETTE d'exemple, dite à l'écran. La liste porte sur ce qu'un site d'artisan doit avoir — pas sur des résultats.",
+    plans: [
+      { de: 0, a: 4, image: 'Titre seul, centré.', texte: 'Votre futur client vous cherche sur son téléphone.', centre: true, fond: 'rayons' },
+      { de: 4, a: 7.5, image: 'La marque apparaît.', texte: '', fond: 'horizon', scene: { type: 'marque' } },
+      {
+        de: 7.5,
+        a: 17.5,
+        image: 'Le site d’artisan qui défile.',
+        texte: 'En cinq secondes : qui, quoi, comment vous joindre.',
+        chapitre: '01 / 03 · Ce qu’il doit voir',
+        fond: 'horizon',
+        scene: {
+          type: 'site',
+          nom: 'Boulangerie Exemple',
+          metier: 'Artisan boulanger',
+          accroche: 'Le pain du quartier, cuit chaque matin.',
+          action: 'Appeler la boulangerie',
+          services: ['Pains au levain', 'Viennoiseries', 'Commandes pour événements'],
+          couleur: '#B5651D',
+          reperes: ['Qui vous êtes, en une phrase', 'Vos services, sans jargon', 'Le bouton d’appel, toujours visible'],
+        },
+      },
+      {
+        de: 17.5,
+        a: 25,
+        image: 'Les essentiels, un par un.',
+        texte: 'Les essentiels d’un site d’artisan',
+        chapitre: '02 / 03 · Ce qu’il doit avoir',
+        fond: 'horizon',
+        annotation: 'souvent oublié',
+        scene: { type: 'recap', items: ['Une page par service', 'Un affichage rapide sur mobile', 'Horaires et accès en un coup d’œil', 'Un formulaire de devis simple'] },
+      },
+      {
+        de: 25,
+        a: 30,
+        image: 'Le prix affiché, qui défile.',
+        texte: 'Sites web et web 3D',
+        chapitre: '03 / 03 · Le prix, affiché',
+        fond: 'rayons',
+        scene: { type: 'chiffre', valeur: '1 490 €', legende: 'HT, à partir de — le prix affiché' },
+      },
+      { de: 30, a: 34, image: 'Titre seul, centré.', texte: 'On commence par une analyse gratuite de votre projet.', centre: true, fond: 'rayons' },
+      {
+        de: 34,
+        a: 39,
+        image: 'Écran de fin.',
+        texte: '',
+        fond: 'horizon',
+        scene: {
+          type: 'fin',
+          action: 'Demander l’analyse gratuite',
+          slogan: ['Un site qui travaille', 'pendant que vous travaillez.'],
+          public: 'Sites web · Vidéo & 3D · Business plan',
+          note: 'Devis sous 24 h · prix affichés',
+        },
+      },
+    ],
+    legende:
+      "Votre futur client vous cherche sur son téléphone. En cinq secondes, il doit savoir qui vous êtes, ce que vous faites, et comment vous joindre.\n\nSites web et web 3D dès 1 490 € HT. On commence par une analyse gratuite.",
     indicateur: 'taux de visionnage complet',
   },
 ];

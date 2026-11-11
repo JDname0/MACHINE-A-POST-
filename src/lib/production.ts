@@ -194,6 +194,12 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
     const { ligne1, ligne2 } = deuxLignes(x.texte);
     return `/${p.entite}/visuels/${gabarit}?${new URLSearchParams({ ligne1, ligne2, sousTitre: '' })}`;
   });
+  // Sans script : la vidéo finit sur l'écran de fin complet de la marque
+  // (logotype, la phrase d'appel du post, bouton, adresse).
+  if (!script && plans.length > 1) {
+    const dernier = plans[plans.length - 1];
+    plans[plans.length - 1] = { ...dernier, duree: Math.max(4.5, dernier.duree), scene: { type: 'fin', action: actionMarque(p.entite as EntiteSlug) } };
+  }
   return { plans, cartes, largeur: cadre.largeur, hauteur: cadre.hauteur, ratio: cadre.ratio, scriptRef: script?.ref ?? null };
 }
 
@@ -226,6 +232,25 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
       // Le bouton du site : violet → magenta.
       bouton: { fond: ['#7621B0', '#B600A8'], encre: '#FFFFFF' },
       adresse: t.adresse,
+      accent2: '#C79BFF',
+      // « Veolt vous met sur orbite » : l'arc d'une planète au dégradé signature.
+      arc: ['#B600A8', '#7621B0', '#BE4C00'],
+      rayons: ['#B600A8', '#BE4C00', '#7621B0'],
+      fondDefaut: 'horizon',
+      motMarque: ['VEOLT', '', '#FFFFFF'],
+      slogan: 'Veolt vous met sur orbite',
+      app: {
+        fond: '#16131B',
+        encre: '#EDEBF2',
+        douce: '#A9A6B8',
+        accent: '#C79BFF',
+        filet: 'rgba(237,235,242,0.14)',
+        puce: 'rgba(199,155,255,0.16)',
+        alerte: 'rgba(190,76,0,0.24)',
+        alerteEncre: '#FFB27A',
+        neutre: 'rgba(255,255,255,0.05)',
+        ok: '#C79BFF',
+      },
     };
   }
   return {
@@ -245,7 +270,31 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
     // Le bouton « Essayer gratuitement » du site : bordeaux.
     bouton: { fond: ['#7B2D3E', '#94384C'], encre: '#FFFFFF' },
     adresse: t.adresse,
+    accent2: '#E0B85A',
+    arc: ['#3CC8FF', '#7FB7D9', '#FF9A3C'],
+    rayons: ['#3CC8FF', '#E0B85A'],
+    fondDefaut: 'etoiles',
+    motMarque: ['Magistr', 'IA', '#E0B85A'],
+    slogan: 'L’intelligence au service du droit.',
+    // L'écran produit garde les couleurs réelles de l'application : blanc et bordeaux.
+    app: {
+      fond: '#FFFFFF',
+      encre: '#15121A',
+      douce: '#6E6B78',
+      accent: '#7B2D3E',
+      filet: '#E6E6EB',
+      puce: '#EAF6EC',
+      alerte: '#FFF4D6',
+      alerteEncre: '#8A5A00',
+      neutre: '#F3F3F6',
+      ok: '#2E7D32',
+    },
   };
+}
+
+/** Le bouton d'action de chaque marque, tel que sur son site. */
+export function actionMarque(e: EntiteSlug): string {
+  return e === 'veolt' ? 'Demander l’analyse gratuite' : 'Essayer gratuitement';
 }
 
 /** Le nom lisible du pilier d'un post, pour le sur-titre d'ouverture. */
