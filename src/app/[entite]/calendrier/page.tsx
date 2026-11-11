@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Flanc } from '@/components/Flanc';
 import { marque, type EntiteSlug } from '@/lib/marques';
 import { format } from '@/lib/formats';
-import { publications, publication, compteursMenu, LIBELLE_STATUT } from '@/lib/requetes';
+import { publications, publication, compteursMenu, LIBELLE_STATUT, prochainCreneauBlog } from '@/lib/requetes';
 import { ApercuPost } from '@/components/ApercuPost';
 import { ReglagesProduction } from '@/components/ReglagesProduction';
 import { attendu } from '@/lib/conformite-media';
@@ -10,7 +10,14 @@ import { SEQUENCE_LANCEMENT, lundiDe, iso } from '@/lib/calendrier';
 import { recalerCalendrier, memoriserSemaine } from '@/app/actions';
 import { BoutonVideo } from '@/components/BoutonVideo';
 import { ProductionLot } from '@/components/ProductionLot';
+import { GenerateurArticle } from '@/components/GenerateurArticle';
+import { ARTICLES, articlesDe } from '@/lib/sujets';
+import { iaDisponible } from '@/lib/ia';
 import { echeancesVideo, imagesMemoire, montagePret } from '@/lib/production';
+
+// La rédaction d'un article par l'IA prend une à deux minutes : l'action
+// serveur appelée depuis cette page doit pouvoir durer jusque-là sur Vercel.
+export const maxDuration = 300;
 
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
@@ -22,10 +29,19 @@ export default async function Calendrier({
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ recale?: string; apercu?: string; reglages?: string; refait?: string; memorises?: string }>;
+  searchParams: Promise<{
+    recale?: string;
+    apercu?: string;
+    reglages?: string;
+    refait?: string;
+    memorises?: string;
+    cree?: string;
+    deja?: string;
+    erreurArticle?: string;
+  }>;
 }) {
   const { entite } = await params;
-  const { recale, apercu, reglages, refait, memorises } = await searchParams;
+  const { recale, apercu, reglages, refait, memorises, cree, deja, erreurArticle } = await searchParams;
   const ouvert = apercu ? publication(Number(apercu)) : undefined;
   const e = entite as EntiteSlug;
   const m = marque(e);
@@ -47,6 +63,25 @@ export default async function Calendrier({
   );
   const ETIQ: Record<string, string> = { prete: '🎬 prête', 'en-retard': '🎬 en retard', aujourdhui: '🎬 aujourd’hui', bientot: '🎬 à faire', 'plus-tard': '🎬 à faire' };
 
+  // Le générateur d'articles s'appuie sur le calendrier : posts à venir à
+  // développer, réserve du plan non encore posée, prochain créneau libre.
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const refsPosees = new Set(tout.map((p) => p.sujet_ref));
+  const reserve = articlesDe(e)
+    .filter((a) => !refsPosees.has(a.ref))
+    .map((a) => ({ ref: a.ref, titre: a.titre, grappe: a.grappe }));
+  const grappes = [...new Set(ARTICLES[e].map((a) => a.grappe).filter((g): g is string => !!g))];
+  const vusTitres = new Set<string>();
+  const postsSources = tout
+    .filter((p) => p.format_slug !== 'blog-article' && p.date_prevue >= aujourdhui && p.statut !== 'publie' && p.titre)
+    .filter((p) => (vusTitres.has(p.titre!) ? false : (vusTitres.add(p.titre!), true)))
+    .map((p) => ({
+      id: p.id,
+      libelle: `${p.semaine ? `S${p.semaine} · ` : ''}${court(p.date_prevue)} · ${format(p.format_slug).nom.replace(/^.*— /, '')} — ${p.titre}`,
+    }));
+  const creneau = prochainCreneauBlog(e);
+  const libelleCreneau = `${court(creneau.date)}${creneau.semaine ? ` (semaine ${creneau.semaine})` : ' (après les 12 semaines)'}`;
+
   // Le premier lundi actuel, et celui qu'on propose : le lundi qui vient.
   const s1 = parSemaine.get(1)?.[0]?.date_prevue;
   const debutActuel = s1 ? iso(lundiDe(new Date(`${s1}T12:00:00`))) : null;
@@ -67,6 +102,23 @@ export default async function Calendrier({
             carrousel ou vidéo — et le produire ou le valider d&apos;ici.
           </p>
         </header>
+
+        {erreurArticle ? (
+          <div className="constat" data-n="blocage" style={{ marginBottom: 14 }}>
+            <div className="regle">Article non généré</div>
+            <div className="msg">{erreurArticle}</div>
+          </div>
+        ) : null}
+
+        <GenerateurArticle
+          entite={e}
+          iaOk={iaDisponible()}
+          reserve={reserve}
+          grappes={grappes}
+          posts={postsSources}
+          creneau={{ date: creneau.date, libelle: libelleCreneau }}
+          ouvert={!!erreurArticle}
+        />
 
         {memorises != null && !apercu ? (
           <div className="encart" style={{ marginBottom: 14 }}>
@@ -228,7 +280,11 @@ export default async function Calendrier({
           p={ouvert}
           fermer={`/${e}/calendrier`}
           notice={
-            refait === String(ouvert.id)
+            cree === '1'
+              ? '✅ Article généré en brouillon. Relis-le, complète les éventuels « [?] », puis valide.'
+              : deja === '1'
+                ? 'Cet article du plan est déjà au calendrier : le voici, plutôt qu’un doublon.'
+                : refait === String(ouvert.id)
               ? 'Texte refait depuis le sujet. L’ancien est gardé au journal ; le post est repassé en brouillon.'
               : refait === `${ouvert.id}-identique`
                 ? 'Le texte est déjà celui du sujet : rien n’a changé, le statut non plus.'

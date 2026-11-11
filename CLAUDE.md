@@ -72,7 +72,7 @@ tout ce qu'il faut pour le produire et le poster, selon le format :
 |---|---|---|
 | Image (LinkedIn, Instagram) | « Générer / Régénérer le visuel » → médiathèque | Télécharger le visuel |
 | Carrousel | « Générer / Régénérer les pages » | PDF pour LinkedIn (`publications/[id]/carrousel`), PNG page par page pour Instagram |
-| Article de blog | « Régénérer l'article » + couverture 1200 × 630 (gabarit `couverture`) | Télécharger la couverture |
+| Article de blog | « Régénérer l'article » + couverture 1200 × 630 (gabarit `couverture`) ; **« ✍️ Générer un article »** en haut du calendrier (`GenerateurArticle.tsx`) : développer un post du calendrier, poser un article de la réserve du plan, ou requête libre (IA, `redigerArticle` dans `ia.ts`) | Télécharger la couverture, vue « lecture », « Copier en HTML (site) » |
 | Vidéo | « Générer / Régénérer la vidéo » (navigateur), lot par semaine | Télécharger la vidéo |
 | Tous | « Régénérer le texte » depuis le sujet (sans IA), « Réécrire avec l'IA » (proposition à adopter) | « Copier le texte » (légende seule pour un carrousel) |
 
@@ -80,6 +80,14 @@ tout ce qu'il faut pour le produire et le poster, selon le format :
 brouillon s'il a changé. Une ligne par semaine du calendrier lance les visuels
 de la semaine. **Rien de tout ça ne publie** : Valider reste le geste de Jonathan.
 La route PDF, comme la route PNG, vérifie la session elle-même.
+
+Le générateur d'articles **s'appuie sur le calendrier** : la date proposée est
+le prochain créneau « blog » libre (`prochainCreneauBlog`), un article qui
+développe un post paraît le lendemain dans la même semaine, et l'IA reçoit la
+phase et les autres posts de cette semaine. Un article du plan déjà prévu n'est
+jamais dupliqué : le bouton l'ouvre. Les repères « [?] » et « [à compléter] »
+laissés par l'IA bloquent la validation. La page calendrier exporte
+`maxDuration = 300` : la rédaction prend une à deux minutes.
 
 ## Production
 

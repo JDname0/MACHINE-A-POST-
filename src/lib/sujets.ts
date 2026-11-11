@@ -723,6 +723,16 @@ export function articlesDe(entite: EntiteSlug): Sujet[] {
   return ORDRE_CALENDRIER[entite].map((ref) => ARTICLES[entite].find((s) => s.ref === ref)!).filter(Boolean);
 }
 
+/**
+ * L'article du plan qui développe un sujet court du calendrier — la
+ * correspondance est celle que chaque article déclare dans sa `source`
+ * (« Reprend le sujet v-dc-2 »). Un article est sa propre correspondance.
+ */
+export function articlePourSujet(ref: string, entite: EntiteSlug): Sujet | undefined {
+  const tous = ARTICLES[entite];
+  return tous.find((a) => a.ref === ref) ?? tous.find((a) => new RegExp(`\\b${ref}\\b`).test(a.source ?? ''));
+}
+
 /** Les autres articles de la même grappe — la série affichée en fin d'article. */
 export function serieDe(s: Sujet, entite: EntiteSlug): Sujet[] {
   if (!s.grappe) return [];

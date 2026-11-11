@@ -158,3 +158,37 @@ export function texteAColler(p: LignePublication): string {
   const corps = /carrousel/.test(p.format_slug) ? p.corps.replace(/PAGE\s+\d+\s*[—–-][\s\S]*$/, '').trim() : p.corps;
   return [p.accroche, corps, p.appel, p.hashtags].filter(Boolean).join('\n\n');
 }
+
+/**
+ * Un article de blog en HTML, prêt à coller dans l'éditeur du site : titre,
+ * sections (« ## »), listes (« - »), paragraphes, appel final. Tout le texte
+ * est échappé — le HTML ne vient que de cette conversion, jamais du contenu.
+ */
+export function articleEnHtml(p: LignePublication): string {
+  const echapper = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const sortie: string[] = [`<h1>${echapper(p.titre ?? p.accroche)}</h1>`];
+  let liste = false;
+  const fermer = () => {
+    if (liste) sortie.push('</ul>');
+    liste = false;
+  };
+  for (const ligne of p.corps.split('\n')) {
+    const t = ligne.trim();
+    if (!t) {
+      fermer();
+    } else if (t.startsWith('## ')) {
+      fermer();
+      sortie.push(`<h2>${echapper(t.slice(3))}</h2>`);
+    } else if (t.startsWith('- ')) {
+      if (!liste) sortie.push('<ul>');
+      liste = true;
+      sortie.push(`<li>${echapper(t.slice(2))}</li>`);
+    } else {
+      fermer();
+      sortie.push(`<p>${echapper(t)}</p>`);
+    }
+  }
+  fermer();
+  if (p.appel.trim()) sortie.push(`<p><strong>${echapper(p.appel.trim())}</strong></p>`);
+  return sortie.join('\n');
+}

@@ -57,12 +57,12 @@ export function controler(b: BrouillonAControler): Constat[] {
   // viser, un titre de section à écrire, des liens internes à poser. Publié
   // tel quel, le marqueur s'imprime sur le visuel et dans le texte — et une
   // référence non vérifiée devient une preuve inventée (règle 2).
-  const trous = [...texte.matchAll(/\[\?\][^\n.]{0,60}/g)].map((x) => x[0].trim());
+  const trous = [...texte.matchAll(/\[(?:\?|à compléter)\][^\n.]{0,60}/gi)].map((x) => x[0].trim());
   if (trous.length) {
     out.push({
       niveau: 'blocage',
       regle: 'Texte — case à remplir',
-      message: `${trous.length} marqueur${trous.length > 1 ? 's' : ''} « [?] » dans le texte : « ${trous[0]}${trous[0].length >= 60 ? '…' : ''} »${trous.length > 1 ? ', …' : ''}.`,
+      message: `${trous.length} marqueur${trous.length > 1 ? 's' : ''} « [?] » ou « [à compléter] » dans le texte : « ${trous[0]}${trous[0].length >= 60 ? '…' : ''} »${trous.length > 1 ? ', …' : ''}.`,
       remede:
         "Remplacer chaque « [?] » par l'information vérifiée (avec sa source), ou retirer la phrase. Ne jamais le remplir de mémoire : une référence approximative est pire qu'une absence.",
     });

@@ -244,3 +244,40 @@ export function publicationsPourChoix(entite: EntiteSlug) {
     )
     .all(entite) as Array<{ id: number; titre: string | null; format_slug: string; date_prevue: string }>;
 }
+
+/**
+ * Le prochain créneau « blog » proposé par le calendrier : la première semaine
+ * à venir qui n'a pas encore d'article (le mercredi, ou demain si la semaine
+ * est entamée), sinon une semaine après le dernier article prévu — la cadence
+ * hebdomadaire continue au-delà des douze semaines.
+ */
+export function prochainCreneauBlog(entite: EntiteSlug): { date: string; semaine: number | null } {
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const demain = new Date();
+  demain.setUTCDate(demain.getUTCDate() + 1);
+  const min = iso(demain);
+  const lignes = db()
+    .prepare('SELECT date_prevue, semaine, format_slug FROM publications WHERE entite=? ORDER BY date_prevue')
+    .all(entite) as Array<{ date_prevue: string; semaine: number | null; format_slug: string }>;
+  const semaines = new Map<number, { lundi: string; blog: boolean }>();
+  for (const l of lignes) {
+    if (l.semaine == null) continue;
+    const j = new Date(`${l.date_prevue}T12:00:00Z`);
+    j.setUTCDate(j.getUTCDate() - ((j.getUTCDay() + 6) % 7));
+    const w = semaines.get(l.semaine) ?? { lundi: iso(j), blog: false };
+    if (l.format_slug === 'blog-article') w.blog = true;
+    semaines.set(l.semaine, w);
+  }
+  for (const [n, w] of [...semaines.entries()].sort((a, b) => a[0] - b[0])) {
+    const mercredi = new Date(`${w.lundi}T12:00:00Z`);
+    mercredi.setUTCDate(mercredi.getUTCDate() + 2);
+    const dimanche = new Date(`${w.lundi}T12:00:00Z`);
+    dimanche.setUTCDate(dimanche.getUTCDate() + 6);
+    if (iso(dimanche) < min || w.blog) continue;
+    return { date: iso(mercredi) < min ? min : iso(mercredi), semaine: n };
+  }
+  const blogs = lignes.filter((l) => l.format_slug === 'blog-article').map((l) => l.date_prevue);
+  const dernier = blogs.length ? new Date(`${blogs[blogs.length - 1]}T12:00:00Z`) : new Date();
+  dernier.setUTCDate(dernier.getUTCDate() + 7);
+  return { date: iso(dernier) < min ? min : iso(dernier), semaine: null };
+}

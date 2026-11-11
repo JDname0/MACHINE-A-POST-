@@ -375,6 +375,170 @@ export async function regenererTexte(fd: FormData) {
   redirect(avecParam(retour, 'refait', String(id)));
 }
 
+/**
+ * « Générer un article » à la demande, d'un clic, depuis le calendrier.
+ *
+ *  - `mode=plan` : un article déjà écrit du plan de référencement (réserve de
+ *    `articles-*.ts`), posé à la date choisie. Sans IA, sans crédit.
+ *  - `mode=ia`   : un article rédigé par l'IA sur une requête libre, au moule
+ *    des articles de grappe, avec le cadre de la marque (preuves interdites
+ *    comprises). Exige `ANTHROPIC_API_KEY` côté serveur.
+ *
+ * Dans les deux cas l'article entre en **brouillon** et repasse par les
+ * garde-fous : rien ne part sans « Valider » (règle 1).
+ */
+export async function genererArticle(fd: FormData) {
+  const entite = String(fd.get('entite')) as 'veolt' | 'magistria';
+  const mode = String(fd.get('mode') ?? 'plan');
+  const retour = `/${entite}/calendrier`;
+  const { sujet, articlesDe, articlePourSujet, ARTICLES } = await import('@/lib/sujets');
+  const { fabriquer } = await import('@/lib/gabarits');
+  const { marque } = await import('@/lib/marques');
+  const { publication, prochainCreneauBlog } = await import('@/lib/requetes');
+  const { SEQUENCE_LANCEMENT } = await import('@/lib/calendrier');
+  if (entite !== 'veolt' && entite !== 'magistria') redirect('/');
+  const d = db();
+
+  // Le calendrier guide l'article : un post qu'il développe (même semaine,
+  // le lendemain), sinon le prochain créneau « blog » libre.
+  const idSource = Number(fd.get('source_post') ?? 0);
+  const source = idSource ? publication(idSource) : undefined;
+  if (source && source.entite !== entite) redirect(retour);
+  let date = String(fd.get('date_prevue') ?? '');
+  if (!date && source) {
+    const lendemain = new Date(`${source.date_prevue}T12:00:00Z`);
+    lendemain.setUTCDate(lendemain.getUTCDate() + 1);
+    date = lendemain.toISOString().slice(0, 10);
+  }
+  if (!date) date = prochainCreneauBlog(entite).date;
+
+  let s: import('@/lib/sujets').Sujet | undefined;
+  let sujetRef: string | null = null;
+  if (mode === 'ia') {
+    const requete = (String(fd.get('requete') ?? '').trim() || source?.titre || '').slice(0, 200);
+    if (!requete) redirect(avecParam(retour, 'erreurArticle', 'Indique la requête, ou choisis un post du calendrier à développer.'));
+    // La semaine où l'article paraît : sa phase et ses autres posts, pour qu'il les complète.
+    const j = new Date(`${date}T12:00:00Z`);
+    const lu = new Date(j);
+    lu.setUTCDate(j.getUTCDate() - ((j.getUTCDay() + 6) % 7));
+    const di = new Date(lu);
+    di.setUTCDate(lu.getUTCDate() + 6);
+    const voisins = d
+      .prepare(
+        "SELECT titre, semaine FROM publications WHERE entite=? AND date_prevue BETWEEN ? AND ? AND format_slug<>'blog-article' AND titre IS NOT NULL",
+      )
+      .all(entite, lu.toISOString().slice(0, 10), di.toISOString().slice(0, 10)) as Array<{ titre: string; semaine: number | null }>;
+    const numero = voisins.find((v) => v.semaine != null)?.semaine ?? null;
+    const phase = numero ? SEQUENCE_LANCEMENT.find((x) => x.semaine === numero) : undefined;
+    const contexte = {
+      ...(source
+        ? { post: { titre: source.titre ?? '', format: source.format_slug, accroche: source.accroche, corps: source.corps, appel: source.appel } }
+        : {}),
+      ...(numero
+        ? { semaine: { numero, phase: phase?.nom, intention: phase?.intention, autres: [...new Set(voisins.map((v) => v.titre))].slice(0, 8) } }
+        : {}),
+    };
+    const nomGrappe = String(fd.get('grappe') ?? '');
+    const freres = ARTICLES[entite].filter((a) => a.grappe === nomGrappe).map((a) => a.titre);
+    const { redigerArticle, messageErreurIA } = await import('@/lib/ia');
+    try {
+      const a = await redigerArticle(
+        entite,
+        requete,
+        nomGrappe ? { nom: nomGrappe, articles: freres } : null,
+        String(fd.get('consigne') ?? '').slice(0, 600),
+        contexte,
+      );
+      s = {
+        ref: `ia-${Date.now()}`,
+        titre: a.titre,
+        pilier: a.pilier,
+        persona: a.persona,
+        accroche: a.accroche,
+        corps: [a.complement, a.pourquoi, ...a.sections.map((x) => x.texte)],
+        questions: a.sections.map((x) => x.question),
+        aRetenir: a.aRetenir,
+        preuve: a.preuve,
+        enseignement: a.enseignement,
+        appel: a.appel,
+        indicateur: 'part des requêtes de la grappe en top 10, et citations par les IA (relevé manuel)',
+        source: `Article rédigé par l’IA le ${new Date().toISOString().slice(0, 10)} sur la requête « ${requete} »${source ? `, à partir du post ${source.id} du calendrier` : ''} — à relire en entier avant validation. Sources déclarées : ${a.sources || 'aucune'}`,
+        grappe: nomGrappe || undefined,
+        requete,
+      };
+    } catch (e) {
+      console.error('[ia article]', e);
+      redirect(avecParam(retour, 'erreurArticle', messageErreurIA(e).slice(0, 200)));
+    }
+  } else {
+    let ref = String(fd.get('sujet_ref') ?? '');
+    // Depuis un post : l'article du plan qui reprend son sujet.
+    if (!ref && source?.sujet_ref) ref = articlePourSujet(source.sujet_ref, entite)?.ref ?? '';
+    if (!ref) {
+      redirect(avecParam(retour, 'erreurArticle', 'Aucun article du plan ne développe ce post : choisis « Rédiger avec l’IA ».'));
+    }
+    // Un article déjà prévu n'est pas dupliqué : on l'ouvre.
+    const existant = d
+      .prepare("SELECT id FROM publications WHERE entite=? AND sujet_ref=? AND format_slug='blog-article' ORDER BY date_prevue LIMIT 1")
+      .get(entite, ref) as { id: number } | undefined;
+    if (existant) redirect(`${retour}?apercu=${existant.id}&deja=1`);
+    s = articlesDe(entite).find((a) => a.ref === ref) ?? sujet(ref);
+    if (!s || !ref.startsWith(entite === 'veolt' ? 'v-' : 'm-')) redirect(avecParam(retour, 'erreurArticle', 'Article introuvable dans le plan.'));
+    sujetRef = s.ref;
+  }
+  if (!s) redirect(retour);
+
+  const b = fabriquer(s, 'blog-article', entite);
+  // La semaine du calendrier, si la date tombe dans l'une d'elles.
+  const jour = new Date(`${date}T12:00:00Z`);
+  const lundi = new Date(jour);
+  lundi.setUTCDate(jour.getUTCDate() - ((jour.getUTCDay() + 6) % 7));
+  const dimanche = new Date(lundi);
+  dimanche.setUTCDate(lundi.getUTCDate() + 6);
+  const sem = d
+    .prepare('SELECT semaine FROM publications WHERE entite=? AND semaine IS NOT NULL AND date_prevue BETWEEN ? AND ? LIMIT 1')
+    .get(entite, lundi.toISOString().slice(0, 10), dimanche.toISOString().slice(0, 10)) as { semaine: number } | undefined;
+
+  let id: number;
+  try {
+    const info = d
+      .prepare(
+        `INSERT INTO publications (entite, format_slug, pilier, persona, sujet_ref, date_prevue, semaine, phase, raison,
+          statut, titre, accroche, corps, appel, hashtags, consignes_visuel, preuve, indicateur)
+         VALUES (?, 'blog-article', ?, ?, ?, ?, ?, NULL, ?, 'brouillon', ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        entite,
+        s.pilier,
+        s.persona,
+        sujetRef,
+        date,
+        sem?.semaine ?? null,
+        mode === 'ia' ? `Article généré à la demande par l’IA (${marque(entite).nom}).` : 'Article du plan de référencement, posé à la demande.',
+        b.titre ?? s.titre,
+        b.accroche,
+        b.corps,
+        b.appel,
+        b.hashtags,
+        b.consignesVisuel.join('\n'),
+        s.preuve,
+        s.indicateur,
+      );
+    id = Number(info.lastInsertRowid);
+  } catch (e) {
+    if (/UNIQUE/i.test((e as Error).message)) {
+      redirect(avecParam(retour, 'erreurArticle', 'Un article du même pilier existe déjà ce jour-là : choisis une autre date.'));
+    }
+    throw e;
+  }
+  tracer(mode === 'ia' ? 'article généré par l’IA' : 'article du plan posé', `publication ${id} (${date}) : « ${s.titre} »`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/publications`);
+  revalidatePath(`/${entite}/valider`);
+  redirect(`${retour}?apercu=${id}&cree=1`);
+}
+
 /** Demande une réécriture à l'IA. Le post n'est pas touché : la proposition attend une décision. */
 export async function demanderIA(fd: FormData) {
   const id = Number(fd.get('id'));

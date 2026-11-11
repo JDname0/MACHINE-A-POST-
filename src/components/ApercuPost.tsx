@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { format } from '@/lib/formats';
 import { formaterDate, LIBELLE_STATUT, mediasDePublication, type LignePublication } from '@/lib/requetes';
-import { constatsDe, lienVisuel, pagesCarrousel, urlVisuel, texteAColler } from '@/lib/fiche';
+import { articleEnHtml, constatsDe, lienVisuel, pagesCarrousel, urlVisuel, texteAColler } from '@/lib/fiche';
 import { attendu } from '@/lib/conformite-media';
 import { DELAIS, imagesMemoire, montagePret, reglagesVideo } from '@/lib/production';
 import { trancher, memoriserVisuel, regenererTexte } from '@/app/actions';
@@ -171,12 +171,28 @@ export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer:
           </div>
         ) : null}
 
+        {f.reseau === 'blog' ? (
+          <div className="carte" style={{ marginBottom: 12 }}>
+            <div className="rang" style={{ justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <h3>Article · lecture</h3>
+              <BoutonCopier texte={articleEnHtml(p)} libelle="Copier en HTML (site)" />
+            </div>
+            <style>{`.article-lecture h1{font-size:22px;margin:4px 0 12px}.article-lecture h2{font-size:16px;margin:18px 0 6px}.article-lecture p{margin:0 0 10px;line-height:1.6}.article-lecture ul{margin:0 0 10px 18px;line-height:1.6}`}</style>
+            <div
+              className="article-lecture"
+              style={{ marginTop: 8, maxHeight: 520, overflow: 'auto', paddingRight: 6 }}
+              // Le HTML vient de articleEnHtml, qui échappe tout le texte.
+              dangerouslySetInnerHTML={{ __html: articleEnHtml(p) }}
+            />
+          </div>
+        ) : null}
+
         <div className="carte" style={{ marginBottom: 12 }}>
           <div className="rang" style={{ justifyContent: 'space-between', gap: 8 }}>
-            <h3>{pages.length ? 'Légende' : 'Texte'}</h3>
+            <h3>{pages.length ? 'Légende' : f.reseau === 'blog' ? 'Texte brut (Markdown)' : 'Texte'}</h3>
             <BoutonCopier texte={texteAColler(p)} />
           </div>
-          <pre className="bloc" style={{ whiteSpace: 'pre-wrap', maxHeight: 360, overflow: 'auto', marginTop: 8 }}>
+          <pre className="bloc" style={{ whiteSpace: 'pre-wrap', maxHeight: f.reseau === 'blog' ? 160 : 360, overflow: 'auto', marginTop: 8 }}>
             {texteAColler(p) || '(texte vide)'}
           </pre>
           {refaisable ? (

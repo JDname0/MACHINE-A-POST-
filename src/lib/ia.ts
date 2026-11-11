@@ -232,3 +232,166 @@ export async function proposerPlans(
   if (!plans.length) throw new Error('Aucun plan exploitable dans la réponse. Réessaie.');
   return { plans, note: String(brut.note ?? '') };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Article de blog à la demande
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ArticleIA {
+  titre: string;
+  accroche: string;
+  complement: string;
+  pourquoi: string;
+  sections: Array<{ question: string; texte: string }>;
+  aRetenir: string[];
+  enseignement: string;
+  appel: string;
+  pilier: string;
+  persona: string;
+  preuve: string;
+  sources: string;
+}
+
+function schemaArticle(entite: EntiteSlug) {
+  const m = marque(entite);
+  return {
+    type: 'object',
+    properties: {
+      titre: { type: 'string', description: 'Le titre, écrit comme la requête qu’un lecteur taperait (160 caractères au plus).' },
+      accroche: { type: 'string', description: 'La réponse directe à la requête, en une ou deux phrases autonomes et citables telles quelles.' },
+      complement: { type: 'string', description: 'Une ou deux phrases qui complètent la réponse (les cent premiers mots doivent suffire à répondre).' },
+      pourquoi: { type: 'string', description: 'Pourquoi la question se pose, en un paragraphe. Ne commence pas par « La question se pose ».' },
+      sections: {
+        type: 'array',
+        description: 'Trois à cinq sections : chacune répond à une sous-question réelle, en un paragraphe de 3 à 6 phrases.',
+        items: {
+          type: 'object',
+          properties: {
+            question: { type: 'string', description: 'Le titre de la section, sous forme de question réelle.' },
+            texte: { type: 'string', description: 'Le paragraphe qui y répond.' },
+          },
+          required: ['question', 'texte'],
+          additionalProperties: false,
+        },
+      },
+      aRetenir: { type: 'array', description: 'Trois points courts, citables tels quels.', items: { type: 'string' } },
+      enseignement: { type: 'string', description: 'La leçon de l’article, en une phrase.' },
+      appel: { type: 'string', description: 'L’appel final, une ou deux phrases, au plus un point d’interrogation.' },
+      pilier: { type: 'string', enum: m.piliers.map((p) => p.slug), description: 'Le pilier éditorial de l’article.' },
+      persona: { type: 'string', enum: m.personas.map((p) => p.slug), description: 'Le lecteur visé.' },
+      preuve: { type: 'string', description: 'La preuve autorisée sur laquelle l’article s’appuie, en quelques mots.' },
+      sources: {
+        type: 'string',
+        description: 'Les textes et sources réellement cités, et ce qu’il faut revérifier avant publication. Jamais publié.',
+      },
+    },
+    required: ['titre', 'accroche', 'complement', 'pourquoi', 'sections', 'aRetenir', 'enseignement', 'appel', 'pilier', 'persona', 'preuve', 'sources'],
+    additionalProperties: false,
+  } as const;
+}
+
+/**
+ * Rédige un article de blog sur une requête donnée, au moule des articles de
+ * grappe (réponse en tête, sections en questions, « À retenir »). Même cadre de
+ * marque que la réécriture, preuves interdites comprises ; l'article entre
+ * ensuite en **brouillon** et repasse par les garde-fous comme tout post — un
+ * repère « [?] » laissé par le modèle bloque la validation jusqu'à ce que
+ * Jonathan le remplisse.
+ */
+/** Ce que le calendrier dit autour de l'article : le post qu'il développe, et la semaine où il paraît. */
+export interface ContexteCalendrier {
+  post?: { titre: string; format: string; accroche: string; corps: string; appel: string };
+  semaine?: { numero: number; phase?: string; intention?: string; autres: string[] };
+}
+
+export async function redigerArticle(
+  entite: EntiteSlug,
+  requete: string,
+  grappe: { nom: string; articles: string[] } | null,
+  consigne = '',
+  contexte: ContexteCalendrier = {},
+): Promise<ArticleIA> {
+  if (!iaDisponible()) throw new Error('ANTHROPIC_API_KEY manquante côté serveur.');
+  const f = format('blog-article');
+  const regleDroit =
+    entite === 'magistria'
+      ? [
+          'Toute affirmation de droit vise sa référence exacte : article de code, règlement ou directive avec son numéro, décision avec sa juridiction et sa date.',
+          'Ne cite une décision que si tu es certain de sa juridiction, de sa date et de sa solution ; sinon écris « [?] décision à viser » à sa place.',
+          'L’outil MagistrIA instruit, il ne conclut pas à la place du professionnel : ne le présente jamais autrement.',
+        ]
+      : ['Les seuls chiffres Veolt autorisés sont les prix affichés, la réponse sous 24 h et la capacité de 6 à 8 dossiers par mois.'];
+  const texteDemande = [
+    `Rédige un article de blog pour ${marque(entite).nom}, sur la requête : « ${requete.trim()} ».`,
+    `Format : ${f.nom}. Longueur utile ${f.utileMin} à ${f.utileMax} caractères ; vise 2 500 à 4 500 caractères.`,
+    'Ossature attendue :',
+    ...f.ossature.map((e) => `- ${e.nom} : ${e.consigne}`),
+    grappe
+      ? `L’article rejoint la grappe « ${grappe.nom} », qui compte déjà : ${grappe.articles.map((t) => `« ${t} »`).join(', ')}. Ne les répète pas : traite l’angle propre à cette requête.`
+      : '',
+    ...(contexte.post
+      ? [
+          '',
+          `L’article développe en version longue ce post du calendrier (${contexte.post.format}). Garde son angle et ses faits, n’en ajoute aucun qui ne soit vérifiable :`,
+          '<post>',
+          `Titre : ${contexte.post.titre}`,
+          contexte.post.accroche,
+          contexte.post.corps,
+          contexte.post.appel,
+          '</post>',
+        ]
+      : []),
+    ...(contexte.semaine
+      ? [
+          '',
+          `Il paraît en semaine ${contexte.semaine.numero} du calendrier${contexte.semaine.phase ? `, phase « ${contexte.semaine.phase} »` : ''}${contexte.semaine.intention ? ` (intention : ${contexte.semaine.intention})` : ''}.`,
+          contexte.semaine.autres.length
+            ? `Les autres posts de la semaine, que l’article doit compléter sans les répéter : ${contexte.semaine.autres.map((t) => `« ${t} »`).join(', ')}.`
+            : '',
+        ]
+      : []),
+    '',
+    ...regleDroit,
+    'Aucun client, chiffre, résultat, témoignage ou citation inventé. Si une information manque, écris « [?] » suivi de ce qu’il faut vérifier : le brouillon restera bloqué jusqu’à ce que ce soit complété.',
+    'Écris en français, au « nous » de la marque, sans formule publicitaire.',
+    consigne.trim() ? `\nConsigne de Jonathan : ${consigne.trim()}` : '',
+  ].join('\n');
+
+  const client = new Anthropic();
+  // Sortie longue : en flux, pour ne pas buter sur le délai d'une requête simple.
+  const reponse = await client.beta.messages
+    .stream({
+      model: MODELE_IA,
+      max_tokens: 32000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort: 'high', format: { type: 'json_schema', schema: schemaArticle(entite) } },
+      system: [{ type: 'text', text: cadreEntite(entite), cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: texteDemande }],
+    })
+    .finalMessage();
+
+  if (reponse.stop_reason === 'refusal') throw new Error('Le modèle a refusé cette demande. Reformule la requête.');
+  if (reponse.stop_reason === 'max_tokens') throw new Error('Article tronqué. Réessaie avec une requête plus précise.');
+  const texte = reponse.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
+  const brut = JSON.parse(texte) as Partial<ArticleIA>;
+  const sections = (brut.sections ?? [])
+    .map((s) => ({ question: String(s?.question ?? '').trim(), texte: String(s?.texte ?? '').trim() }))
+    .filter((s) => s.question && s.texte);
+  if (!brut.titre || !brut.accroche || sections.length < 2) throw new Error('Article incomplet dans la réponse. Réessaie.');
+  const m = marque(entite);
+  return {
+    titre: String(brut.titre).slice(0, 160),
+    accroche: String(brut.accroche),
+    complement: String(brut.complement ?? ''),
+    pourquoi: String(brut.pourquoi ?? ''),
+    sections,
+    aRetenir: (brut.aRetenir ?? []).map(String).filter(Boolean).slice(0, 5),
+    enseignement: String(brut.enseignement ?? ''),
+    appel: String(brut.appel ?? ''),
+    pilier: m.piliers.some((p) => p.slug === brut.pilier) ? String(brut.pilier) : m.piliers[0].slug,
+    persona: m.personas.some((p) => p.slug === brut.persona) ? String(brut.persona) : m.personas[0].slug,
+    preuve: String(brut.preuve ?? ''),
+    sources: String(brut.sources ?? ''),
+  };
+}
