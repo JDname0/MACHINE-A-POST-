@@ -926,6 +926,20 @@ async function preparerRendu(m: Montage) {
       g.addColorStop(1, `${th.fond}E6`);
       cx.fillStyle = g;
       cx.fillRect(0, 0, L, H);
+      if (x.centre && x.texte) {
+        // Titre centré sur un clip : un voile ovale derrière lui, sinon un mot
+        // magenta se perd sur un écran magenta.
+        cx.save();
+        cx.translate(L / 2, H * 0.47);
+        cx.scale(1, 0.62);
+        const v = cx.createRadialGradient(0, 0, 0, 0, 0, L * 0.78);
+        v.addColorStop(0, `${th.fond}D9`);
+        v.addColorStop(0.6, `${th.fond}99`);
+        v.addColorStop(1, `${th.fond}00`);
+        cx.fillStyle = v;
+        cx.fillRect(-L, -L, L * 2, L * 2);
+        cx.restore();
+      }
     } else {
       couvrir(cx, img, L, H, 1 + 0.08 * u + punch);
       // Voile en bas pour que le texte reste lisible sur n'importe quelle image.
