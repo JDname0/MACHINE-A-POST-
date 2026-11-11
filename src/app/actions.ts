@@ -964,3 +964,48 @@ export async function creerLienTemporaire(fd: FormData) {
     return { ok: false as const, raison: (e as Error).message };
   }
 }
+
+/**
+ * Voix off ElevenLabs, plan par plan : un MP3 par plan, rangé dans la
+ * médiathèque (origine « voix »), que le studio mixe sous l'image — la musique
+ * s'efface sous la voix. Bouton pressé par Jonathan, jamais automatique ; la
+ * vidéo reste à valider comme toutes les autres.
+ */
+export async function genererVoixOff(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const publicationId = Number(fd.get('publication_id'));
+  let textes: Array<{ plan: number; texte: string }> = [];
+  try {
+    textes = JSON.parse(String(fd.get('textes') ?? '[]'));
+  } catch {
+    return { ok: false as const, raison: 'Textes illisibles.' };
+  }
+  textes = textes.filter((x) => x.texte?.trim()).slice(0, 14);
+  if (!publicationId || !textes.length) return { ok: false as const, raison: 'Aucun texte à lire.' };
+  const { voixElevenLabs } = await import('@/lib/fournisseurs-media');
+  const { nouvelleCle, ecrire, effacer } = await import('@/lib/medias');
+  const voix: Array<{ plan: number; url: string }> = [];
+  try {
+    // Les anciennes voix du post sont remplacées.
+    const anciennes = db().prepare("SELECT id, cle FROM medias WHERE publication_id=? AND origine='voix'").all(publicationId) as Array<{ id: number; cle: string }>;
+    for (const a of anciennes) {
+      await effacer(a.cle);
+      db().prepare('DELETE FROM medias WHERE id=?').run(a.id);
+    }
+    for (const t of textes) {
+      const mp3 = await voixElevenLabs(t.texte.slice(0, 600), entite === 'veolt' ? 'veolt' : 'magistria');
+      const cle = nouvelleCle('audio/mpeg');
+      await ecrire(cle, mp3, 'audio/mpeg');
+      const r = db()
+        .prepare(`INSERT INTO medias (entite, cle, nom, type_mime, octets, legende, publication_id, origine) VALUES (?,?,?,?,?,?,?, 'voix')`)
+        .run(entite, cle, `voix-plan-${t.plan}.mp3`, 'audio/mpeg', mp3.length, `Voix off · plan ${t.plan + 1}`, publicationId);
+      voix.push({ plan: t.plan, url: `/${entite}/medias/${r.lastInsertRowid}` });
+    }
+  } catch (e) {
+    await sauvegarder();
+    return { ok: false as const, raison: e instanceof Error ? e.message : String(e) };
+  }
+  tracer('voix off générée (ElevenLabs)', `${voix.length} plan(s)`, entite);
+  await sauvegarder();
+  return { ok: true as const, voix };
+}

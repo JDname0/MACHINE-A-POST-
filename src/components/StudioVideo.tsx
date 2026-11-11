@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { PlanMontage } from '@/lib/montage';
 import { fabriquerVideo, enregistrerVideo, apercusPlans, dureeDe, type ImageDispo, type ThemeStudio, type Montage } from '@/lib/fabrique-video';
-import { proposerPlansIA } from '@/app/actions';
+import { proposerPlansIA, genererVoixOff } from '@/app/actions';
+import { enWav } from '@/lib/son';
+import { scriptAfterEffects } from '@/lib/export-ae';
 
 /**
  * Le studio vidéo d'un post : les plans (texte, durée, image), le storyboard,
@@ -38,14 +40,18 @@ interface Props {
   legendePublication: string;
   conseil: { conseil: [number, number]; max: number; pourquoi: string } | null;
   iaDispo: boolean;
+  /** ElevenLabs branché côté serveur (ELEVENLABS_API_KEY). */
+  voixDispo?: boolean;
+  /** Voix off déjà générées pour ce post, plan par plan. */
+  voixInitiales?: Array<{ plan: number; url: string }>;
 }
 
 type Etat =
   | { phase: 'repos' }
   | { phase: 'rendu'; pourcent: number }
-  | { phase: 'pret'; url: string; fichier: File; mode: string }
-  | { phase: 'envoi'; pourcent: number; url: string; fichier: File; mode: string }
-  | { phase: 'enregistre'; url: string; fichier: File; mode: string }
+  | { phase: 'pret'; url: string; fichier: File; mode: string; son: AudioBuffer | null }
+  | { phase: 'envoi'; pourcent: number; url: string; fichier: File; mode: string; son: AudioBuffer | null }
+  | { phase: 'enregistre'; url: string; fichier: File; mode: string; son: AudioBuffer | null }
   | { phase: 'erreur'; message: string };
 
 const VIDE: PlanMontage = { duree: 3, texte: '', image: '', source: { type: 'carte' } };
@@ -59,6 +65,9 @@ export function StudioVideo(p: Props) {
   const [apercuEnCours, setApercuEnCours] = useState(false);
   const [ia, setIa] = useState<{ t: 'repos' | 'enCours' | 'note' | 'erreur'; texte?: string }>({ t: 'repos' });
   const [copie, setCopie] = useState(false);
+  const [son, setSon] = useState({ musique: true, bruitages: true, volume: 0.55 });
+  const [voix, setVoix] = useState<Array<{ plan: number; url: string }>>(p.voixInitiales ?? []);
+  const [voixEtat, setVoixEtat] = useState<{ t: 'repos' | 'enCours' | 'erreur'; texte?: string }>({ t: 'repos' });
   const consigneIA = useRef<HTMLInputElement>(null);
   const total = useMemo(() => dureeDe(plans), [plans]);
 
@@ -79,7 +88,38 @@ export function StudioVideo(p: Props) {
     legende: p.legende,
     variante: p.themes.sombre ? variante : 'clair',
     surTitre: p.surTitre,
+    son: {
+      musique: son.musique,
+      bruitages: son.bruitages,
+      volume: son.volume,
+      // Chaque voix démarre au début de son plan (un quart de seconde après l'entrée).
+      voix: voix
+        .filter((v) => v.plan < plans.length)
+        .map((v) => ({ t: plans.slice(0, v.plan).reduce((n, x) => n + x.duree, 0) + 0.25, url: v.url })),
+    },
   });
+
+  async function voixOff() {
+    setVoixEtat({ t: 'enCours' });
+    const fd = new FormData();
+    fd.set('entite', p.entite);
+    fd.set('publication_id', String(p.publicationId));
+    fd.set('textes', JSON.stringify(plans.map((x, i) => ({ plan: i, texte: [x.texte, x.accent, x.sousTitre].filter(Boolean).join('. ') }))));
+    const r = await genererVoixOff(fd);
+    if (!r.ok) return setVoixEtat({ t: 'erreur', texte: r.raison });
+    setVoix(r.voix);
+    setVoixEtat({ t: 'repos' });
+  }
+
+  function telecharger(blob: Blob, nom: string) {
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = nom;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 4000);
+  }
+  const base = `${p.entite}-${p.publicationId}`;
 
   const maj = (i: number, champ: Partial<PlanMontage>) => setPlans((ps) => ps.map((x, k) => (k === i ? { ...x, ...champ } : x)));
   const deplacer = (i: number, d: -1 | 1) =>
@@ -90,6 +130,10 @@ export function StudioVideo(p: Props) {
       [n[i], n[j]] = [n[j], n[i]];
       return n;
     });
+
+  if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+    (window as unknown as { __montage?: () => Montage }).__montage = montage;
+  }
 
   async function apercu() {
     setApercuEnCours(true);
@@ -111,8 +155,8 @@ export function StudioVideo(p: Props) {
   async function fabriquer() {
     try {
       setEtat({ phase: 'rendu', pourcent: 0 });
-      const { fichier, mode } = await fabriquerVideo(montage(), (pc) => setEtat({ phase: 'rendu', pourcent: pc }));
-      setEtat({ phase: 'pret', url: URL.createObjectURL(fichier), fichier, mode });
+      const { fichier, mode, bandeSon } = await fabriquerVideo(montage(), (pc) => setEtat({ phase: 'rendu', pourcent: pc }));
+      setEtat({ phase: 'pret', url: URL.createObjectURL(fichier), fichier, mode, son: bandeSon });
     } catch (e) {
       setEtat({ phase: 'erreur', message: e instanceof Error ? e.message : String(e) });
     }
@@ -120,11 +164,11 @@ export function StudioVideo(p: Props) {
 
   async function enregistrer() {
     if (etat.phase !== 'pret') return;
-    const { fichier, url, mode } = etat;
+    const { fichier, url, mode, son: bande } = etat;
     try {
-      setEtat({ phase: 'envoi', pourcent: 0, url, fichier, mode });
-      await enregistrerVideo(montage(), fichier, (pc) => setEtat({ phase: 'envoi', pourcent: pc, url, fichier, mode }));
-      setEtat({ phase: 'enregistre', url, fichier, mode });
+      setEtat({ phase: 'envoi', pourcent: 0, url, fichier, mode, son: bande });
+      await enregistrerVideo(montage(), fichier, (pc) => setEtat({ phase: 'envoi', pourcent: pc, url, fichier, mode, son: bande }));
+      setEtat({ phase: 'enregistre', url, fichier, mode, son: bande });
       router.refresh();
     } catch (e) {
       setEtat({ phase: 'erreur', message: e instanceof Error ? e.message : String(e) });
@@ -334,6 +378,34 @@ export function StudioVideo(p: Props) {
           <p>
             {plans.length} plans · {total} s · {p.largeur}×{p.hauteur} · {p.rythme === 'sec' ? 'coupes sèches' : 'fondus courts'}
           </p>
+          {/* ── Son ── */}
+          <div className="rang" style={{ gap: 12, marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <label className="aide" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+              <input type="checkbox" checked={son.musique} onChange={(e) => setSon({ ...son, musique: e.target.checked })} /> Musique de marque
+            </label>
+            <label className="aide" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+              <input type="checkbox" checked={son.bruitages} onChange={(e) => setSon({ ...son, bruitages: e.target.checked })} /> Bruitages calés sur l&apos;image
+            </label>
+            <label className="aide" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+              volume{' '}
+              <input type="range" min={0.1} max={1} step={0.05} value={son.volume} onChange={(e) => setSon({ ...son, volume: Number(e.target.value) })} style={{ width: 90 }} />
+            </label>
+          </div>
+          <div className="rang" style={{ gap: 8, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {p.voixDispo ? (
+              <button type="button" className="fantome" onClick={voixOff} disabled={voixEtat.t === 'enCours' || occupe}>
+                {voixEtat.t === 'enCours' ? 'Voix en cours… (ElevenLabs)' : voix.length ? `Refaire la voix off (${voix.length} plans)` : '🎙 Voix off ElevenLabs'}
+              </button>
+            ) : (
+              <span className="aide">Voix off : pose <code>ELEVENLABS_API_KEY</code> côté serveur pour l&apos;activer.</span>
+            )}
+            {voix.length ? <span className="pastille" data-t="ok">voix sur {voix.length} plans · musique effacée dessous</span> : null}
+          </div>
+          {voixEtat.t === 'erreur' ? (
+            <div className="constat" data-n="blocage" style={{ marginTop: 6 }}>
+              <div className="msg">{voixEtat.texte}</div>
+            </div>
+          ) : null}
           <div className="rang" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
             <button type="button" onClick={fabriquer} disabled={occupe}>
               {etat.phase === 'rendu' ? `Fabrication… ${etat.pourcent} %` : p.aDejaVideo || etat.phase !== 'repos' ? 'Régénérer la vidéo' : 'Générer la vidéo'}
@@ -344,11 +416,33 @@ export function StudioVideo(p: Props) {
               </button>
             ) : null}
             {apercuVideo && 'fichier' in etat ? (
-              <a className="bouton fantome" href={apercuVideo} download={etat.fichier.name}>
+              <a className="bouton fantome" href={apercuVideo} download={`${base}.mp4`}>
                 Télécharger
               </a>
             ) : null}
           </div>
+          {'fichier' in etat ? (
+            <div className="rang" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              {etat.son ? (
+                <button type="button" className="fantome" onClick={() => etat.son && telecharger(enWav(etat.son), `${base}-bande-son.wav`)}>
+                  Bande-son (.wav)
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="fantome"
+                title="Compo After Effects : un calque par plan, marqueurs, rendu en référence. Poser le MP4 et le WAV à côté du script."
+                onClick={() =>
+                  telecharger(
+                    new Blob([scriptAfterEffects(montage(), { video: `${base}.mp4`, son: etat.son ? `${base}-bande-son.wav` : undefined })], { type: 'text/plain' }),
+                    `${base}-after-effects.jsx`,
+                  )
+                }
+              >
+                Projet After Effects (.jsx)
+              </button>
+            </div>
+          ) : null}
           {etat.phase === 'envoi' ? <p className="aide" style={{ marginTop: 8 }}>Envoi… {etat.pourcent} %</p> : null}
           {etat.phase === 'enregistre' ? (
             <p className="aide" style={{ marginTop: 8, color: 'var(--ok)' }}>

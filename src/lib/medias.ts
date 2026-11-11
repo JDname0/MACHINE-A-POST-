@@ -47,6 +47,8 @@ export const TYPES_VIDEO: Record<string, string> = {
 };
 
 export const TYPES_ACCEPTES: Record<string, string> = { ...TYPES_IMAGE, ...TYPES_VIDEO };
+/** Pistes audio (voix off ElevenLabs, musique déposée) : servies au studio, pas montrées comme visuels. */
+export const TYPES_AUDIO: Record<string, string> = { 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
 
 export const estVideo = (typeMime: string) => typeMime in TYPES_VIDEO;
 
@@ -95,7 +97,7 @@ const PREFIXE = 'machine-a-post/medias/';
 const DOSSIER = EN_SERVERLESS ? '/tmp/medias' : path.join(process.cwd(), 'data', 'medias');
 
 export function nouvelleCle(typeMime: string): string {
-  return `${randomUUID()}.${TYPES_ACCEPTES[typeMime] ?? 'bin'}`;
+  return `${randomUUID()}.${TYPES_ACCEPTES[typeMime] ?? TYPES_AUDIO[typeMime] ?? 'bin'}`;
 }
 
 export async function ecrire(cle: string, octets: Buffer, typeMime: string): Promise<void> {

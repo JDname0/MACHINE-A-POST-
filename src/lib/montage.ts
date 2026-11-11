@@ -9,6 +9,38 @@
  */
 
 import type { ScriptVideo } from './videos';
+import type { Forme3D, Place3D } from './scene3d';
+
+/**
+ * La couche 3D d'un plan, reprise des sites (voir scene3d.ts) : la sphère de
+ * particules de veolt.fr ou le cerveau de magistrai.fr. D'un plan au suivant,
+ * la forme se métamorphose (sphère → écran → € → galaxie…).
+ */
+export interface Noyau3D {
+  forme?: Forme3D;
+  place?: Place3D;
+  /** La forme se construit depuis des particules dispersées. */
+  construction?: boolean;
+  /** Onde de choc / éclat au milieu du plan. */
+  onde?: boolean;
+  /** Le cadran façon Jarvis (MagistrIA) se trace autour. */
+  cadran?: boolean;
+  /** Agitation des particules : 0 calme, 1 « ça travaille ». */
+  activite?: number;
+  /** Luminosité imposée (0 à 1) ; sinon celle de la place (0,26 en fond). */
+  intensite?: number;
+}
+
+/** Une pastille de verre qui flotte au bord de l'écran produit (« ✓ Source vérifiée »). */
+export interface BulleApp {
+  texte: string;
+  icone?: string;
+  cote?: 'gauche' | 'droite';
+  /** Instant d'apparition dans le plan (s). */
+  a?: number;
+  /** Hauteur relative sur la fenêtre (0 haut, 1 bas). */
+  hauteur?: number;
+}
 
 export type SourcePlan = { type: 'carte' } | { type: 'media'; id: number };
 
@@ -75,7 +107,12 @@ export type Scene =
   /** Écran de fin : marque, slogan, public visé, bouton d'action, adresse, petite ligne. */
   | { type: 'fin'; action: string; adresse?: string; slogan?: string[]; public?: string; note?: string }
   /** Écran produit vivant : saisie, sources, réponse, blocs, courrier… dans une fenêtre d'application. */
-  | { type: 'app'; fenetre: string; onglets?: string[]; saisie?: string; elements: ElementApp[]; flux?: string[]; mention?: string }
+  | { type: 'app'; fenetre: string; onglets?: string[]; saisie?: string; elements: ElementApp[]; flux?: string[]; mention?: string; bulles?: BulleApp[] }
+  /**
+   * Grille « bento » de tuiles en verre qui s'assemblent : les fonctions
+   * réelles d'un outil, une par tuile. La première tuile prend toute la largeur.
+   */
+  | { type: 'bento'; tuiles: Array<{ titre: string; texte?: string; grand?: string; icone?: string }> }
   /** Apparition de la marque : logotype, puis sa phrase. */
   | { type: 'marque'; slogan?: string }
   /** Des pièces papier qui se posent et s'empilent, puis s'éparpillent. */
@@ -119,6 +156,8 @@ export interface PlanMontage {
   centre?: boolean;
   /** Sous-titre « karaoké » en bas d'écran : le mot en cours surligné. */
   sousTitre?: string;
+  /** Couche 3D de particules (sphère Veolt, cerveau MagistrIA). */
+  noyau?: Noyau3D;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
@@ -143,6 +182,7 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     ...(p.fond ? { fond: p.fond } : {}),
     ...(p.centre ? { centre: true } : {}),
     ...(p.sousTitre ? { sousTitre: p.sousTitre } : {}),
+    ...(p.noyau ? { noyau: p.noyau } : {}),
   }));
 }
 

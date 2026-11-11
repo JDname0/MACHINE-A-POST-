@@ -9,6 +9,7 @@ import { publication, publications, compteursMenu, formaterDate, LIBELLE_STATUT 
 import { dureeConseillee, attendu } from '@/lib/conformite-media';
 import { iaDisponible } from '@/lib/ia';
 import { texteAColler } from '@/lib/fiche';
+import { voixDuPost } from '@/lib/production';
 import { duree as libelleDuree, poids } from '@/lib/medias';
 import { videosDe } from '@/lib/videos';
 import { depotDirect, plafondDepotVideo } from '@/lib/medias';
@@ -290,6 +291,8 @@ export default async function Videos({
               legendePublication={texteAColler(p)}
               conseil={dureeConseillee(p.format_slug)}
               iaDispo={iaDisponible()}
+              voixDispo={Boolean(process.env.ELEVENLABS_API_KEY)}
+              voixInitiales={voixDuPost(p.id, e)}
             />
           </>
         ) : null}

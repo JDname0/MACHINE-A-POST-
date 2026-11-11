@@ -24,6 +24,8 @@ const TYPES_SERVIS = new Set([
   'video/mp4',
   'video/quicktime',
   'video/webm',
+  'audio/mpeg',
+  'audio/wav',
 ]);
 
 export async function GET(requete: Request, { params }: { params: Promise<{ entite: string; id: string }> }) {

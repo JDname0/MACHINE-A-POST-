@@ -29,6 +29,7 @@ import {
   sceneRecap,
   sceneFinV2,
   sceneSite,
+  sceneBento,
   dessinerSousTitre,
   dessinerFleche,
   hauteurSousTitre,
@@ -36,6 +37,9 @@ import {
   type Env,
 } from './rendu-scenes';
 import { deuxLignes } from './coupe';
+import { CollecteReperes, codecAudio, composerBandeSon, encoderAudio, FREQ, type OptionsSon, type VoixOff } from './son';
+import { verre, grainFilm, vignette, filtreDisponible } from './verre';
+import type { Forme3D, Moteur3D, Place3D } from './scene3d';
 import { enregistrerTeleversement, deposerVideoMontee } from '@/app/actions';
 
 export interface ImageDispo {
@@ -106,6 +110,8 @@ export interface Montage {
   variante?: 'clair' | 'sombre';
   /** Sur-titre du plan d'ouverture (le pilier du post). */
   surTitre?: string;
+  /** Bande-son : musique de marque, bruitages calés sur l'image, voix off. Absent : musique et bruitages. */
+  son?: { musique: boolean; bruitages: boolean; volume?: number; voix?: VoixOff[] };
 }
 
 const FPS = 30;
@@ -229,7 +235,13 @@ async function preparerRendu(m: Montage) {
     alerteEncre: '#8A5A00',
     neutre: '#F3F3F6',
     ok: '#2E7D32',
+    surAccent: '#FFFFFF',
+    champ: '#FFFFFF',
   };
+  const marque: 'veolt' | 'magistria' = m.entite === 'veolt' ? 'veolt' : 'magistria';
+  // Les instants sonores déclarés par le dessin, en temps absolu.
+  const collecte = new CollecteReperes();
+  let debutPlan = 0;
   const env: Env = {
     L,
     H,
@@ -253,8 +265,64 @@ async function preparerRendu(m: Montage) {
     // Veolt n'a pas d'italique dans sa charte : ses phrases d'accent sont en Bebas lavande.
     f: { titre, corps, corpsL, mono, italique: th.policeTitre === 'Bebas' ? titre : italique, manuscrite, etiquette: sur ?? mono },
     lignes,
+    marque,
+    t: 0,
+    repere: (type, tl, fin) => collecte.ajouter({ type, t: debutPlan + tl, fin: fin === undefined ? undefined : debutPlan + fin }),
+    teinteVerre: marque === 'veolt' ? 'rgba(46,14,64,0.34)' : 'rgba(10,22,42,0.38)',
   };
 
+  // ── Couche 3D (sphère de veolt.fr, cerveau de magistrai.fr), chargée seulement si un plan la demande ──
+  let moteur3D: Moteur3D | null = null;
+  if (plans.some((x) => x.noyau)) {
+    const { creerMoteur3D } = await import('./scene3d');
+    moteur3D = await creerMoteur3D(marque, L, H, 0.75);
+  }
+  const formeDefaut: Forme3D = marque === 'veolt' ? 'sphere' : 'cerveau';
+  const PLACES: Record<Place3D, { cx: number; cy: number; r: number; i: number }> = {
+    centre: { cx: L / 2, cy: H * 0.46, r: L * 0.33, i: 0.95 },
+    haut: { cx: L / 2, cy: H * (vertical ? 0.27 : 0.3), r: L * 0.24, i: 0.9 },
+    bas: { cx: L / 2, cy: H * 0.8, r: L * 0.19, i: 0.8 },
+    fond: { cx: L / 2, cy: H * 0.5, r: L * 0.56, i: 0.26 },
+    gauche: { cx: L * 0.18, cy: H * 0.42, r: L * 0.3, i: 0.7 },
+    droite: { cx: L * 0.82, cy: H * 0.42, r: L * 0.3, i: 0.7 },
+  };
+  const dessinerNoyau = (cx: CanvasRenderingContext2D, i: number, tl: number, t: number, d: number) => {
+    const n = plans[i].noyau;
+    if (!n || !moteur3D) return;
+    const prec = i > 0 ? plans[i - 1].noyau : undefined;
+    const forme = n.forme ?? formeDefaut;
+    const formePrec = prec ? (prec.forme ?? formeDefaut) : forme;
+    const ici = PLACES[n.place ?? 'centre'];
+    const avant = prec ? PLACES[prec.place ?? 'centre'] : ici;
+    const glisse = prec ? sortie(tl / 1.1) : 1;
+    const lerp = (a2: number, b2: number) => a2 + (b2 - a2) * glisse;
+    const tOnde = d * 0.45;
+    const onde = n.onde && tl > tOnde && tl < tOnde + 1.6 ? (tl - tOnde) / 1.6 : 0;
+    if (n.onde) env.repere('scintille', tOnde, tOnde + 0.9);
+    const entree = prec ? 1 : n.construction ? 1 : sortie(tl / 0.5);
+    const toile = moteur3D.rendre({
+      t,
+      de: formePrec,
+      vers: forme,
+      morph: formePrec === forme ? 1 : borne(tl / 1.5),
+      cx: lerp(avant.cx, ici.cx),
+      cy: lerp(avant.cy, ici.cy),
+      rayon: lerp(avant.r, ici.r),
+      construction: n.construction && !prec ? borne(tl / 2.6) : 1,
+      onde,
+      cadran: marque === 'magistria' && n.cadran ? (prec?.cadran ? 1 : borne((tl - 0.3) / 1.6)) : 0,
+      activite: (n.activite ?? 0) + (onde > 0 ? Math.sin(Math.PI * onde) * 0.6 : 0),
+      intensite: (n.intensite ?? lerp(avant.i, ici.i)) * entree,
+    });
+    if (formePrec !== forme) env.repere('whoosh', 0.35);
+    if (n.construction && !prec) env.repere('montee', 0, 2.2);
+    cx.save();
+    cx.globalCompositeOperation = 'screen';
+    cx.drawImage(toile, 0, 0, L, H);
+    cx.restore();
+  };
+
+  const flou = filtreDisponible();
   type Zone = 'centre' | 'bas' | 'haut' | 'fin';
   const ECHELLE: Record<Zone, number> = { centre: 1, bas: 0.78, haut: 0.6, fin: 0.85 };
 
@@ -320,6 +388,7 @@ async function preparerRendu(m: Montage) {
     }
 
     cx.font = `${titre.poids} ${taille}px "${titre.famille}", sans-serif`;
+    if (th.animation === 'brouillage') env.repere('brouillage', 0.05, 0.47 + (ls.length - 1) * 0.07);
     ls.forEach((ligne, j) => {
       const largeur = cx.measureText(ligne.t).width;
       const x0 = xLigne(largeur);
@@ -334,6 +403,11 @@ async function preparerRendu(m: Montage) {
         const p = borne((tl - (0.05 + j * 0.07)) / 0.42);
         const fixes = Math.floor(p * ligne.t.length);
         cx.fillStyle = remplissage();
+        // Lueur néon sur la ligne en dégradé, plus vive pendant le décodage.
+        if (ligne.accent && th.degrade) {
+          cx.shadowColor = th.degrade[0];
+          cx.shadowBlur = 18 + 26 * (1 - p);
+        }
         let x = x0;
         for (let k = 0; k < ligne.t.length; k++) {
           const vrai = ligne.t[k];
@@ -342,12 +416,24 @@ async function preparerRendu(m: Montage) {
           cx.fillText(montre, x, y);
           x += cx.measureText(vrai).width;
         }
+        cx.shadowBlur = 0;
         cx.globalAlpha = 1;
       } else {
-        const e = sortie((tl - (0.08 + j * 0.11)) / 0.6);
-        cx.globalAlpha = e;
+        // Mot après mot : chacun monte et sort du flou (typographie cinétique).
+        const mots = ligne.t.split(' ');
+        const espace = cx.measureText(' ').width;
+        let x = x0;
         cx.fillStyle = remplissage();
-        cx.fillText(ligne.t, x0, y + (1 - e) * 28);
+        mots.forEach((mot, q) => {
+          const e = sortie((tl - (0.08 + j * 0.11 + q * 0.05)) / 0.6);
+          if (e > 0) {
+            cx.globalAlpha = e;
+            if (flou && e < 1) cx.filter = `blur(${((1 - e) * 9).toFixed(1)}px)`;
+            cx.fillText(mot, x, y + (1 - e) * 26);
+            cx.filter = 'none';
+          }
+          x += cx.measureText(mot).width + espace;
+        });
         cx.globalAlpha = 1;
       }
       y += interligne;
@@ -405,7 +491,7 @@ async function preparerRendu(m: Montage) {
   /** Cadre d'une fenêtre d'application : barre de titre, trois pastilles, libellé. */
   const fenetre = (cx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, libelle: string, a: number) => {
     cx.globalAlpha = a;
-    boite(cx, x, y, w, h, 20, surface, filet);
+    verre(cx, x, y, w, h, 20, { teinte: env.teinteVerre, t: env.t, flou: 28 });
     cx.fillStyle = filet;
     cx.fillRect(x, y + 58, w, 1.5);
     for (let k = 0; k < 3; k++) {
@@ -425,6 +511,7 @@ async function preparerRendu(m: Montage) {
   const sceneChiffre = (cx: CanvasRenderingContext2D, sc: Extract<Scene, { type: 'chiffre' }>, tl: number, y0: number, y1: number) => {
     const m2 = sc.valeur.match(/^([−-]?)([\d\s  ]*\d)(.*)$/);
     let affiche = sc.valeur;
+    if (m2) env.repere('compteur', 0.2, 1.1);
     if (m2) {
       const cible = parseInt(m2[2].replace(/\D/g, ''), 10);
       const n = Math.round(cible * sortie((tl - 0.2) / 0.9));
@@ -467,6 +554,7 @@ async function preparerRendu(m: Montage) {
     }
     let y = y0 + Math.max(0, (y1 - y0 - hauteur) * (vertical ? 0.42 : 0.35)) + tt;
     mesures.forEach((ls, k) => {
+      env.repere('pop', 0.38 + k * pas);
       const a = apparition(tl, 0.35 + k * pas, 0.4);
       const dx = (1 - a) * 26;
       cx.globalAlpha = a;
@@ -517,8 +605,9 @@ async function preparerRendu(m: Montage) {
       const a = apparition(tl, debut, 0.45);
       const x = empile ? marge : marge + ci * (w + gap);
       const yp = empile ? yb + (ci === 0 ? 0 : hs[0] + gap) : yb;
+      env.repere('pop', debut + 0.05);
       cx.globalAlpha = a;
-      boite(cx, x, yp + (1 - a) * 20, w, hs[ci], 18, surface, ci === 1 ? degradeSur(cx, x, w) : filet, ci === 1 ? 3 : 2);
+      verre(cx, x, yp + (1 - a) * 20, w, hs[ci], 18, { teinte: env.teinteVerre, t: env.t + ci, flou: 26, bordure: ci === 1 ? th.degrade ?? [th.accent] : undefined });
       cx.font = fonte(titre, tTitre);
       cx.fillStyle = ci === 1 ? degradeSur(cx, x + pad, w * 0.7) : th.encre;
       cx.fillText(th.majuscules ? c.titre.toUpperCase() : c.titre, x + pad, yp + pad + tTitre * 0.95);
@@ -589,7 +678,9 @@ async function preparerRendu(m: Montage) {
     y += fe * 0.9 - fe * 1.42 + fs * 0.4;
     // Le raisonnement, étape par étape.
     const pasE = Math.min(1.1, Math.max(0.6, (d - 3.5) / (sc.etapes.length + 1)));
+    env.repere('scintille', debutSurligne, debutSurligne + 0.6);
     sc.etapes.forEach((e, j) => {
+      env.repere('pop', 1.42 + j * pasE);
       const a = apparition(tl, 1.4 + j * pasE, 0.45);
       const hBloc = fl * 1.9 + eta[j].length * fs * 1.34;
       cx.globalAlpha = a;
@@ -608,6 +699,7 @@ async function preparerRendu(m: Montage) {
     });
     // Chaque citation, avec son état.
     sc.citations.forEach((c, j) => {
+      env.repere(c.etat === 'verifiee' ? 'coche' : 'pop', 1.45 + sc.etapes.length * pasE + 0.15 + j * 0.4);
       const a = apparition(tl, 1.4 + sc.etapes.length * pasE + 0.15 + j * 0.4, 0.4);
       const etat = ETATS[c.etat];
       cx.globalAlpha = a;
@@ -667,6 +759,7 @@ async function preparerRendu(m: Montage) {
     const actif = sc.reperes.findIndex((_, k) => tl >= 1.0 + k * pas && tl < 1.0 + (k + 1) * pas);
     // Repérage : la ligne active s'allume, les précédentes restent marquées.
     sc.reperes.forEach((r, k) => {
+      env.repere('pop', 1.02 + k * pas);
       const a = apparition(tl, 1.0 + k * pas, 0.35);
       if (a <= 0) return;
       const yr = yw + 58 + pad + (r.ligne + 1) * rh;
@@ -731,6 +824,7 @@ async function preparerRendu(m: Montage) {
     else if (sc.type === 'documents') sceneDocuments(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'recap') sceneRecap(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'site') sceneSite(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'bento') sceneBento(cx, env, sc, tl, d, y0, y1);
   };
 
   // Toile de travail pour les fondus : le plan entrant y est dessiné, puis
@@ -746,6 +840,9 @@ async function preparerRendu(m: Montage) {
     const [a, b] = bornes[i];
     const tl = t - a;
     const u = tl / (b - a);
+    debutPlan = a;
+    env.t = t;
+    env.repere(i === 0 ? 'whoosh' : 'transition', i === 0 ? 0.1 : 0);
     cx.globalAlpha = 1;
     cx.fillStyle = th.fond;
     cx.fillRect(0, 0, L, H);
@@ -776,6 +873,9 @@ async function preparerRendu(m: Montage) {
       cx.fillStyle = g;
       cx.fillRect(0, H * 0.38, L, H * 0.62);
     }
+
+    // La couche 3D des sites, posée en « screen » sur le décor.
+    if (x.source.type === 'carte') dessinerNoyau(cx, i, tl, t, b - a);
 
     // Lueur qui dérive : elle donne de la vie aux fonds fixes, sans distraire.
     if (th.lueur) {
@@ -819,30 +919,110 @@ async function preparerRendu(m: Montage) {
     cx2.fillRect(0, 0, L * borne(t / t0), h);
   };
 
+  const tmp2 = document.createElement('canvas');
+  tmp2.width = L;
+  tmp2.height = H;
+  const tctx2 = tmp2.getContext('2d')!;
+  const FONDU_FLOU = 0.5;
+  const WHIP = 0.24;
+
   const dessiner = (k: number) => {
     const t = k / FPS;
     let i = bornes.findIndex(([a, b]) => t >= a && t < b);
     if (i < 0) i = plans.length - 1;
-    const [a] = bornes[i];
-    if (m.rythme === 'pose' && i > 0 && t - a < FONDU) {
-      dessinerPlan(ctx, i - 1, Math.min(t, bornes[i - 1][1] - 0.001));
+    const [a, b] = bornes[i];
+    ctx.filter = 'none';
+    if (m.rythme === 'pose' && i > 0 && t - a < FONDU_FLOU) {
+      // MagistrIA : fondu enchaîné à travers le flou — l'image sortante se
+      // dissout pendant que l'entrante se met au point.
+      const p = (t - a) / FONDU_FLOU;
+      const e = p * p * (3 - 2 * p);
+      dessinerPlan(tctx2, i - 1, Math.min(t, bornes[i - 1][1] - 0.001));
       dessinerPlan(tctx, i, t);
-      ctx.globalAlpha = (t - a) / FONDU;
+      ctx.fillStyle = th.fond;
+      ctx.fillRect(0, 0, L, H);
+      if (flou) ctx.filter = `blur(${(e * 12).toFixed(1)}px)`;
+      ctx.drawImage(tmp2, 0, 0);
+      if (flou) ctx.filter = `blur(${((1 - e) * 12).toFixed(1)}px)`;
+      ctx.globalAlpha = e;
       ctx.drawImage(tmp, 0, 0);
       ctx.globalAlpha = 1;
+      ctx.filter = 'none';
+    } else if (m.rythme === 'sec' && ((i > 0 && t - a < WHIP) || (i < plans.length - 1 && b - t < WHIP * 0.45))) {
+      // Veolt : coupe « à travers » — zoom et flou de vitesse de part et
+      // d'autre de la coupe, éclair de marque au raccord.
+      const entrant = i > 0 && t - a < WHIP;
+      const p = entrant ? 1 - (t - a) / WHIP : 1 - (b - t) / (WHIP * 0.45);
+      const force = entrant ? p * p : p * p * 0.7;
+      dessinerPlan(tctx, i, t);
+      ctx.fillStyle = th.fond;
+      ctx.fillRect(0, 0, L, H);
+      const z = entrant ? 1 + 0.16 * force : 1 + 0.1 * (1 - (b - t) / (WHIP * 0.45));
+      ctx.save();
+      ctx.translate(L / 2, H / 2);
+      ctx.scale(z, z);
+      ctx.translate(-L / 2, -H / 2);
+      if (flou) ctx.filter = `blur(${(force * 16).toFixed(1)}px)`;
+      ctx.drawImage(tmp, 0, 0);
+      ctx.restore();
+      ctx.filter = 'none';
+      if (entrant && th.degrade) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        const g = ctx.createRadialGradient(L / 2, H / 2, 0, L / 2, H / 2, Math.max(L, H) * 0.7);
+        g.addColorStop(0, th.degrade[0]);
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = force * 0.45;
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, L, H);
+        ctx.restore();
+      }
     } else {
       dessinerPlan(ctx, i, t);
     }
+    // Finitions : vignettage et grain de film (il casse aussi les aplats que
+    // l'encodeur transformerait en escaliers).
+    vignette(ctx, L, H, 0.42);
+    grainFilm(ctx, L, H, t, 0.04);
     barre(t);
   };
 
-  return { canvas: c, dessiner, bornes, nbImages: Math.round(t0 * FPS), duree: t0 };
+  return {
+    canvas: c,
+    dessiner,
+    bornes,
+    nbImages: Math.round(t0 * FPS),
+    duree: t0,
+    reperes: collecte.liste,
+    marque,
+    fermer: () => moteur3D?.detruire(),
+  };
 }
 
-/** Dessine et encode la vidéo. Renvoie le fichier et le mode d'encodage utilisé. */
-export async function fabriquerVideo(m: Montage, progres: (pourcent: number) => void): Promise<{ fichier: File; mode: string }> {
+// Banc d'essai en développement : permet de mesurer le rendu image par image.
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  (window as unknown as { __fabrique?: unknown }).__fabrique = { preparerRendu, fabriquer: (m: Montage, p: (n: number) => void) => fabriquerVideo(m, p) };
+}
+
+/** Dessine et encode la vidéo, avec sa bande-son. Renvoie le fichier, le mode d'encodage et la bande-son. */
+export async function fabriquerVideo(
+  m: Montage,
+  progres: (pourcent: number) => void,
+): Promise<{ fichier: File; mode: string; bandeSon: AudioBuffer | null }> {
   const r = await preparerRendu(m);
-  return encoder(r.canvas, r.dessiner, r.nbImages, r.duree, m.plafondOctets, progres);
+  const reglage = m.son ?? { musique: true, bruitages: true };
+  const avecSon = reglage.musique || reglage.bruitages || Boolean(reglage.voix?.length);
+  const opts: OptionsSon = { musique: reglage.musique, bruitages: reglage.bruitages, style: r.marque, volumeMusique: reglage.volume, voix: reglage.voix };
+  let bandeSon: AudioBuffer | null = null;
+  // Les repères sont collectés pendant le dessin : la bande-son se compose une
+  // fois toutes les images passées.
+  const composer = async () => (bandeSon = await composerBandeSon(r.duree, r.reperes, opts));
+  try {
+    const sortieV = await encoder(r.canvas, r.dessiner, r.nbImages, r.duree, m.plafondOctets, progres, avecSon ? composer : null);
+    return { ...sortieV, bandeSon };
+  } finally {
+    r.fermer();
+  }
 }
 
 /**
@@ -854,6 +1034,7 @@ export async function apercusPlans(m: Montage, largeur = 216): Promise<string[]>
   const r = await preparerRendu(m);
   const v = document.createElement('canvas');
   v.width = largeur;
+  try {
   v.height = Math.round((largeur * m.hauteur) / m.largeur);
   const vctx = v.getContext('2d')!;
   return r.bornes.map(([a, b]) => {
@@ -865,6 +1046,9 @@ export async function apercusPlans(m: Montage, largeur = 216): Promise<string[]>
     vctx.drawImage(r.canvas, 0, 0, v.width, v.height);
     return v.toDataURL('image/jpeg', 0.82);
   });
+  } finally {
+    r.fermer();
+  }
 }
 
 /** Range la vidéo dans la médiathèque, rattachée au post. */
@@ -914,6 +1098,8 @@ async function encoder(
   duree: number,
   plafond: number,
   progres: (pourcent: number) => void,
+  /** Compose la bande-son une fois toutes les images dessinées (les repères viennent du dessin). */
+  bandeSon: (() => Promise<AudioBuffer>) | null,
 ): Promise<{ fichier: File; mode: string }> {
   // 8 Mbit/s : net en 1080p pour des plans fixes animés. Si le chemin de dépôt
   // est plus étroit, on descend juste ce qu'il faut pour tenir dessous.
@@ -930,7 +1116,16 @@ async function encoder(
     }
     if (codec) {
       const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
-      const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: 'avc', width: c.width, height: c.height }, fastStart: 'in-memory' });
+      // AAC là où le navigateur l'encode (Chrome et Safari sur Mac et Windows) ;
+      // sinon Opus, que les lecteurs récents lisent dans un MP4.
+      const audio = bandeSon ? await codecAudio() : null;
+      const muxer = new Muxer({
+        target: new ArrayBufferTarget(),
+        video: { codec: 'avc', width: c.width, height: c.height },
+        ...(audio ? { audio: { codec: audio.muxer, numberOfChannels: 2, sampleRate: FREQ } } : {}),
+        fastStart: 'in-memory',
+        firstTimestampBehavior: 'offset',
+      });
       let erreur: unknown = null;
       const enc = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => (erreur = e) });
       enc.configure({ codec, width: c.width, height: c.height, bitrate: debit, framerate: FPS });
@@ -940,28 +1135,54 @@ async function encoder(
         enc.encode(vf, { keyFrame: k % (FPS * 2) === 0 });
         vf.close();
         if (erreur) throw erreur;
-        // Laisser respirer l'encodeur et l'interface.
-        if (enc.encodeQueueSize > 10) await new Promise((r) => setTimeout(r, 0));
+        // Laisser respirer l'encodeur, l'interface et le navigateur : sans
+        // rendre la main régulièrement, les images de la couche 3D (WebGL) ne
+        // sont jamais libérées et la mémoire grimpe jusqu'à faire tomber l'onglet.
+        if (enc.encodeQueueSize > 10 || k % 6 === 5) await new Promise((r) => setTimeout(r, 0));
         if (k % 10 === 0) progres(Math.round((k / nbImages) * 100));
       }
       await enc.flush();
       if (erreur) throw erreur;
+      let modeSon = audio || !bandeSon ? '' : ' · sans son (encodeur audio indisponible)';
+      if (audio && bandeSon) {
+        const b = await bandeSon();
+        await encoderAudio(b, audio.webcodecs, (chunk, meta) => muxer.addAudioChunk(chunk, meta));
+        modeSon = ` + son ${audio.muxer === 'aac' ? 'AAC' : 'Opus'}`;
+      }
       muxer.finalize();
       progres(100);
-      return { fichier: new File([muxer.target.buffer], `video-${Date.now()}.mp4`, { type: 'video/mp4' }), mode: `MP4 H.264 (${codec})` };
+      return { fichier: new File([muxer.target.buffer], `video-${Date.now()}.mp4`, { type: 'video/mp4' }), mode: `MP4 H.264 (${codec})${modeSon}` };
     }
   }
 
-  // Secours : enregistrement en temps réel.
-  const type = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+  // Secours : enregistrement en temps réel. Le son doit alors être prêt avant :
+  // une passe de dessin rapide collecte les repères, puis la bande-son est
+  // jouée dans le flux pendant l'enregistrement.
+  const type = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
   if (!type) throw new Error('Ce navigateur ne sait pas fabriquer de vidéo. Utilise Chrome, Edge ou Safari récent.');
   const flux = c.captureStream(0);
   const piste = flux.getVideoTracks()[0] as MediaStreamTrack & { requestFrame?: () => void };
+  let lecteur: AudioBufferSourceNode | null = null;
+  let actx: AudioContext | null = null;
+  if (bandeSon) {
+    for (let k = 0; k < nbImages; k += 1) {
+      dessiner(k);
+      if (k % 30 === 0) await new Promise((r) => setTimeout(r, 0));
+    }
+    const b = await bandeSon();
+    actx = new AudioContext({ sampleRate: FREQ });
+    const dest = actx.createMediaStreamDestination();
+    lecteur = actx.createBufferSource();
+    lecteur.buffer = b;
+    lecteur.connect(dest);
+    for (const pa of dest.stream.getAudioTracks()) flux.addTrack(pa);
+  }
   const rec = new MediaRecorder(flux, { mimeType: type, videoBitsPerSecond: debit });
   const morceaux: Blob[] = [];
   rec.ondataavailable = (e) => e.data.size && morceaux.push(e.data);
   const fini = new Promise<void>((r) => (rec.onstop = () => r()));
   rec.start();
+  lecteur?.start();
   const debut = performance.now();
   for (let k = 0; k < nbImages; k++) {
     dessiner(k);
@@ -972,6 +1193,7 @@ async function encoder(
   }
   rec.stop();
   await fini;
+  await actx?.close();
   progres(100);
   const mime = type.split(';')[0];
   return {

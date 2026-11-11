@@ -115,3 +115,23 @@ progression. Le style de chaque marque est dans `themeStudio()` (`production.ts`
 `src/lib/axe-visuel.ts` porte les sept décisions reprises de la référence de
 lancement et les quatre refus — écrits pour que personne ne les « corrige ».
 `src/lib/videos.ts` porte les scripts vidéo, plan par plan.
+
+**Motion design v3** (11/11) — voir `OUTILS-VIDEO.md` pour le panorama des outils :
+
+- `src/lib/scene3d.ts` : la couche 3D reprise **des sites en ligne** (three.js
+  0.160, bloom 0,45/0,35/0,35) — sphère de particules de veolt.fr qui se
+  métamorphose, cerveau + cadran de magistrai.fr. Activée par `noyau` sur un
+  plan. Graine fixe, aucun `Math.random` : même vidéo, même image.
+- `src/lib/verre.ts` : cartes en verre, halos et grille des sites, grain, vignettage.
+- `src/lib/son.ts` : musique de marque synthétisée + bruitages calés sur les
+  repères que **le dessin déclare lui-même** (`env.repere(...)`). Toute nouvelle
+  scène doit déclarer ses instants sonores, sinon elle sera muette.
+- **La boucle d'encodage doit rendre la main au navigateur** (toutes les 6
+  images) : sans ça, les images WebGL ne sont jamais libérées et l'onglet
+  tombe faute de mémoire. Ne pas « optimiser » ce `setTimeout`.
+- L'écran produit MagistrIA est en **verre nuit, encre #E9EEF5, accents cyan** ;
+  le bordeaux n'y sert qu'au bouton d'action (« Valider »).
+- `src/lib/export-ae.ts` (projet After Effects .jsx), `outils/blender/`
+  (noyau de particules en vrai rendu), `src/lib/fournisseurs-media.ts`
+  (ElevenLabs, Runway, Ollama — clés serveur uniquement, bouton pressé par
+  Jonathan, jamais automatique).

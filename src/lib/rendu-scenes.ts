@@ -13,6 +13,8 @@
  */
 
 import type { ElementApp, FondPlan, Scene } from './montage';
+import type { TypeRepere } from './son';
+import { verre, pastilleVerre, halosSite, grilleSite } from './verre';
 
 export interface Fonte {
   famille: string;
@@ -30,6 +32,18 @@ export interface CarteApp {
   alerteEncre: string;
   neutre: string;
   ok: string;
+  /** Texte posé sur une pastille d'accent (numéros de renvoi, bouton). */
+  surAccent: string;
+  /** Champs et pastilles d'état, sur la fenêtre. */
+  champ: string;
+  /** Fenêtre en verre (flou d'arrière-plan) plutôt qu'opaque. */
+  verre?: boolean;
+  /** Teinte du verre de la fenêtre. */
+  teinte?: string;
+  /** Le bouton d'action dans l'écran (MagistrIA : bordeaux, seul usage de cette couleur). */
+  bouton?: string[];
+  /** L'encre des libellés posés sur le papier (documents). */
+  papier?: string;
 }
 
 export interface Env {
@@ -54,6 +68,13 @@ export interface Env {
   adresse: string;
   f: { titre: Fonte; corps: Fonte; corpsL: Fonte; mono: Fonte; italique: Fonte; manuscrite: Fonte; etiquette: Fonte };
   lignes: (cx: CanvasRenderingContext2D, texte: string, max: number) => string[];
+  marque: 'veolt' | 'magistria';
+  /** Temps absolu de l'image en cours (reflets du verre). */
+  t: number;
+  /** Déclare un instant sonore, en secondes depuis le début du plan (voir son.ts). */
+  repere: (type: TypeRepere, tl: number, fin?: number) => void;
+  /** Teinte des cartes en verre hors écran produit. */
+  teinteVerre: string;
 }
 
 type Ctx = CanvasRenderingContext2D & { letterSpacing: string };
@@ -112,6 +133,9 @@ export function dessinerFond(cx: C2D, e: Env, type: Exclude<FondPlan, 'carte'>, 
   rv.addColorStop(1, 'rgba(0,0,0,0)');
   cx.fillStyle = rv;
   cx.fillRect(0, 0, L, H);
+  // Les halos des sites en ligne, et la grille fine bleutée de magistrai.fr.
+  halosSite(cx, L, H, t, e.marque);
+  if (e.marque === 'magistria') grilleSite(cx, L, H, t, Math.round(L / 19));
 
   if (type === 'etoiles' || type === 'horizon') {
     const n = type === 'etoiles' ? 170 : 90;
@@ -203,16 +227,33 @@ export function dessinerChapitre(cx: C2D, e: Env, texte: string, tl: number, y: 
   const txt = texte.toUpperCase();
   const w = cx.measureText(txt).width;
   const a = apparition(tl, 0, 0.35);
-  const x = centre ? (e.L - w) / 2 : e.marge;
+  e.repere('pop', 0.02);
+  // Le repère de chapitre posé sur une pastille de verre, avec son point lumineux.
+  const pad = t * 1.1;
+  const pw = w + pad * 2 + t * 1.1;
+  const ph = t * 2.3;
+  const x = centre ? (e.L - pw) / 2 : e.marge;
+  const py = y - ph * 0.68;
   cx.globalAlpha = a;
+  cx.save();
+  cx.translate(0, (1 - a) * 12);
+  verre(cx, x, py, pw, ph, ph / 2, { teinte: e.teinteVerre, t: e.t, flou: 16, ombre: false, intensite: 0.8 });
+  const pouls = 0.6 + 0.4 * Math.abs(Math.sin(tl * 2.4));
+  cx.beginPath();
+  cx.arc(x + pad * 0.85, py + ph / 2, t * 0.22, 0, Math.PI * 2);
   cx.fillStyle = e.accent;
-  cx.fillText(txt, x, y);
+  cx.globalAlpha = a * pouls;
+  cx.shadowColor = e.accent;
+  cx.shadowBlur = 12;
+  cx.fill();
+  cx.shadowBlur = 0;
+  cx.globalAlpha = a;
+  cx.font = fonte(e.f.etiquette, t);
+  espacer(cx, Math.round(t * (e.f.etiquette === e.f.mono ? 0.24 : 0.06)));
+  cx.fillStyle = e.accent;
+  cx.fillText(txt, x + pad + t * 0.9, py + ph / 2 + t * 0.36);
   espacer(cx, 0);
-  if (!centre) {
-    cx.fillStyle = e.accent;
-    cx.globalAlpha = a * 0.7;
-    cx.fillRect(x + w + 18, y - t * 0.32, 70 * apparition(tl, 0.15, 0.5), 2);
-  }
+  cx.restore();
   cx.globalAlpha = 1;
 }
 
@@ -257,6 +298,21 @@ export function dessinerAnnotation(cx: C2D, e: Env, texte: string, tl: number, d
 // Marque
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Un voile sombre et doux derrière un texte posé sur la 3D : la lisibilité d'abord. */
+function voile(cx: C2D, e: Env, y: number, rx: number, ry: number, a: number) {
+  cx.save();
+  cx.translate(e.L / 2, y);
+  cx.scale(1, ry / rx);
+  const g = cx.createRadialGradient(0, 0, 0, 0, 0, rx);
+  g.addColorStop(0, e.fond);
+  g.addColorStop(0.55, `${e.fond}CC`);
+  g.addColorStop(1, `${e.fond}00`);
+  cx.globalAlpha = a * 0.85;
+  cx.fillStyle = g;
+  cx.fillRect(-rx, -rx, rx * 2, rx * 2);
+  cx.restore();
+}
+
 /** Le logotype « Magistr » + « IA » (ou « VEOLT »), centré, avec un reflet qui passe. */
 function logotype(cx: C2D, e: Env, y: number, taille: number, a: number, reflet: number) {
   const [debut, fin, couleurFin] = e.motMarque;
@@ -289,6 +345,34 @@ function logotype(cx: C2D, e: Env, y: number, taille: number, a: number, reflet:
 export function sceneMarque(cx: C2D, e: Env, sc: Extract<Scene, { type: 'marque' }>, tl: number) {
   const taille = e.L * (e.majuscules ? 0.2 : 0.13);
   const a = apparition(tl, 0.1, 0.7);
+  e.repere('montee', -1.1, 0.12);
+  e.repere('impact', 0.12);
+  e.repere('scintille', 0.6, 1.5);
+  voile(cx, e, e.H * 0.47 + taille * 0.1, e.L * 0.62, taille * 2.4, a);
+  // L'éclat anamorphique : une longue traînée horizontale qui traverse le logo.
+  const ec = borne((tl - 0.08) / 1.1);
+  if (ec > 0 && ec < 1) {
+    const yE = e.H * 0.47 - taille * 0.35;
+    const force = Math.sin(Math.PI * ec);
+    cx.save();
+    cx.globalCompositeOperation = 'lighter';
+    const g = cx.createLinearGradient(0, 0, e.L, 0);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(0.5, e.degrade ? e.degrade[0] : e.accent);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.globalAlpha = 0.55 * force;
+    cx.fillStyle = g;
+    cx.fillRect(0, yE - 3, e.L, 6);
+    cx.globalAlpha = 0.35 * force;
+    cx.fillRect(0, yE - 22, e.L, 44);
+    const r = cx.createRadialGradient(e.L / 2, yE, 0, e.L / 2, yE, e.L * 0.35);
+    r.addColorStop(0, 'rgba(255,255,255,0.5)');
+    r.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.globalAlpha = 0.5 * force;
+    cx.fillStyle = r;
+    cx.fillRect(0, yE - e.L * 0.35, e.L, e.L * 0.7);
+    cx.restore();
+  }
   const echelle = 0.94 + 0.06 * a;
   cx.save();
   cx.translate(e.L / 2, e.H * 0.47);
@@ -324,7 +408,9 @@ export function sceneDocuments(cx: C2D, e: Env, sc: Extract<Scene, { type: 'docu
   const cym = y0 + (y1 - y0) * 0.5;
   const pas = Math.min(1.1, (d * 0.62) / Math.max(1, n));
   const depart = sc.dispersion ? d * 0.78 : Infinity;
+  if (sc.dispersion) e.repere('whoosh', depart);
   sc.items.forEach((libelle, k) => {
+    e.repere('papier', 0.2 + k * pas + 0.35);
     const a = apparition(tl, 0.2 + k * pas, 0.6);
     if (a <= 0) return;
     const angle = (hasard(k * 4.1) - 0.5) * 0.16;
@@ -348,7 +434,7 @@ export function sceneDocuments(cx: C2D, e: Env, sc: Extract<Scene, { type: 'docu
     cx.fillStyle = '#C9C4BC';
     for (let q = 0; q < 9; q++) cx.fillRect(-w / 2 + w * 0.1, -h / 2 + h * (0.18 + q * 0.065), w * (q % 3 === 2 ? 0.55 : 0.78), h * 0.018);
     cx.font = fonte(e.f.italique, w * 0.06);
-    cx.fillStyle = e.app.accent;
+    cx.fillStyle = e.app.papier ?? e.app.accent;
     const lw = cx.measureText(libelle).width;
     cx.fillText(libelle, w / 2 - w * 0.08 - lw, h / 2 - h * 0.06);
     cx.restore();
@@ -362,20 +448,26 @@ export function sceneDocuments(cx: C2D, e: Env, sc: Extract<Scene, { type: 'docu
 
 export function sceneRecap(cx: C2D, e: Env, sc: Extract<Scene, { type: 'recap' }>, tl: number, d: number, y0: number, y1: number) {
   // La taille qui fait tenir la plus longue ligne, coche comprise — jamais de texte coupé.
-  let t = e.L * (e.vertical ? 0.058 : 0.046);
+  let t = e.L * (e.vertical ? 0.052 : 0.042);
   cx.font = fonte(e.f.corps, t);
   const plusLongue = Math.max(...sc.items.map((it) => cx.measureText(it).width));
-  const place = e.largeurTexte - t * 1.4;
+  const place = e.largeurTexte - t * 2.6;
   if (plusLongue > place) t *= place / plusLongue;
   const pas = Math.min(0.8, (d - 1.5) / Math.max(1, sc.items.length));
-  const hauteur = sc.items.length * t * 1.9;
+  const hauteur = sc.items.length * t * 2.05;
   let y = y0 + Math.max(0, (y1 - y0 - hauteur) * 0.4) + t;
   sc.items.forEach((it, k) => {
     const a = apparition(tl, 0.3 + k * pas, 0.4);
+    e.repere('coche', 0.5 + k * pas);
     const r = t * 0.42;
-    const cxr = e.marge + r;
+    const cxr = e.marge + t * 0.6 + r;
     const cyr = y - t * 0.33;
     cx.globalAlpha = a;
+    // Chaque ligne sur sa pastille de verre, qui glisse en place.
+    cx.save();
+    cx.translate((1 - a) * 40, 0);
+    verre(cx, e.marge, y - t * 1.18, e.largeurTexte, t * 1.7, t * 0.85, { teinte: e.teinteVerre, t: e.t + k * 0.6, flou: 18, ombre: k === 0, intensite: 0.9 });
+    cx.restore();
     cx.beginPath();
     cx.arc(cxr, cyr, r, 0, Math.PI * 2);
     cx.strokeStyle = e.accent;
@@ -402,9 +494,9 @@ export function sceneRecap(cx: C2D, e: Env, sc: Extract<Scene, { type: 'recap' }
     }
     cx.font = fonte(e.f.corps, t);
     cx.fillStyle = e.encre;
-    cx.fillText(it, e.marge + r * 2 + t * 0.5 + (1 - a) * 20, y);
+    cx.fillText(it, e.marge + t * 0.6 + r * 2 + t * 0.55 + (1 - a) * 40, y);
     cx.globalAlpha = 1;
-    y += t * 1.9;
+    y += t * 2.05;
   });
 }
 
@@ -509,6 +601,7 @@ function appInterne(
         hauteur: el.items.length * rh + ch + fs * 0.6,
         dessiner: (y, tl2) => {
           el.items.forEach((f, q) => {
+            e.repere('pop', t0 + q * 0.42 * echelle + 0.1);
             const a = apparition(tl2, t0 + q * 0.42 * echelle, 0.35);
             if (a <= 0) return;
             cx.globalAlpha = a;
@@ -577,6 +670,8 @@ function appInterne(
       return {
         hauteur: ls.length * fs * 1.1 + fs * 1.6,
         dessiner: (y, tl2) => {
+          e.repere('frappe', tTape, fTape);
+          e.repere('whoosh', fTape + 0.12 * echelle);
           // Phase 1 : la question se tape dans le champ de saisie (dessinée plus bas).
           const a = apparition(tl2, fTape + 0.15 * echelle, 0.4);
           if (a <= 0) return;
@@ -621,6 +716,7 @@ function appInterne(
           rangs.forEach((rg, ri) => {
             let px = zx;
             rg.forEach((q) => {
+              e.repere('pop', t0 + q * 0.3 * echelle + 0.05);
               const a = apparition(tl2, t0 + q * 0.3 * echelle, 0.3);
               if (a > 0) {
                 cx.globalAlpha = a;
@@ -631,7 +727,7 @@ function appInterne(
                 cx.fillStyle = A.accent;
                 cx.fill();
                 cx.font = fonte(e.f.corps, fs * 0.46);
-                cx.fillStyle = A.fond;
+                cx.fillStyle = A.surAccent;
                 const nt = String(q + 1);
                 cx.fillText(nt, px + fs * 0.62 - cx.measureText(nt).width / 2, yy + fs * 0.74);
                 cx.font = fonte(e.f.mono, fs * 0.58);
@@ -684,6 +780,7 @@ function appInterne(
       return {
         hauteur: titreH + my + lh + fs * 0.6,
         dessiner: (y, tl2) => {
+          e.repere('scintille', t0, t0 + du);
           const p = prog(tl2);
           if (p <= 0) return;
           if (el.titre) {
@@ -704,7 +801,7 @@ function appInterne(
               cx.fillStyle = A.accent;
               cx.fill();
               cx.font = fonte(e.f.corps, tf * 0.48);
-              cx.fillStyle = A.fond;
+              cx.fillStyle = A.surAccent;
               const nt = String(mo.renvoi);
               cx.fillText(nt, zx + mo.x + mo.w / 2 - cx.measureText(nt).width / 2, yy - tf * 0.45);
               continue;
@@ -726,10 +823,15 @@ function appInterne(
       return {
         hauteur: hB + fs * 0.6,
         dessiner: (y, tl2) => {
+          e.repere(alerte ? 'notif' : 'pop', t0 + 0.05);
           const a = apparition(tl2, t0, 0.4);
           if (a <= 0) return;
           cx.globalAlpha = a;
           boite(cx, zx, y, zw, hB, fs * 0.45, alerte ? A.alerte : A.neutre);
+          if (alerte) {
+            cx.fillStyle = A.alerteEncre;
+            cx.fillRect(zx, y + fs * 0.3, 3, hB - fs * 0.6);
+          }
           cx.font = fonte(e.f.mono, fs * 0.52);
           espacer(cx, 2);
           cx.fillStyle = alerte ? A.alerteEncre : A.douce;
@@ -762,6 +864,7 @@ function appInterne(
       return {
         hauteur: fs * 2.2 + ls.length * tf * 1.45 + fs * 1.4,
         dessiner: (y, tl2) => {
+          e.repere('frappe', t0 + 0.05, t0 + du);
           const a = apparition(tl2, t0, 0.35);
           if (a <= 0) return;
           cx.globalAlpha = a;
@@ -803,6 +906,7 @@ function appInterne(
         hauteur: el.items.length * rh + fs * 0.4,
         dessiner: (y, tl2) => {
           el.items.forEach((n, q) => {
+            e.repere('notif', t0 + q * 0.55 * echelle + 0.05);
             const a = apparition(tl2, t0 + q * 0.55 * echelle, 0.4);
             if (a <= 0) return;
             const dx = (1 - a) * zw * 0.4;
@@ -831,17 +935,19 @@ function appInterne(
       return {
         hauteur: bh + fs * 2.6,
         dessiner: (y, tl2) => {
+          const tClic = t0 + 1.0 * echelle;
+          e.repere('clic', tClic);
+          if (el.toast) e.repere('succes', tClic + 0.35);
           const a = apparition(tl2, t0, 0.35);
           if (a <= 0) return;
           cx.globalAlpha = a;
           boite(cx, zx, y, zw, bh, bh / 2, A.neutre, A.filet, 1);
-          const tClic = t0 + 1.0 * echelle;
           const fait = tl2 >= tClic;
           // statut : avant → après
           cx.font = fonte(e.f.mono, fs * 0.55);
           const st = fait ? `✓ ${el.apres}` : el.avant;
           const sw2 = cx.measureText(st).width + fs * 0.9;
-          boite(cx, zx + fs * 0.5, y + bh * 0.24, sw2, bh * 0.52, bh * 0.26, fait ? A.puce : A.fond, fait ? undefined : A.filet, 1);
+          boite(cx, zx + fs * 0.5, y + bh * 0.24, sw2, bh * 0.52, bh * 0.26, fait ? A.puce : A.champ, fait ? undefined : A.filet, 1);
           cx.fillStyle = fait ? A.ok : A.douce;
           cx.fillText(st, zx + fs * 0.95, y + bh * 0.6);
           cx.font = fonte(e.f.corps, fs * 0.62);
@@ -855,8 +961,8 @@ function appInterne(
           cx.save();
           cx.translate(bx + bw / 2, y + bh / 2);
           cx.scale(presse, presse);
-          boite(cx, -bw / 2, -bh * 0.3, bw, bh * 0.6, bh * 0.3, A.accent);
-          cx.fillStyle = A.fond;
+          boite(cx, -bw / 2, -bh * 0.3, bw, bh * 0.6, bh * 0.3, A.bouton ? degrade(cx, -bw / 2, bw, A.bouton) : A.accent);
+          cx.fillStyle = A.bouton ? '#FFFFFF' : A.surAccent;
           cx.fillText(el.bouton, -bw / 2 + fs * 0.7, fs * 0.22);
           cx.restore();
           // onde du clic
@@ -882,7 +988,7 @@ function appInterne(
               cx.globalAlpha = a * at;
               cx.font = fonte(e.f.corps, fs * 0.58);
               const tw = cx.measureText(`✓ ${el.toast}`).width + fs * 1.4;
-              boite(cx, zx, y + bh + fs * 0.7 + (1 - at) * 10, tw, fs * 1.3, fs * 0.65, A.fond, A.filet, 1);
+              boite(cx, zx, y + bh + fs * 0.7 + (1 - at) * 10, tw, fs * 1.3, fs * 0.65, A.champ, A.filet, 1);
               cx.fillStyle = A.ok;
               cx.fillText(`✓ ${el.toast}`, zx + fs * 0.7, y + bh + fs * 1.55 + (1 - at) * 10);
             }
@@ -910,6 +1016,8 @@ function appInterne(
         cx.font = fonte(e.f.corpsL, fs * 0.62);
         cx.fillText(pg.question, zx + fs * 0.7, y + fs * 2.2);
         const du2 = pg.reponse.length * 0.03 * echelle;
+        e.repere('frappe', t0 + 0.35 * echelle, t0 + 0.35 * echelle + du2);
+        e.repere('erreur', t0 + 0.35 * echelle + du2 + 0.5);
         const p = borne((tl2 - t0 - 0.35 * echelle) / Math.max(0.1, du2));
         let reste = p * pg.reponse.length;
         let yy = y + fs * 3.6;
@@ -953,16 +1061,26 @@ function appInterne(
   if (mesurer) return chrome + ongletsH + pad * 1.6 + cumul + saisieH;
 
   // ── Fenêtre ──
-  const aF = apparition(tl, 0, 0.45);
+  const aF = apparition(tl, 0, 0.55);
   cx.save();
   cx.globalAlpha = aF;
-  cx.translate(0, (1 - aF) * 30);
-  cx.shadowColor = 'rgba(0,0,0,0.5)';
-  cx.shadowBlur = 50;
-  cx.shadowOffsetY = 20;
-  boite(cx, x, y0, w, h, fs * 0.8, A.fond);
-  cx.shadowColor = 'transparent';
-  boite(cx, x, y0, w, h, fs * 0.8, undefined, A.filet, 1.5);
+  // Entrée : la fenêtre monte, grandit à peine et se redresse ; puis elle flotte.
+  const flotte = Math.sin(tl * 1.1) * 4;
+  const zoom = 0.94 + 0.06 * aF;
+  cx.translate(x + w / 2, y0 + h / 2 + (1 - aF) * 60 + flotte);
+  cx.rotate((1 - aF) * -0.035);
+  cx.scale(zoom, zoom);
+  cx.translate(-(x + w / 2), -(y0 + h / 2));
+  if (A.verre) {
+    verre(cx, x, y0, w, h, fs * 0.8, { teinte: A.teinte ?? A.fond, t: e.t, flou: 30, lentille: 1.06 });
+  } else {
+    cx.shadowColor = 'rgba(0,0,0,0.5)';
+    cx.shadowBlur = 50;
+    cx.shadowOffsetY = 20;
+    boite(cx, x, y0, w, h, fs * 0.8, A.fond);
+    cx.shadowColor = 'transparent';
+    boite(cx, x, y0, w, h, fs * 0.8, undefined, A.filet, 1.5);
+  }
   for (let k = 0; k < 3; k++) {
     cx.beginPath();
     cx.arc(x + fs * 1.1 + k * fs * 0.85, y0 + chrome / 2, fs * 0.24, 0, Math.PI * 2);
@@ -1006,7 +1124,7 @@ function appInterne(
   if (saisieH) {
     const sy = y0 + h - saisieH + fs * 0.45;
     const sh = saisieH - fs * 0.9;
-    boite(cx, zx, sy, zw, sh, sh / 2, A.fond, A.filet, 1.3);
+    boite(cx, zx, sy, zw, sh, sh / 2, A.champ, A.filet, 1.3);
     const q = sc.elements.findIndex((el2) => el2.type === 'question');
     const qEl = q >= 0 ? (sc.elements[q] as Extract<ElementApp, { type: 'question' }>) : null;
     let texte = '';
@@ -1030,10 +1148,32 @@ function appInterne(
     }
     boite(cx, zx + zw - sh * 0.92 - fs * 0.15, sy + sh * 0.08, sh * 0.84, sh * 0.84, sh * 0.25, A.accent);
     cx.font = fonte(e.f.corps, fs * 0.7);
-    cx.fillStyle = A.fond;
+    cx.fillStyle = A.surAccent;
     cx.fillText('→', zx + zw - sh * 0.92 - fs * 0.15 + sh * 0.42 - fs * 0.28, sy + sh * 0.66);
   }
   cx.restore();
+
+  // ── Pastilles de verre qui flottent au bord de la fenêtre ──
+  (sc.bulles ?? []).forEach((b2, k) => {
+    const tb = b2.a ?? 0.9 + k * 0.7;
+    e.repere('pop', tb);
+    const ab = apparition(tl, tb, 0.45);
+    if (ab <= 0) return;
+    const tb2 = fs * 0.62;
+    cx.font = fonte(e.f.corps, tb2);
+    const largeurB = cx.measureText(`${b2.icone ? b2.icone + '  ' : ''}${b2.texte}`).width + tb2 * 2.1 + tb2 * 0.9;
+    const droite = (b2.cote ?? (k % 2 ? 'gauche' : 'droite')) === 'droite';
+    const bxb = droite ? x + w - largeurB * 0.78 : x - largeurB * 0.18;
+    const byb = y0 + h * (b2.hauteur ?? 0.18 + 0.27 * k) + Math.sin(tl * 1.4 + k) * 6;
+    cx.save();
+    cx.globalAlpha = ab;
+    cx.translate(bxb + largeurB / 2, byb);
+    const rebond = 0.7 + 0.3 * ab + 0.08 * Math.sin(Math.PI * ab);
+    cx.scale(rebond, rebond);
+    cx.translate(-(bxb + largeurB / 2), -byb);
+    pastilleVerre(cx, bxb, byb, b2.texte, fonte(e.f.corps, tb2), tb2, { teinte: e.teinteVerre, t: e.t, encre: e.encre, pastille: e.accent, icone: b2.icone, intensite: 1.1 });
+    cx.restore();
+  });
 
   // ── Sous la fenêtre : le parcours, et la mention d'exemple ──
   if (sc.flux || sc.mention) {
@@ -1083,8 +1223,11 @@ export function sceneApp(cx: C2D, e: Env, sc: Extract<Scene, { type: 'app' }>, t
 /** L'écran de fin complet : marque, slogan, public, bouton, adresse, petite ligne. */
 export function sceneFinV2(cx: C2D, e: Env, sc: Extract<Scene, { type: 'fin' }>, titre: string, tl: number) {
   const L = e.L;
+  e.repere('impact', 0.05);
+  e.repere('pop', 0.9);
   let y = e.H * (e.vertical ? 0.36 : 0.3);
   const tl1 = L * (e.majuscules ? 0.15 : 0.1);
+  voile(cx, e, y + e.H * 0.13, L * 0.7, e.H * 0.3, apparition(tl, 0, 0.5));
   logotype(cx, e, y, tl1, apparition(tl, 0, 0.5), borne((tl - 0.4) / 0.9));
   y += tl1 * 0.75;
   const lignesSlogan = sc.slogan ?? (titre ? [titre] : []);
@@ -1104,7 +1247,7 @@ export function sceneFinV2(cx: C2D, e: Env, sc: Extract<Scene, { type: 'fin' }>,
   });
   cx.globalAlpha = 1;
   if (sc.public) {
-    y += ts * 1.0;
+    y += ts * 1.45;
     const tp = L * 0.021;
     cx.font = fonte(e.f.etiquette, e.f.etiquette === e.f.mono ? tp : tp * 1.5);
     espacer(cx, Math.round(tp * 0.25));
@@ -1129,7 +1272,16 @@ export function sceneFinV2(cx: C2D, e: Env, sc: Extract<Scene, { type: 'fin' }>,
   cx.globalAlpha = a;
   cx.translate(L / 2, by + bh / 2);
   cx.scale(pulse, pulse);
+  cx.shadowColor = e.bouton.fond[e.bouton.fond.length - 1];
+  cx.shadowBlur = 40 + 14 * Math.sin(tl * 4.2);
   boite(cx, -bw / 2, -bh / 2, bw, bh, bh / 2, degrade(cx, -bw / 2, bw, e.bouton.fond));
+  cx.shadowBlur = 0;
+  // Reflet de verre sur le bouton.
+  const rb = cx.createLinearGradient(0, -bh / 2, 0, bh / 2);
+  rb.addColorStop(0, 'rgba(255,255,255,0.28)');
+  rb.addColorStop(0.5, 'rgba(255,255,255,0.04)');
+  rb.addColorStop(1, 'rgba(255,255,255,0)');
+  boite(cx, -bw / 2, -bh / 2, bw, bh, bh / 2, rb, 'rgba(255,255,255,0.35)', 1.2);
   cx.fillStyle = e.bouton.encre;
   cx.fillText(`${sc.action}  →`, -tw / 2, fb * 0.36);
   cx.restore();
@@ -1204,6 +1356,7 @@ export function sceneSite(cx: C2D, e: Env, sc: Extract<Scene, { type: 'site' }>,
   const paliers = [0, 0.38, 0.72, 1];
   const pas = (d - 1.2) / (paliers.length - 1);
   let pos = 0;
+  for (let k = 1; k < paliers.length; k++) e.repere('defile', 0.6 + (k - 1) * pas + pas * 0.25);
   for (let k = 1; k < paliers.length; k++) {
     const p = sortie((tl - 0.6 - (k - 1) * pas - pas * 0.25) / (pas * 0.55));
     pos = paliers[k - 1] + (paliers[k] - paliers[k - 1]) * p;
@@ -1315,16 +1468,21 @@ export function sceneSite(cx: C2D, e: Env, sc: Extract<Scene, { type: 'site' }>,
     const n = sc.reperes.length;
     const k = Math.min(n - 1, Math.floor(borne((tl - 0.6) / Math.max(0.1, d - 1.2)) * n));
     const debutK = 0.6 + (k * (d - 1.2)) / n;
+    sc.reperes.forEach((_, q) => e.repere('pop', 0.6 + (q * (d - 1.2)) / n + 0.05));
     const ak = apparition(tl, debutK, 0.35);
     const txt = sc.reperes[k];
-    const tr = e.L * (e.vertical ? 0.036 : 0.03);
+    const tr = e.L * (e.vertical ? 0.034 : 0.028);
     cx.font = fonte(e.f.corps, tr);
-    const w = cx.measureText(txt).width + tr * 2.2;
-    const ry = py + ph + reperesH * 0.18;
+    const w = cx.measureText(txt).width + tr * 2.1 + tr * 0.9;
+    const ry = py + ph + reperesH * 0.12;
     cx.globalAlpha = ak;
-    boite(cx, (e.L - w) / 2, ry + (1 - ak) * 10, w, tr * 2, tr, e.degrade ? degrade(cx, (e.L - w) / 2, w, e.degrade) : e.accent);
-    cx.fillStyle = '#FFFFFF';
-    cx.fillText(txt, (e.L - w) / 2 + tr * 1.1, ry + tr * 1.32 + (1 - ak) * 10);
+    pastilleVerre(cx, (e.L - w) / 2, ry + (1 - ak) * 10, txt, fonte(e.f.corps, tr), tr, {
+      teinte: e.teinteVerre,
+      t: e.t,
+      encre: e.encre,
+      pastille: e.accent,
+      bordure: e.degrade ?? [e.accent],
+    });
     cx.globalAlpha = 1;
   }
   // La mention, juste sous les repères — jamais par-dessus.
@@ -1399,6 +1557,11 @@ export function dessinerSousTitre(cx: C2D, e: Env, texte: string, tl: number, d:
   });
   const a = apparition(tl, 0, 0.25);
   const yBase = e.H - (e.vertical ? 300 : 175) - (lignes.length - 1) * t * 1.45;
+  const plusLarge = Math.max(...lignes.map((lg) => lg.reduce((s2, k) => s2 + cx.measureText(mots[k]).width, 0) + espace * (lg.length - 1)));
+  cx.globalAlpha = a;
+  verre(cx, (e.L - plusLarge) / 2 - t * 0.8, yBase - t * 1.35, plusLarge + t * 1.6, lignes.length * t * 1.45 + t * 0.75, t * 0.6, { teinte: 'rgba(0,0,0,0.28)', t: e.t, flou: 20, ombre: false, intensite: 0.7 });
+  cx.font = fonte(e.f.corps, t);
+  cx.globalAlpha = 1;
   lignes.forEach((lg, li) => {
     const largeur = lg.reduce((s2, k) => s2 + cx.measureText(mots[k]).width, 0) + espace * (lg.length - 1);
     let x = (e.L - largeur) / 2;
@@ -1448,4 +1611,97 @@ export function dessinerFleche(cx: C2D, e: Env, x0: number, y0: number, x1: numb
     cx.lineTo(x1 - h * Math.cos(ang + 0.5), y1 - h * Math.sin(ang + 0.5));
     cx.stroke();
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bento : tuiles de verre qui s'assemblent
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Une grille « bento » (la mise en page des pages produit actuelles) : la
+ * première tuile sur toute la largeur, les suivantes deux par deux. Chaque
+ * tuile arrive avec un léger rebond, porte une icône lumineuse, un titre, un
+ * texte court — ou une grande valeur (un prix affiché, jamais un résultat inventé).
+ */
+export function sceneBento(cx: C2D, e: Env, sc: Extract<Scene, { type: 'bento' }>, tl: number, d: number, y0: number, y1: number) {
+  const n = sc.tuiles.length;
+  const gap = e.L * 0.022;
+  const w2 = (e.largeurTexte - gap) / 2;
+  const rangs = 1 + Math.ceil((n - 1) / 2);
+  const dispo = y1 - y0;
+  const hGrand = Math.min(dispo * 0.34, e.L * 0.36);
+  const hPetit = Math.min((dispo - hGrand - gap * (rangs - 1)) / Math.max(1, rangs - 1), e.L * 0.42);
+  const total = hGrand + (rangs - 1) * (hPetit + gap);
+  const yb = y0 + Math.max(0, (dispo - total) * 0.35);
+  const pas = Math.min(0.55, (d - 1.6) / Math.max(1, n));
+  sc.tuiles.forEach((tu, k) => {
+    const debut = 0.25 + k * pas;
+    e.repere('pop', debut + 0.05);
+    const a = apparition(tl, debut, 0.5);
+    if (a <= 0) return;
+    const grande = k === 0;
+    const col = grande ? 0 : (k - 1) % 2;
+    const rang = grande ? 0 : 1 + Math.floor((k - 1) / 2);
+    const w = grande ? e.largeurTexte : w2;
+    const h = grande ? hGrand : hPetit;
+    const x = e.marge + col * (w2 + gap);
+    const y = yb + (rang === 0 ? 0 : hGrand + gap + (rang - 1) * (hPetit + gap));
+    const rebond = 0.86 + 0.14 * a + 0.05 * Math.sin(Math.PI * a);
+    cx.save();
+    cx.globalAlpha = a;
+    cx.translate(x + w / 2, y + h / 2 + (1 - a) * 30 + Math.sin(tl * 1.2 + k) * 3);
+    cx.scale(rebond, rebond);
+    cx.translate(-(x + w / 2), -(y + h / 2));
+    verre(cx, x, y, w, h, e.L * 0.035, { teinte: e.teinteVerre, t: e.t + k * 0.9, flou: 28, bordure: grande ? e.degrade ?? [e.accent, e.accent2] : undefined, intensite: grande ? 1.15 : 1 });
+    const pad = e.L * 0.04;
+    // L'icône dans son disque lumineux.
+    const ri = e.L * (grande ? 0.04 : 0.034);
+    const icx = x + pad + ri;
+    const icy = y + pad + ri;
+    const halo = cx.createRadialGradient(icx, icy, 0, icx, icy, ri * 2.2);
+    halo.addColorStop(0, e.degrade ? `${e.degrade[0]}88` : `${e.accent}66`);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = halo;
+    cx.fillRect(icx - ri * 2.2, icy - ri * 2.2, ri * 4.4, ri * 4.4);
+    boite(cx, icx - ri, icy - ri, ri * 2, ri * 2, ri * 0.6, 'rgba(255,255,255,0.08)', 'rgba(255,255,255,0.22)', 1.2);
+    cx.font = fonte(e.f.corps, ri * 1.05);
+    const ic = tu.icone ?? '✦';
+    cx.fillStyle = e.accent;
+    cx.fillText(ic, icx - cx.measureText(ic).width / 2, icy + ri * 0.38);
+    // Texte de la tuile.
+    let yy = icy + ri + pad * 0.9;
+    if (tu.grand) {
+      const tg = e.L * (grande ? (e.majuscules ? 0.12 : 0.09) : e.majuscules ? 0.085 : 0.065);
+      cx.font = fonte(e.f.titre, tg);
+      const gw = cx.measureText(tu.grand).width;
+      cx.fillStyle = e.degrade ? degrade(cx, x + pad, gw, e.degrade) : e.encre;
+      if (grande) {
+        cx.fillText(tu.grand, x + w - pad - gw, icy + tg * 0.36);
+      } else {
+        yy += tg * 0.75;
+        cx.fillText(tu.grand, x + pad, yy);
+        yy += tg * 0.35;
+      }
+    }
+    const tt = e.L * (grande ? 0.042 : 0.036);
+    cx.font = fonte(e.f.corps, tt);
+    cx.fillStyle = e.encre;
+    for (const l of e.lignes(cx, e.majuscules ? tu.titre.toUpperCase() : tu.titre, w - pad * 2).slice(0, 2)) {
+      yy += tt * 1.05;
+      cx.fillText(l, x + pad, yy);
+    }
+    if (tu.texte) {
+      const tx = e.L * (grande ? 0.03 : 0.027);
+      cx.font = fonte(e.f.corpsL, tx);
+      cx.fillStyle = e.douce;
+      yy += tx * 0.6;
+      for (const l of e.lignes(cx, tu.texte, w - pad * 2).slice(0, grande ? 2 : 3)) {
+        yy += tx * 1.35;
+        if (yy > y + h - pad * 0.4) break;
+        cx.fillText(l, x + pad, yy);
+      }
+    }
+    cx.restore();
+  });
+  cx.globalAlpha = 1;
 }

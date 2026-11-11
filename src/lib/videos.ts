@@ -14,7 +14,7 @@
 
 import type { EntiteSlug } from './marques';
 import type { FormatSlug } from './formats';
-import type { Scene, FondPlan } from './montage';
+import type { Scene, FondPlan, Noyau3D } from './montage';
 
 export interface Plan {
   /** Repère temporel, en secondes. */
@@ -32,6 +32,8 @@ export interface Plan {
   fond?: FondPlan;
   centre?: boolean;
   sousTitre?: string;
+  /** Couche 3D de particules, reprise des sites. */
+  noyau?: Noyau3D;
 }
 
 export interface ScriptVideo {
@@ -474,9 +476,10 @@ export const VIDEOS: ScriptVideo[] = [
         accent: 'Une question : le sinistre est-il couvert ?',
         centre: true,
         fond: 'etoiles',
+        noyau: { forme: 'cerveau', place: 'fond', construction: true },
         scene: { type: 'documents', items: ['Rapport d’expertise', 'Conditions générales', 'Contrat'], dispersion: true },
       },
-      { de: 6.5, a: 10, image: 'La marque apparaît.', texte: '', fond: 'etoiles', scene: { type: 'marque' } },
+      { de: 6.5, a: 10, image: 'La marque apparaît.', texte: '', fond: 'etoiles', scene: { type: 'marque' }, noyau: { forme: 'cerveau', place: 'fond', onde: true, cadran: true, intensite: 0.2 } },
       {
         de: 10,
         a: 18,
@@ -807,8 +810,8 @@ export const VIDEOS: ScriptVideo[] = [
     duree: 39,
     tournage: "Tout est dessiné par le studio. Le site est une MAQUETTE d'exemple, dite à l'écran. La liste porte sur ce qu'un site d'artisan doit avoir — pas sur des résultats.",
     plans: [
-      { de: 0, a: 4, image: 'Titre seul, centré.', texte: 'Votre futur client vous cherche sur son téléphone.', centre: true, fond: 'rayons' },
-      { de: 4, a: 7.5, image: 'La marque apparaît.', texte: '', fond: 'horizon', scene: { type: 'marque' } },
+      { de: 0, a: 4, image: 'Titre seul, centré.', texte: 'Votre futur client vous cherche sur son téléphone.', centre: true, fond: 'rayons', noyau: { forme: 'sphere', place: 'fond', construction: true } },
+      { de: 4, a: 7.5, image: 'La marque apparaît.', texte: '', fond: 'horizon', scene: { type: 'marque' }, noyau: { forme: 'sphere', place: 'fond', onde: true, intensite: 0.22 } },
       {
         de: 7.5,
         a: 17.5,
@@ -866,6 +869,271 @@ export const VIDEOS: ScriptVideo[] = [
       "Votre futur client vous cherche sur son téléphone. En cinq secondes, il doit savoir qui vous êtes, ce que vous faites, et comment vous joindre.\n\nSites web et web 3D dès 1 490 € HT. On commence par une analyse gratuite.",
     indicateur: 'taux de visionnage complet',
   },
+  // ── Motion design v3 : couche 3D des sites, verre, bento, son ─────────────
+  {
+    ref: 'vid-m-v3-1',
+    titre: 'Le cerveau de votre dossier',
+    entite: 'magistria',
+    formatSlug: 'li-video',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'sinistre-decortique',
+    duree: 50,
+    tournage:
+      "Tout est dessiné par le studio, son compris (musique et bruitages synthétisés). La 3D reprend le cerveau de particules et le cadran de magistrai.fr. Dossier d'EXEMPLE, mention à l'écran. Articles cités réels (C. assur. L. 113-1, L. 112-4). Prix et freemium tels qu'affichés.",
+    plans: [
+      {
+        de: 0,
+        a: 5,
+        image: 'Le cerveau de particules se construit ; la question en titre.',
+        texte: 'Un sinistre. Trois pièces.',
+        accent: 'Une seule question : est-il couvert ?',
+        centre: true,
+        fond: 'etoiles',
+        noyau: { forme: 'cerveau', place: 'fond', construction: true, cadran: true, intensite: 0.22 },
+      },
+      { de: 5, a: 9, image: 'La marque, l’onde de choc traverse le cerveau.', texte: '', fond: 'etoiles', scene: { type: 'marque' }, noyau: { forme: 'cerveau', place: 'fond', onde: true, cadran: true, intensite: 0.2 } },
+      {
+        de: 9,
+        a: 18.5,
+        image: 'Les pièces lues, la chronologie posée ; derrière le verre, les particules forment un document.',
+        texte: 'Le dossier, lu pour vous.',
+        chapitre: '01 / 03 · Analyse de sinistre',
+        fond: 'etoiles',
+        noyau: { forme: 'document', place: 'fond', activite: 0.4 },
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Analyse', 'Recherche juridique', 'Rédaction'],
+          elements: [
+            {
+              type: 'fichiers',
+              items: [
+                { nom: 'Rapport_expertise_cyber.pdf', etat: '✓ lu' },
+                { nom: 'Police_assurance.pdf', etat: '✓ lu' },
+                { nom: 'Constat_huissier.jpg', etat: '✓ OCR' },
+              ],
+              chronologie: [
+                { quand: 'J', texte: 'Intrusion détectée', tag: 'Rapport p. 4' },
+                { quand: 'J+2', texte: 'Sinistre déclaré', tag: 'Police art. 7' },
+              ],
+            },
+          ],
+          bulles: [
+            { texte: 'Pièces lues', icone: '✓', cote: 'droite', a: 2.2, hauteur: 0.05 },
+            { texte: 'Chronologie posée', icone: '⌁', cote: 'gauche', a: 4.6, hauteur: 0.86 },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 18.5,
+        a: 31,
+        image: 'La question, les sources, la réponse sourcée ; la balance en particules derrière.',
+        texte: 'Chaque phrase, sa source.',
+        chapitre: '02 / 03 · Recherche juridique',
+        fond: 'etoiles',
+        noyau: { forme: 'balance', place: 'fond', activite: 0.6 },
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Recherche juridique', 'Jurisprudence', 'Conformité'],
+          elements: [
+            { type: 'question', texte: 'Une exclusion pour défaut de mise à jour est-elle opposable à l’assuré ?' },
+            { type: 'sources', items: ['C. assur., art. L. 113-1', 'C. assur., art. L. 112-4'] },
+            {
+              type: 'reponse',
+              titre: 'Réponse · Assurance',
+              texte:
+                'Une exclusion n’est opposable que si elle est **formelle et limitée** [1] et rédigée en **caractères très apparents** [2]. Ici, le « défaut de mise à jour » n’est pas défini : son caractère limité est discutable.',
+            },
+            { type: 'bloc', titre: 'À vérifier avant de conclure', ton: 'alerte', items: ['La police produite est-elle celle en vigueur au jour du sinistre ?'] },
+          ],
+          bulles: [
+            { texte: 'L. 113-1 · source liée', icone: '§', cote: 'droite', a: 4.2, hauteur: 0.04 },
+            { texte: 'Ce qui reste à vérifier', icone: '!', cote: 'gauche', a: 9.6, hauteur: 0.9 },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 31,
+        a: 39.5,
+        image: 'Le courrier qui s’écrit, puis la validation au bouton bordeaux.',
+        texte: 'Le courrier, prêt à relire.',
+        chapitre: '03 / 03 · Rédaction',
+        fond: 'etoiles',
+        annotation: 'vous relisez,\nvous signez',
+        noyau: { forme: 'bouclier', place: 'fond' },
+        scene: {
+          type: 'app',
+          fenetre: 'MagistrIA · espace de travail',
+          onglets: ['Rédaction', 'Analyse', 'Recherche juridique'],
+          elements: [
+            {
+              type: 'courrier',
+              titre: 'Courrier de position',
+              tag: 'Brouillon · à valider',
+              texte: 'Madame, Monsieur,\nAprès analyse des pièces versées, nous vous informons de notre position sur la garantie.',
+            },
+            { type: 'clic', avant: 'Brouillon', libelle: 'Courrier de position', bouton: 'Valider', apres: 'Validé par vous', toast: 'Rien ne part sans votre accord' },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 39.5,
+        a: 45,
+        image: 'Les tuiles de verre s’assemblent : principe, sources, méthodes, prix.',
+        texte: 'Ce que vous avez en main',
+        fond: 'etoiles',
+        noyau: { forme: 'cerveau', place: 'fond', cadran: true },
+        scene: {
+          type: 'bento',
+          tuiles: [
+            { titre: 'L’IA propose. Vous décidez.', texte: 'Aucune décision ne part sans votre validation.', icone: '⚖' },
+            { titre: 'Sources officielles', texte: 'Légifrance et DILA, liées à chaque phrase.', icone: '§' },
+            { titre: 'Méthodes nommées', texte: 'Syllogisme juridique, FAIR, EBIOS RM.', icone: '◈' },
+            { titre: 'Freemium', grand: '0 €', texte: '10 crédits par mois, sans carte bancaire.', icone: '✦' },
+            { titre: 'Pro', grand: '59 € HT', texte: 'par mois, pour l’avocat ou le juriste indépendant.', icone: '◆' },
+          ],
+        },
+      },
+      {
+        de: 45,
+        a: 50,
+        image: 'Écran de fin, le cadran tourne derrière.',
+        texte: '',
+        fond: 'etoiles',
+        noyau: { forme: 'cerveau', place: 'fond', cadran: true, intensite: 0.16 },
+        scene: {
+          type: 'fin',
+          action: 'Essayer gratuitement',
+          slogan: ['L’IA propose.', 'Vous décidez.'],
+          public: 'Conçu pour les assureurs et mutuelles',
+          note: 'Sans carte bancaire · chaque source vérifiable',
+        },
+      },
+    ],
+    legende:
+      "Un sinistre, trois pièces, une question : est-il couvert ?\n\nMagistrIA lit le dossier, lie chaque phrase à sa source (C. assur., art. L. 113-1 et L. 112-4), dit ce qu'il reste à vérifier, et prépare le courrier. Vous relisez, vous décidez.\n\nFreemium sans carte bancaire, Pro à 59 € HT/mois.",
+    indicateur: 'taux de visionnage complet',
+  },
+  {
+    ref: 'vid-v-v3-1',
+    titre: 'Trois métiers, une équipe',
+    entite: 'veolt',
+    formatSlug: 'ig-reel',
+    cadre: '9:16',
+    casUsage: true,
+    pilier: 'positionnement-prix',
+    duree: 44,
+    tournage:
+      "Tout est dessiné par le studio, son compris. La 3D reprend le champ de particules de veolt.fr : sphère → écran → € → lecture → galaxie, comme au défilement du site. Prix « à partir de » tels qu'affichés ; aucune référence client, aucun résultat chiffré.",
+    plans: [
+      {
+        de: 0,
+        a: 4.5,
+        image: 'La sphère de particules se construit derrière le titre.',
+        texte: 'Trois métiers. Une seule équipe.',
+        centre: true,
+        fond: 'horizon',
+        noyau: { forme: 'sphere', place: 'fond', construction: true, intensite: 0.22 },
+      },
+      { de: 4.5, a: 8, image: 'La marque ; éclat sur la sphère.', texte: '', fond: 'horizon', scene: { type: 'marque' }, noyau: { forme: 'sphere', place: 'fond', onde: true, intensite: 0.22 } },
+      {
+        de: 8,
+        a: 13.5,
+        image: 'La sphère devient un écran ; le prix défile.',
+        texte: 'Sites web et web 3D',
+        chapitre: '01 / 03 · Le site',
+        fond: 'horizon',
+        noyau: { forme: 'ecran', place: 'bas' },
+        scene: { type: 'chiffre', valeur: '1 490 €', legende: 'HT, à partir de — pour le dirigeant dont le site freine l’activité' },
+      },
+      {
+        de: 13.5,
+        a: 19,
+        image: 'L’écran devient un €.',
+        texte: 'Business plan et analyse financière',
+        chapitre: '02 / 03 · Le financement',
+        fond: 'horizon',
+        noyau: { forme: 'euro', place: 'bas' },
+        scene: { type: 'chiffre', valeur: '490 €', legende: 'HT, à partir de — pour le porteur de projet qui cherche un financement' },
+      },
+      {
+        de: 19,
+        a: 24.5,
+        image: 'Le € devient un bouton de lecture.',
+        texte: 'Vidéo, pub 3D et motion',
+        chapitre: '03 / 03 · L’image',
+        fond: 'horizon',
+        noyau: { forme: 'lecture', place: 'bas' },
+        scene: { type: 'chiffre', valeur: '119 €', legende: 'HT, à partir de — pour la marque, l’e-commerce, le SaaS' },
+      },
+      {
+        de: 24.5,
+        a: 33,
+        image: 'La demande d’analyse arrive dans l’écran de verre ; on répond.',
+        texte: 'Tout commence par une analyse gratuite.',
+        fond: 'horizon',
+        noyau: { forme: 'sphere', place: 'fond', activite: 0.5 },
+        scene: {
+          type: 'app',
+          fenetre: 'Veolt · demandes',
+          onglets: ['Demandes', 'Projets', 'Devis'],
+          elements: [
+            { type: 'notifications', items: [{ titre: 'Nouvelle demande d’analyse', detail: 'Site vitrine · artisan' }] },
+            { type: 'question', texte: 'Mon site ne m’apporte aucun appel. Vous pouvez regarder ?' },
+            { type: 'bloc', titre: 'Analyse gratuite · sans engagement', items: ['Ce qui freine le site aujourd’hui', 'Ce qu’on changerait, et pourquoi', 'Le prix, affiché avant tout'] },
+            { type: 'clic', avant: 'Reçue', libelle: 'Votre demande', bouton: 'Répondre', apres: 'Réponse envoyée', toast: 'Réponse sous 24 h' },
+          ],
+          bulles: [
+            { texte: 'Sans engagement', icone: '✓', cote: 'droite', a: 1.4, hauteur: 0.04 },
+            { texte: 'Réponse sous 24 h', icone: '⏱', cote: 'gauche', a: 6.8, hauteur: 0.9 },
+          ],
+          mention: 'Exemple d’interface · données fictives',
+        },
+      },
+      {
+        de: 33,
+        a: 39,
+        image: 'Les tuiles de verre s’assemblent.',
+        texte: 'Pourquoi c’est simple',
+        fond: 'horizon',
+        noyau: { forme: 'galaxie', place: 'fond' },
+        scene: {
+          type: 'bento',
+          tuiles: [
+            { titre: 'Trois métiers, une équipe', texte: 'Développeurs web, créateurs vidéo, analystes financiers.', icone: '✦' },
+            { titre: 'Analyse gratuite', texte: 'Une vraie offre, sans engagement.', icone: '◎' },
+            { titre: 'Réponse sous 24 h', texte: 'Un délai qu’on tient.', icone: '⏱' },
+            { titre: 'Prix affichés', texte: 'Volontairement sous le marché.', icone: '€' },
+            { titre: 'Tout se voit', texte: 'Le périmètre et les livrables, écrits avant de commencer.', icone: '◆' },
+          ],
+        },
+      },
+      {
+        de: 39,
+        a: 44,
+        image: 'Écran de fin, la galaxie tourne derrière.',
+        texte: '',
+        fond: 'horizon',
+        noyau: { forme: 'galaxie', place: 'fond', intensite: 0.2 },
+        scene: {
+          type: 'fin',
+          action: 'Demander l’analyse gratuite',
+          slogan: ['Trois métiers.', 'Une seule équipe.'],
+          public: 'Sites web · Vidéo & 3D · Business plan',
+          note: 'Réponse sous 24 h · prix affichés',
+        },
+      },
+    ],
+    legende:
+      "Un site, un business plan, une vidéo : trois métiers, une seule équipe.\n\nSites web et web 3D dès 1 490 € HT · business plan dès 490 € HT · vidéo et motion dès 119 € HT. Tout commence par une analyse gratuite, sans engagement, avec une réponse sous 24 h.",
+    indicateur: 'taux de visionnage complet',
+  },
+
 ];
 
 export function videosDe(entite: EntiteSlug) {

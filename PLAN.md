@@ -162,13 +162,30 @@
   complète (slogan, public, bouton, adresse, petite ligne). 4 vidéos :
   « Du dossier au courrier », « Ce que reçoit l'assuré » (MagistrIA),
   « Vos clients voient ça », « Le site d'un artisan » (Veolt).
-- [ ] [C] Piste son : ambiance discrète + sons d'interface (frappe, clic),
-  générés et mixés dans le navigateur, désactivables.
+- [x] [C] Piste son (11/11) : musique propre à chaque marque + bruitages
+  calés sur l'image (frappe, clic, notification, coche, révélation du logo,
+  transitions), synthétisés dans le navigateur, AAC ou Opus dans le MP4,
+  désactivables et réglables dans le studio ; bande-son exportable en WAV.
+- [x] [C] Motion design v3 (11/11) : couche 3D reprise des sites (sphère de
+  particules de veolt.fr qui se métamorphose, cerveau + cadran de
+  magistrai.fr, three.js + bloom), cartes en verre, typographie cinétique,
+  transitions zoom/flou, pastilles flottantes, grille « bento », écran produit
+  MagistrIA aux couleurs du site. 2 vidéos : « Le cerveau de votre dossier »
+  (MagistrIA), « Trois métiers, une équipe » (Veolt). Panorama des outils et
+  recommandations : `OUTILS-VIDEO.md`.
+- [x] [C] Export After Effects (.jsx) depuis le studio, script Blender du
+  noyau de particules (`outils/blender/`, non testé faute de Blender ici).
+- [x] [C] Voix off ElevenLabs plan par plan (bouton du studio) et connecteurs
+  Runway / Ollama prêts côté serveur.
+- [ ] [J] Poser `ELEVENLABS_API_KEY` (voix), `RUNWAY_API_KEY` (clips) ;
+  recharger Higgsfield (0 crédit au 11/11).
+- [ ] [C] Lottie : jouer des animations After Effects exportées (Bodymovin)
+  avec les textes et couleurs de la marque.
 - [ ] [J] Benchmark Sowego / Instagram : envoyer captures ou vidéos des posts
   (Instagram est illisible depuis l'outil).
 - [ ] [C] Plans vidéo dans le studio : accepter des clips (Higgsfield,
   Blender, After Effects) en plus des images, découpés au bon plan.
-- [ ] [C] Musique et sous-titres : piste son libre de droits, optionnelle.
+- [x] [C] Musique : synthétisée, libre de droits (voir piste son).
 
 **Ensuite** :
 

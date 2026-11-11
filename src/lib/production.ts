@@ -239,6 +239,7 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
       fondDefaut: 'horizon',
       motMarque: ['VEOLT', '', '#FFFFFF'],
       slogan: 'Veolt vous met sur orbite',
+      // L'écran produit en verre sombre teinté violet, comme les cartes de veolt.fr.
       app: {
         fond: '#16131B',
         encre: '#EDEBF2',
@@ -250,6 +251,12 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
         alerteEncre: '#FFB27A',
         neutre: 'rgba(255,255,255,0.05)',
         ok: '#C79BFF',
+        surAccent: '#16131B',
+        champ: 'rgba(255,255,255,0.06)',
+        verre: true,
+        teinte: 'rgba(34,12,48,0.42)',
+        bouton: ['#7621B0', '#B600A8'],
+        papier: '#7621B0',
       },
     };
   }
@@ -276,18 +283,26 @@ export function themeStudio(e: EntiteSlug): ThemeStudio {
     fondDefaut: 'etoiles',
     motMarque: ['Magistr', 'IA', '#E0B85A'],
     slogan: 'L’intelligence au service du droit.',
-    // L'écran produit garde les couleurs réelles de l'application : blanc et bordeaux.
+    // L'écran produit aux couleurs du site en ligne (le blanc + bordeaux est
+    // périmé pour les contenus, voir CLAUDE.md) : verre nuit, encre #E9EEF5,
+    // accents cyan, renvois or ; le bordeaux ne sert qu'au bouton d'action.
     app: {
-      fond: '#FFFFFF',
-      encre: '#15121A',
-      douce: '#6E6B78',
-      accent: '#7B2D3E',
-      filet: '#E6E6EB',
-      puce: '#EAF6EC',
-      alerte: '#FFF4D6',
-      alerteEncre: '#8A5A00',
-      neutre: '#F3F3F6',
-      ok: '#2E7D32',
+      fond: '#0A111E',
+      encre: '#E9EEF5',
+      douce: '#9AA9BB',
+      accent: '#3CC8FF',
+      filet: 'rgba(127,183,217,0.20)',
+      puce: 'rgba(60,200,255,0.14)',
+      alerte: 'rgba(255,154,60,0.15)',
+      alerteEncre: '#FFB877',
+      neutre: 'rgba(233,238,245,0.05)',
+      ok: '#7FDBFF',
+      surAccent: '#03050A',
+      champ: 'rgba(233,238,245,0.06)',
+      verre: true,
+      teinte: 'rgba(8,18,36,0.46)',
+      bouton: ['#7B2D3E', '#94384C'],
+      papier: '#7B2D3E',
     },
   };
 }
@@ -387,4 +402,14 @@ export function visuelsDus(entite: EntiteSlug, aujourdhui = new Date()): LignePu
       !memorises.has(p.id) &&
       visuelsDuPost(p).length > 0,
   );
+}
+
+/** Les voix off ElevenLabs d'un post, plan par plan (voir `genererVoixOff`). */
+export function voixDuPost(publicationId: number, entite: EntiteSlug): Array<{ plan: number; url: string }> {
+  const lignes = db()
+    .prepare("SELECT id, nom FROM medias WHERE publication_id=? AND origine='voix' AND type_mime LIKE 'audio/%' ORDER BY id")
+    .all(publicationId) as Array<{ id: number; nom: string }>;
+  return lignes
+    .map((l) => ({ plan: Number(/plan-(\d+)/.exec(l.nom)?.[1] ?? -1), url: `/${entite}/medias/${l.id}` }))
+    .filter((v) => v.plan >= 0);
 }

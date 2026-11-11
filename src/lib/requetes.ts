@@ -225,14 +225,14 @@ export function mediasDe(entite: EntiteSlug): LigneMedia[] {
     .prepare(
       `SELECT m.*, p.titre AS titre_publication
          FROM medias m LEFT JOIN publications p ON p.id = m.publication_id
-        WHERE m.entite = ? ORDER BY m.id DESC`,
+        WHERE m.entite = ? AND m.type_mime NOT LIKE 'audio/%' ORDER BY m.id DESC`,
     )
     .all(entite) as LigneMedia[];
 }
 
 /** Les images rattachées à une publication, pour l'afficher dans le composeur. */
 export function mediasDePublication(id: number): LigneMedia[] {
-  return db().prepare('SELECT * FROM medias WHERE publication_id = ? ORDER BY id DESC').all(id) as LigneMedia[];
+  return db().prepare("SELECT * FROM medias WHERE publication_id = ? AND type_mime NOT LIKE 'audio/%' ORDER BY id DESC").all(id) as LigneMedia[];
 }
 
 /** De quoi remplir le choix « rattacher à une publication ». */
