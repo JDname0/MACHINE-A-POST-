@@ -5,7 +5,8 @@
  *
  *   node scripts/importer-media.mjs <entite> <origine> <fichier> [--nom N] [--post ID] [--legende "…"]
  *
- *   origine : clip    → un clip vidéo utilisable en fond de plan (`clip: '<nom sans extension>'`)
+ *   origine : photo   → une photo posée en fond du visuel d'un post (--post obligatoire)
+ *             clip    → un clip vidéo utilisable en fond de plan (`clip: '<nom sans extension>'`)
  *             musique → un morceau proposé dans le studio (rattaché au post avec --post)
  *             voix    → une voix off de plan ; --nom voix-plan-<N>.mp3 et --post obligatoires
  *
@@ -30,11 +31,20 @@ const opt = (n) => {
   const i = reste.indexOf(`--${n}`);
   return i >= 0 ? reste[i + 1] : undefined;
 };
-if (!['veolt', 'magistria'].includes(entite) || !['clip', 'musique', 'voix'].includes(origine) || !fichier) {
-  console.error('Usage : node scripts/importer-media.mjs <veolt|magistria> <clip|musique|voix> <fichier> [--nom N] [--post ID] [--legende "…"]');
+if (!['veolt', 'magistria'].includes(entite) || !['photo', 'clip', 'musique', 'voix'].includes(origine) || !fichier) {
+  console.error('Usage : node scripts/importer-media.mjs <veolt|magistria> <photo|clip|musique|voix> <fichier> [--nom N] [--post ID] [--legende "…"]');
   process.exit(1);
 }
-const TYPES = { '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime', '.mp3': 'audio/mpeg', '.wav': 'audio/wav' };
+const TYPES = {
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+};
 const ext = extname(fichier).toLowerCase();
 const type = TYPES[ext];
 if (!type) {
@@ -43,6 +53,10 @@ if (!type) {
 }
 const nom = opt('nom') ?? basename(fichier);
 const post = opt('post') ? Number(opt('post')) : null;
+if (origine === 'photo' && !post) {
+  console.error('Une photo de fond se rattache à un post (--post).');
+  process.exit(1);
+}
 if (origine === 'voix' && (!post || !/plan-\d+/.test(nom))) {
   console.error('Une voix off se rattache à un post (--post) et à un plan (--nom voix-plan-<N>.mp3).');
   process.exit(1);

@@ -1549,14 +1549,15 @@ export const hauteurSousTitre = (e: Env) => e.L * (e.vertical ? 0.2 : 0.14);
  * cours posé sur une pastille aux couleurs de la marque. C'est ce qui tient
  * une lecture muette, mot à mot.
  */
-export function dessinerSousTitre(cx: C2D, e: Env, texte: string, tl: number, d: number) {
+export function dessinerSousTitre(cx: C2D, e: Env, texte: string, tl: number, d: number, voix?: [number, number]) {
   const t = e.L * (e.vertical ? 0.046 : 0.036);
   cx.font = fonte(e.f.corps, t);
   const mots = texte.split(/\s+/).filter(Boolean);
   const poids = mots.map((m) => 1 + m.length * 0.25);
   const total = poids.reduce((a, b) => a + b, 0);
-  const debut = 0.15;
-  const fin = Math.max(debut + 0.5, d - 0.35);
+  // Avec une voix off, le mot surligné suit la voix ; sans, il suit le plan.
+  const debut = voix ? voix[0] : 0.15;
+  const fin = voix ? Math.max(debut + 0.5, voix[1] - 0.15) : Math.max(debut + 0.5, d - 0.35);
   let acc = debut;
   const bornes = poids.map((p) => {
     const a = acc;

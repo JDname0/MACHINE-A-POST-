@@ -963,7 +963,10 @@ async function preparerRendu(m: Montage) {
         dessinerAnnotation(cx, env, x.annotation, tl, b - a, ax, ay);
         dessinerFleche(cx, env, ax - L * 0.03, ay - L * 0.035, ax - L * 0.12, ay - L * 0.13, borne((tl - (b - a) * 0.5 - 0.5) / 0.5));
       }
-      if (x.sousTitre) dessinerSousTitre(cx, env, x.sousTitre, tl, b - a);
+      if (x.sousTitre) {
+        const v = m.son?.voix?.find((k) => k.t >= a - 0.01 && k.t < b);
+        dessinerSousTitre(cx, env, x.sousTitre, tl, b - a, v?.duree ? [v.t - a, v.t - a + v.duree] : undefined);
+      }
     }
   };
 

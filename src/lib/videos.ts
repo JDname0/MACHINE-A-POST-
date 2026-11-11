@@ -466,14 +466,15 @@ export const VIDEOS: ScriptVideo[] = [
     cadre: '9:16',
     casUsage: true,
     pilier: 'sinistre-decortique',
-    duree: 50,
+    duree: 50.5,
     tournage:
       "Tout est dessiné par le studio. Dossier d'EXEMPLE, mention à l'écran. Les deux articles cités (C. assur. L. 113-1 et L. 112-4) sont réels ; aucune décision de justice n'est citée faute de référence vérifiée.",
     plans: [
       {
         de: 0,
         a: 6.5,
-        image: 'Trois pièces qui se posent, puis s’éparpillent.',
+        image: 'Trois pièces qui se posent sur le bureau de nuit (clip Higgsfield), puis s’éparpillent.',
+        clip: 'magistria-bureau',
         texte: 'Un rapport d’expertise. Des conditions générales.',
         accent: 'Une question : le sinistre est-il couvert ?',
         centre: true,
@@ -481,7 +482,7 @@ export const VIDEOS: ScriptVideo[] = [
         noyau: { forme: 'cerveau', place: 'fond', construction: true },
         scene: { type: 'documents', items: ['Rapport d’expertise', 'Conditions générales', 'Contrat'], dispersion: true },
       },
-      { de: 6.5, a: 10, image: 'La marque apparaît.', texte: '', fond: 'etoiles', scene: { type: 'marque' }, noyau: { forme: 'cerveau', place: 'fond', onde: true, cadran: true, intensite: 0.2 } },
+      { de: 6.5, a: 10, image: 'Le logotype en 3D (Blender).', clip: 'magistria-logo-3d', texte: '', fond: 'etoiles', scene: { type: 'marque' }, noyau: { forme: 'cerveau', place: 'fond', onde: true, cadran: true, intensite: 0.2 } },
       {
         de: 10,
         a: 18,
@@ -514,7 +515,8 @@ export const VIDEOS: ScriptVideo[] = [
       {
         de: 18,
         a: 31,
-        image: 'La question, les sources, la réponse sourcée.',
+        image: 'La question, les sources, la réponse sourcée ; le réseau de nœuds derrière le verre (clip Higgsfield).',
+        clip: 'magistria-reseau',
         texte: 'Chaque phrase, sa source.',
         chapitre: '02 / 03 · Recherche juridique',
         fond: 'horizon',
@@ -569,7 +571,7 @@ export const VIDEOS: ScriptVideo[] = [
       },
       {
         de: 40,
-        a: 45,
+        a: 45.5,
         image: 'Récapitulatif coché.',
         texte: 'Ce que l’outil fait pour vous',
         chapitre: 'Récap',
@@ -577,8 +579,8 @@ export const VIDEOS: ScriptVideo[] = [
         scene: { type: 'recap', items: ['Le dossier analysé', 'Les sources vérifiées', 'Le courrier préparé'] },
       },
       {
-        de: 45,
-        a: 50,
+        de: 45.5,
+        a: 50.5,
         image: 'Écran de fin.',
         texte: '',
         fond: 'etoiles',
@@ -609,7 +611,8 @@ export const VIDEOS: ScriptVideo[] = [
       {
         de: 0,
         a: 6.5,
-        image: 'Le courrier reçu par l’assuré.',
+        image: 'Le courrier reçu par l’assuré ; derrière le verre, la lettre ouverte sur la table (clip Higgsfield).',
+        clip: 'magistria-courrier',
         texte: 'Votre assuré reçoit ça.',
         fond: 'horizon',
         sousTitre: 'Ça, c’est ce que votre assuré reçoit : un courrier clair.',
@@ -736,7 +739,8 @@ export const VIDEOS: ScriptVideo[] = [
       {
         de: 7,
         a: 14,
-        image: 'Les demandes qui arrivent.',
+        image: 'Les demandes qui arrivent ; derrière le verre, le téléphone qui s’allume (clip Higgsfield).',
+        clip: 'veolt-telephone',
         texte: 'Vous, vous voyez ça.',
         fond: 'horizon',
         annotation: 'vos demandes !',
@@ -812,8 +816,8 @@ export const VIDEOS: ScriptVideo[] = [
     duree: 39,
     tournage: "Tout est dessiné par le studio. Le site est une MAQUETTE d'exemple, dite à l'écran. La liste porte sur ce qu'un site d'artisan doit avoir — pas sur des résultats.",
     plans: [
-      { de: 0, a: 4, image: 'Titre seul, centré.', texte: 'Votre futur client vous cherche sur son téléphone.', centre: true, fond: 'rayons', noyau: { forme: 'sphere', place: 'fond', construction: true } },
-      { de: 4, a: 7.5, image: 'La marque apparaît.', texte: '', fond: 'horizon', scene: { type: 'marque' }, noyau: { forme: 'sphere', place: 'fond', onde: true, intensite: 0.22 } },
+      { de: 0, a: 4, image: 'Le téléphone qui s’allume (clip Higgsfield), titre centré.', clip: 'veolt-telephone', texte: 'Votre futur client vous cherche sur son téléphone.', centre: true, fond: 'rayons', noyau: { forme: 'sphere', place: 'fond', construction: true, intensite: 0.22 } },
+      { de: 4, a: 7.5, image: 'Le logotype en 3D (Blender).', clip: 'veolt-logo-3d', texte: '', fond: 'horizon', scene: { type: 'marque' }, noyau: { forme: 'sphere', place: 'fond', onde: true, intensite: 0.22 } },
       {
         de: 7.5,
         a: 17.5,
@@ -851,7 +855,7 @@ export const VIDEOS: ScriptVideo[] = [
         fond: 'rayons',
         scene: { type: 'chiffre', valeur: '1 490 €', legende: 'HT, à partir de — le prix affiché' },
       },
-      { de: 30, a: 34, image: 'Titre seul, centré.', texte: 'On commence par une analyse gratuite de votre projet.', centre: true, fond: 'rayons' },
+      { de: 30, a: 34, image: 'La boulangerie à l’aube (clip Higgsfield), titre centré.', clip: 'veolt-boulangerie', texte: 'On commence par une analyse gratuite de votre projet.', centre: true, fond: 'rayons' },
       {
         de: 34,
         a: 39,

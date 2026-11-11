@@ -3,6 +3,8 @@ import { chargerPolices } from '@/lib/polices';
 import { estEntite, type EntiteSlug } from '@/lib/marques';
 import { connecte } from '@/lib/auth';
 import { GABARITS, rendre, type GabaritSlug, type Contenu, type Variante } from '@/lib/visuels';
+import { db } from '@/lib/db';
+import { lire, TYPES_IMAGE } from '@/lib/medias';
 
 /**
  * Sert le visuel en PNG, aux dimensions exactes du réseau.
@@ -40,7 +42,21 @@ export async function GET(
 
   const variante: Variante = url.searchParams.get('variante') === 'sombre' ? 'sombre' : 'clair';
 
-  return new ImageResponse(rendre(entite as EntiteSlug, gabarit as GabaritSlug, surcharge, variante), {
+  // La photo de fond ne vient que de la médiathèque de la même entité, par
+  // son identifiant : jamais une adresse arbitraire passée dans l'URL.
+  let photo: string | undefined;
+  const idPhoto = Number(url.searchParams.get('photo'));
+  if (Number.isInteger(idPhoto) && idPhoto > 0) {
+    const m = db().prepare('SELECT cle, type_mime FROM medias WHERE id=? AND entite=?').get(idPhoto, entite) as
+      | { cle: string; type_mime: string }
+      | undefined;
+    if (m && m.type_mime in TYPES_IMAGE && m.type_mime !== 'image/webp') {
+      const octets = await lire(m.cle);
+      if (octets) photo = `data:${m.type_mime};base64,${octets.toString('base64')}`;
+    }
+  }
+
+  return new ImageResponse(rendre(entite as EntiteSlug, gabarit as GabaritSlug, surcharge, variante, photo), {
     width: g.largeur,
     height: g.hauteur,
     fonts: chargerPolices(),

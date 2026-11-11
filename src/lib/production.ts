@@ -377,14 +377,16 @@ export function montagePret(p: LignePublication, memoire: ImageMemoire[], script
 export function sonParDefaut(p: LignePublication, plans: Array<{ duree: number }>) {
   const e = p.entite as EntiteSlug;
   const debut = (k: number) => plans.slice(0, k).reduce((n, x) => n + x.duree, 0) + 0.25;
-  const morceau = musiquesDe(e).find((m) => m.publication_id === p.id);
+  // Le morceau du post, sinon la signature sonore de la marque (morceau sans post).
+  const tous = musiquesDe(e);
+  const morceau = tous.find((m) => m.publication_id === p.id) ?? tous.find((m) => m.publication_id == null);
   return {
     musique: true,
     bruitages: true,
     musiqueUrl: morceau?.url,
     voix: voixDuPost(p.id, e)
       .filter((v) => v.plan < plans.length)
-      .map((v) => ({ t: debut(v.plan), url: v.url })),
+      .map((v) => ({ t: debut(v.plan), url: v.url, ...(v.duree ? { duree: v.duree } : {}) })),
   };
 }
 
@@ -454,12 +456,20 @@ export function visuelsDus(entite: EntiteSlug, aujourdhui = new Date()): LignePu
   );
 }
 
+/** La photo de fond d'un post (générée par Higgsfield ou déposée), la plus récente. */
+export function photoDuPost(publicationId: number): number | null {
+  const r = db()
+    .prepare("SELECT id FROM medias WHERE publication_id=? AND origine='photo' AND type_mime LIKE 'image/%' ORDER BY id DESC LIMIT 1")
+    .get(publicationId) as { id: number } | undefined;
+  return r?.id ?? null;
+}
+
 /** Les voix off ElevenLabs d'un post, plan par plan (voir `genererVoixOff`). */
-export function voixDuPost(publicationId: number, entite: EntiteSlug): Array<{ plan: number; url: string }> {
+export function voixDuPost(publicationId: number, entite: EntiteSlug): Array<{ plan: number; url: string; duree?: number }> {
   const lignes = db()
-    .prepare("SELECT id, nom FROM medias WHERE publication_id=? AND origine='voix' AND type_mime LIKE 'audio/%' ORDER BY id")
-    .all(publicationId) as Array<{ id: number; nom: string }>;
+    .prepare("SELECT id, nom, duree_s FROM medias WHERE publication_id=? AND origine='voix' AND type_mime LIKE 'audio/%' ORDER BY id")
+    .all(publicationId) as Array<{ id: number; nom: string; duree_s: number | null }>;
   return lignes
-    .map((l) => ({ plan: Number(/plan-(\d+)/.exec(l.nom)?.[1] ?? -1), url: `/${entite}/medias/${l.id}` }))
+    .map((l) => ({ plan: Number(/plan-(\d+)/.exec(l.nom)?.[1] ?? -1), url: `/${entite}/medias/${l.id}`, ...(l.duree_s ? { duree: l.duree_s } : {}) }))
     .filter((v) => v.plan >= 0);
 }

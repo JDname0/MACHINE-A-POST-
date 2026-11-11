@@ -13,7 +13,7 @@ import { controler, estValidable, type Constat } from './garde-fous';
 import { gabaritPour, deuxLignes, type GabaritSlug, type Contenu } from './visuels';
 import { sousForums, joursDepuis, type LignePublication } from './requetes';
 import { attendu } from './conformite-media';
-import { aUneVideo } from './production';
+import { aUneVideo, photoDuPost } from './production';
 
 export function constatsDe(p: LignePublication): { constats: Constat[]; validable: boolean } {
   const sf = sousForums().find((x) => x.nom === p.sous_forum);
@@ -52,6 +52,13 @@ export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; cont
   if (!slug) return null;
   const { ligne1, ligne2 } = deuxLignes(p.titre ?? '');
   const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) };
+  const photo = photoDuPost(p.id);
+  if (photo) contenu.photo = String(photo);
+  // La couverture d'un carrousel annonce son vrai nombre de pages (pas le « 1 / 9 » d'exemple).
+  if (slug === 'carrousel') {
+    const n = [...p.corps.matchAll(/PAGE\s+\d+\s*[—–-]/g)].length;
+    if (n) contenu.pagination = `1 / ${n}`;
+  }
   if (slug === 'chiffre') {
     // Sur ce gabarit c'est la grande valeur qui porte : on prend le premier
     // nombre ou la première référence d'article trouvée dans l'accroche.
@@ -79,6 +86,7 @@ export function lienVisuel(p: LignePublication): string | null {
 export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; contenu: Partial<Contenu> }> {
   if (!/carrousel/.test(p.format_slug)) return [];
   const pages = [...p.corps.matchAll(/PAGE\s+(\d+)\s*[—–-]\s*([\s\S]*?)(?=\n\s*PAGE\s+\d+\s*[—–-]|$)/g)].map((m) => m[2].trim());
+  const photo = pages.length ? photoDuPost(p.id) : null;
   return pages.map((texte, i) => {
     const [premiere, ...reste] = texte.split(/(?<=[.:!?])\s+/);
     const titre = premiere.length > 70 ? texte.slice(0, 70) : premiere;
@@ -90,6 +98,8 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
         ligne2,
         sousTitre: (premiere.length > 70 ? texte.slice(70) : reste.join(' ')).slice(0, 200),
         pagination: `${i + 1} / ${pages.length}`,
+        // La couverture du carrousel porte la photo ; les pages restent nettes, pour la lecture.
+        ...(i === 0 && photo ? { photo: String(photo) } : {}),
       },
     };
   });

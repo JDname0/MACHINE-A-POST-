@@ -207,6 +207,8 @@ export interface Contenu {
   chiffre?: string;
   legende?: string;
   pagination?: string;
+  /** Identifiant d'une photo de la médiathèque (Higgsfield…) posée en fond, sous un voile à la charte. */
+  photo?: string;
 }
 
 export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
@@ -522,7 +524,46 @@ function Titre({
   );
 }
 
+/**
+ * Le visuel, avec une photo en fond quand le post en a une (générée par
+ * Higgsfield, déposée…) : la photo plein cadre, un voile aux couleurs de la
+ * marque pour que le texte reste lisible, les halos du site par-dessus, puis
+ * la mise en page habituelle. Sans photo : le visuel à la charte, tel quel.
+ */
 export function rendre(
+  entite: EntiteSlug,
+  gabarit: GabaritSlug,
+  contenu?: Partial<Contenu>,
+  variante: Variante = 'clair',
+  photoDonnees?: string,
+) {
+  const el = rendreSansPhoto(entite, gabarit, contenu, variante);
+  if (!photoDonnees) return el;
+  const t = theme(entite, variante);
+  const g = GABARITS[gabarit];
+  const props = el.props as { style: React.CSSProperties; children: React.ReactNode };
+  const nuit = entite === 'veolt' ? '12,12,12' : '3,5,10';
+  const plein = { position: 'absolute' as const, top: 0, left: 0, width: g.largeur, height: g.hauteur, display: 'flex' };
+  // Satori refuse `backgroundImage: 'none'` : on retire la clé (les halos sont reposés au-dessus de la photo).
+  const { backgroundImage: _sansHalos, ...style } = props.style;
+  void _sansHalos;
+  return (
+    <div style={{ ...style, position: 'relative' }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={photoDonnees} alt="" width={g.largeur} height={g.hauteur} style={{ ...plein, objectFit: 'cover' }} />
+      <div
+        style={{
+          ...plein,
+          backgroundImage: `linear-gradient(180deg, rgba(${nuit},0.72) 0%, rgba(${nuit},0.38) 30%, rgba(${nuit},0.55) 55%, rgba(${nuit},0.94) 100%)`,
+        }}
+      />
+      {t.halos ? <div style={{ ...plein, backgroundImage: t.halos }} /> : null}
+      {props.children}
+    </div>
+  );
+}
+
+function rendreSansPhoto(
   entite: EntiteSlug,
   gabarit: GabaritSlug,
   contenu?: Partial<Contenu>,

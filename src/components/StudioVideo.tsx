@@ -43,7 +43,7 @@ interface Props {
   /** ElevenLabs branché côté serveur (ELEVENLABS_API_KEY). */
   voixDispo?: boolean;
   /** Voix off déjà générées pour ce post, plan par plan. */
-  voixInitiales?: Array<{ plan: number; url: string }>;
+  voixInitiales?: Array<{ plan: number; url: string; duree?: number }>;
   /** Morceaux déposés pour la marque (Higgsfield / ElevenLabs Music, Suno…). */
   musiques?: Array<{ id: number; nom: string; url: string; publication_id: number | null }>;
 }
@@ -69,8 +69,10 @@ export function StudioVideo(p: Props) {
   const [copie, setCopie] = useState(false);
   const [son, setSon] = useState({ musique: true, bruitages: true, volume: 0.55 });
   // Le morceau rattaché au post s'il y en a un ; sinon la musique synthétisée de la marque.
-  const [morceau, setMorceau] = useState<string>(p.musiques?.find((m) => m.publication_id === p.publicationId)?.url ?? '');
-  const [voix, setVoix] = useState<Array<{ plan: number; url: string }>>(p.voixInitiales ?? []);
+  const [morceau, setMorceau] = useState<string>(
+    (p.musiques?.find((m) => m.publication_id === p.publicationId) ?? p.musiques?.find((m) => m.publication_id == null))?.url ?? '',
+  );
+  const [voix, setVoix] = useState<Array<{ plan: number; url: string; duree?: number }>>(p.voixInitiales ?? []);
   const [voixEtat, setVoixEtat] = useState<{ t: 'repos' | 'enCours' | 'erreur'; texte?: string }>({ t: 'repos' });
   const consigneIA = useRef<HTMLInputElement>(null);
   const total = useMemo(() => dureeDe(plans), [plans]);
@@ -100,7 +102,7 @@ export function StudioVideo(p: Props) {
       // Chaque voix démarre au début de son plan (un quart de seconde après l'entrée).
       voix: voix
         .filter((v) => v.plan < plans.length)
-        .map((v) => ({ t: plans.slice(0, v.plan).reduce((n, x) => n + x.duree, 0) + 0.25, url: v.url })),
+        .map((v) => ({ t: plans.slice(0, v.plan).reduce((n, x) => n + x.duree, 0) + 0.25, url: v.url, ...(v.duree ? { duree: v.duree } : {}) })),
     },
   });
 

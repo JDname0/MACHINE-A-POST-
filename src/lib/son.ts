@@ -46,6 +46,8 @@ export interface VoixOff {
   t: number;
   /** Le fichier audio (MP3, WAV…), lu par le navigateur. */
   url: string;
+  /** Durée de la phrase (s) : cale le sous-titre karaoké sur la voix. */
+  duree?: number;
 }
 
 export interface OptionsSon {
