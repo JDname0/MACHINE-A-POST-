@@ -596,7 +596,8 @@ export async function composerBandeSon(duree: number, reperes: Repere[], o: Opti
     }
   }
 
-  return normaliser(await ac.startRendering(), -14);
+  // −13 en consigne : le limiteur rogne un peu, on atterrit vers −14 LUFS.
+  return normaliser(await ac.startRendering(), -13);
 }
 
 /**

@@ -434,7 +434,8 @@ export function StudioVideo(p: Props) {
                 title="Compo After Effects : un calque par plan, marqueurs, rendu en référence. Poser le MP4 et le WAV à côté du script."
                 onClick={() =>
                   telecharger(
-                    new Blob([scriptAfterEffects(montage(), { video: `${base}.mp4`, son: etat.son ? `${base}-bande-son.wav` : undefined })], { type: 'text/plain' }),
+                    // Marque d'ordre UTF-8 : sans elle, After Effects lit les accents de travers.
+                    new Blob(['\uFEFF' + scriptAfterEffects(montage(), { video: `${base}.mp4`, son: etat.son ? `${base}-bande-son.wav` : undefined })], { type: 'text/plain;charset=utf-8' }),
                     `${base}-after-effects.jsx`,
                   )
                 }

@@ -1669,7 +1669,7 @@ export function sceneBento(cx: C2D, e: Env, sc: Extract<Scene, { type: 'bento' }
     cx.fillStyle = e.accent;
     cx.fillText(ic, icx - cx.measureText(ic).width / 2, icy + ri * 0.38);
     // Texte de la tuile.
-    let yy = icy + ri + pad * 0.9;
+    let yy = icy + ri + pad * 0.5;
     if (tu.grand) {
       const tg = e.L * (grande ? (e.majuscules ? 0.12 : 0.09) : e.majuscules ? 0.085 : 0.065);
       cx.font = fonte(e.f.titre, tg);
@@ -1697,7 +1697,7 @@ export function sceneBento(cx: C2D, e: Env, sc: Extract<Scene, { type: 'bento' }
       yy += tx * 0.6;
       for (const l of e.lignes(cx, tu.texte, w - pad * 2).slice(0, grande ? 2 : 3)) {
         yy += tx * 1.35;
-        if (yy > y + h - pad * 0.4) break;
+        if (yy > y + h - pad * 0.18) break;
         cx.fillText(l, x + pad, yy);
       }
     }
