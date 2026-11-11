@@ -49,7 +49,9 @@ async function memoriserUn(
   }
 
   const g = GABARITS[v.slug];
-  const reponse = new ImageResponse(rendre(p.entite as EntiteSlug, v.slug, v.contenu, 'clair'), {
+  const { photoEnDonnees, effacer } = await import('./medias');
+  const photo = await photoEnDonnees(p.entite, v.contenu.photo);
+  const reponse = new ImageResponse(rendre(p.entite as EntiteSlug, v.slug, v.contenu, 'clair', photo), {
     width: g.largeur,
     height: g.hauteur,
     fonts: chargerPolices(),
@@ -57,13 +59,21 @@ async function memoriserUn(
   const octets = Buffer.from(await reponse.arrayBuffer());
   const cle = nouvelleCle('image/png');
   await ecrire(cle, octets, 'image/png');
+  // Le visuel précédent du même post (même gabarit, même page) est remplacé :
+  // un texte ou une photo changés ne doivent pas laisser l'ancienne version en mémoire.
+  const nom = `${g.nom}${page ? ` p.${page}` : ''} — ${(p.titre ?? 'sans titre').slice(0, 80)}.png`;
+  const anciens = d.prepare("SELECT id, cle FROM medias WHERE publication_id=? AND origine='genere' AND nom=?").all(p.id, nom) as Array<{ id: number; cle: string }>;
+  for (const a of anciens) {
+    await effacer(a.cle);
+    d.prepare('DELETE FROM medias WHERE id=?').run(a.id);
+  }
   d.prepare(
     `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, legende, publication_id, origine, empreinte)
      VALUES (?,?,?,?,?,?,?,?,?, 'genere', ?)`,
   ).run(
     p.entite,
     cle,
-    `${g.nom}${page ? ` p.${page}` : ''} — ${(p.titre ?? 'sans titre').slice(0, 80)}.png`,
+    nom,
     'image/png',
     octets.length,
     g.largeur,

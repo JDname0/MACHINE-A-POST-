@@ -80,7 +80,7 @@ export function ApercuPost({ p, fermer }: { p: LignePublication; fermer: string 
             {video ? (
               <>
                 <video
-                  src={`/${e}/medias/${video.id}`}
+                  src={`/${e}/medias/${video.id}#t=2`}
                   controls
                   playsInline
                   preload="metadata"

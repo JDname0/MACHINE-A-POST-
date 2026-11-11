@@ -229,6 +229,11 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
   if (!script && plans.length > 1) {
     const dernier = plans[plans.length - 1];
     plans[plans.length - 1] = { ...dernier, duree: Math.max(4.5, dernier.duree), scene: { type: 'fin', action: actionMarque(p.entite as EntiteSlug) } };
+    // La 3D des sites aussi dans les vidéos tirées du texte : la forme se construit
+    // derrière le titre d'ouverture, et revient, discrète, sous l'écran de fin.
+    const forme = p.entite === 'veolt' ? ('sphere' as const) : ('cerveau' as const);
+    if (plans[0].source.type === 'carte') plans[0] = { ...plans[0], noyau: { forme, place: 'fond', construction: true, intensite: 0.22 } };
+    plans[plans.length - 1] = { ...plans[plans.length - 1], noyau: { forme: p.entite === 'veolt' ? 'galaxie' : 'cerveau', place: 'fond', cadran: true, intensite: 0.16 } };
   }
   return { plans, cartes, largeur: cadre.largeur, hauteur: cadre.hauteur, ratio: cadre.ratio, scriptRef: script?.ref ?? null };
 }
@@ -424,7 +429,7 @@ export function videosProduites(entite: EntiteSlug): VideoProduite[] {
       `SELECT m.id, m.nom, m.octets, m.duree_s, m.largeur, m.hauteur, m.cree_le, m.publication_id,
               p.titre, p.date_prevue, p.format_slug, p.semaine
          FROM medias m LEFT JOIN publications p ON p.id = m.publication_id
-        WHERE m.entite = ? AND m.type_mime LIKE 'video/%'
+        WHERE m.entite = ? AND m.type_mime LIKE 'video/%' AND m.origine != 'clip'
         ORDER BY m.id DESC`,
     )
     .all(entite) as VideoProduite[];
@@ -456,12 +461,27 @@ export function visuelsDus(entite: EntiteSlug, aujourdhui = new Date()): LignePu
   );
 }
 
-/** La photo de fond d'un post (générée par Higgsfield ou déposée), la plus récente. */
-export function photoDuPost(publicationId: number): number | null {
-  const r = db()
+/**
+ * La photo de fond d'un post (générée par Higgsfield ou déposée), la plus
+ * récente. À défaut, celle d'un autre post du même sujet (même marque, même
+ * titre) : le calendrier reprend un sujet plusieurs fois, la photo suit, sans
+ * dupliquer le fichier.
+ */
+export function photoDuPost(p: { id: number; entite: string; titre: string | null }): number | null {
+  const d = db();
+  const propre = d
     .prepare("SELECT id FROM medias WHERE publication_id=? AND origine='photo' AND type_mime LIKE 'image/%' ORDER BY id DESC LIMIT 1")
-    .get(publicationId) as { id: number } | undefined;
-  return r?.id ?? null;
+    .get(p.id) as { id: number } | undefined;
+  if (propre) return propre.id;
+  if (!p.titre) return null;
+  const partagee = d
+    .prepare(
+      `SELECT m.id FROM medias m JOIN publications x ON x.id = m.publication_id
+        WHERE m.origine='photo' AND m.type_mime LIKE 'image/%' AND x.entite=? AND x.titre=?
+        ORDER BY m.id DESC LIMIT 1`,
+    )
+    .get(p.entite, p.titre) as { id: number } | undefined;
+  return partagee?.id ?? null;
 }
 
 /** Les voix off ElevenLabs d'un post, plan par plan (voir `genererVoixOff`). */

@@ -311,7 +311,7 @@ export default async function Videos({
               {produites.map((v) => (
                 <div key={v.id} className="carte" style={{ padding: 10 }}>
                   <video
-                    src={`/${e}/medias/${v.id}`}
+                    src={`/${e}/medias/${v.id}#t=2`}
                     controls
                     playsInline
                     preload="metadata"

@@ -6,6 +6,7 @@ import { DECISIONS, REFUS } from '@/lib/axe-visuel';
 import { videosDe } from '@/lib/videos';
 import { format } from '@/lib/formats';
 import { Medias } from '@/components/Medias';
+import { Sons } from '@/components/Sons';
 
 export default async function Visuels({
   params,
@@ -151,6 +152,11 @@ export default async function Visuels({
 
         {/* ── Images apportées ────────────────────────────────────────── */}
         <Medias entite={e} posees={posees} refus={refus} />
+
+        <div className="sep" />
+
+        {/* ── Sons : musiques et voix off ─────────────────────────────── */}
+        <Sons entite={e} />
 
         <div className="sep" />
 

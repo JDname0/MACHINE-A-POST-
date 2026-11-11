@@ -635,19 +635,23 @@ function rendreSansPhoto(
       <div style={base}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Identite t={t} />
-          <div
-            style={{
-              display: 'flex',
-              fontFamily: 'Inter',
-              fontSize: 24,
-              color: t.encreDouce,
-              border: `1px solid ${t.encreDouce}`,
-              borderRadius: 999,
-              padding: '8px 20px',
-            }}
-          >
-            {c.pagination}
-          </div>
+          {c.pagination ? (
+            <div
+              style={{
+                display: 'flex',
+                fontFamily: 'Inter',
+                fontSize: 24,
+                color: t.encreDouce,
+                border: `1px solid ${t.encreDouce}`,
+                borderRadius: 999,
+                padding: '8px 20px',
+              }}
+            >
+              {c.pagination}
+            </div>
+          ) : (
+            <div style={{ display: 'flex' }} />
+          )}
         </div>
         <Titre t={t} c={c} taille={entite === 'veolt' ? 104 : 84} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>

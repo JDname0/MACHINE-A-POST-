@@ -48,22 +48,25 @@ export function constatsDe(p: LignePublication): { constats: Constat[]; validabl
 
 /** Le gabarit et le texte du visuel généré de ce post. `null` si le format n'a pas de visuel. */
 export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; contenu: Partial<Contenu> } | null {
-  const slug = gabaritPour(p.format_slug, p.pilier);
+  let slug = gabaritPour(p.format_slug, p.pilier);
   if (!slug) return null;
+  const trouve = p.accroche.match(/(?:art\.?\s*)?[LRD]\.?\s*\d+(?:-\d+)?|\d[\d  ]*(?:\s*€|\s*%)?/i);
+  // Le gabarit « chiffre » sans chiffre réel dans l'accroche afficherait un
+  // tiret, ou pire un nombre d'exemple : on passe à l'affirmation.
+  if (slug === 'chiffre' && !trouve) slug = 'affirmation';
   const { ligne1, ligne2 } = deuxLignes(p.titre ?? '');
   const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) };
-  const photo = photoDuPost(p.id);
+  const photo = photoDuPost(p);
   if (photo) contenu.photo = String(photo);
   // La couverture d'un carrousel annonce son vrai nombre de pages (pas le « 1 / 9 » d'exemple).
   if (slug === 'carrousel') {
     const n = [...p.corps.matchAll(/PAGE\s+\d+\s*[—–-]/g)].length;
-    if (n) contenu.pagination = `1 / ${n}`;
+    contenu.pagination = n ? `1 / ${n}` : '';
   }
-  if (slug === 'chiffre') {
-    // Sur ce gabarit c'est la grande valeur qui porte : on prend le premier
-    // nombre ou la première référence d'article trouvée dans l'accroche.
-    const trouve = p.accroche.match(/(?:art\.?\s*)?[LRD]\.?\s*\d+(?:-\d+)?|\d[\d  ]*(?:\s*€|\s*%)?/i);
-    contenu.chiffre = (trouve?.[0] ?? '—').trim();
+  if (slug === 'chiffre' && trouve) {
+    // Sur ce gabarit c'est la grande valeur qui porte : le premier nombre ou la
+    // première référence d'article trouvée dans l'accroche.
+    contenu.chiffre = trouve[0].trim();
     contenu.legende = p.preuve ?? '';
     contenu.sousTitre = p.accroche.slice(0, 180);
   }
@@ -86,7 +89,7 @@ export function lienVisuel(p: LignePublication): string | null {
 export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; contenu: Partial<Contenu> }> {
   if (!/carrousel/.test(p.format_slug)) return [];
   const pages = [...p.corps.matchAll(/PAGE\s+(\d+)\s*[—–-]\s*([\s\S]*?)(?=\n\s*PAGE\s+\d+\s*[—–-]|$)/g)].map((m) => m[2].trim());
-  const photo = pages.length ? photoDuPost(p.id) : null;
+  const photo = pages.length ? photoDuPost(p) : null;
   return pages.map((texte, i) => {
     const [premiere, ...reste] = texte.split(/(?<=[.:!?])\s+/);
     const titre = premiere.length > 70 ? texte.slice(0, 70) : premiere;

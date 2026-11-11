@@ -310,7 +310,7 @@ export default async function Composeur({
                     <div key={m.id} className="grille" style={{ gridTemplateColumns: '96px minmax(0,1fr)', gap: 12 }}>
                       {estVideo(m.type_mime) ? (
                         <video
-                          src={`/${e}/medias/${m.id}`}
+                          src={`/${e}/medias/${m.id}#t=2`}
                           preload="metadata"
                           muted
                           style={{ width: 96, aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--ligne)', background: '#000' }}

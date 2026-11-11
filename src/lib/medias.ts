@@ -53,6 +53,22 @@ export const TYPES_AUDIO: Record<string, string> = { 'audio/mpeg': 'mp3', 'audio
 export const estVideo = (typeMime: string) => typeMime in TYPES_VIDEO;
 
 /**
+ * La photo de fond d'un visuel, en `data:` pour Satori. Seulement une image de
+ * la médiathèque de la MÊME entité, par identifiant — jamais une adresse.
+ */
+export async function photoEnDonnees(entite: string, id: string | number | null | undefined): Promise<string | undefined> {
+  const n = Number(id);
+  if (!Number.isInteger(n) || n <= 0) return undefined;
+  const { db } = await import('./db');
+  const m = db().prepare('SELECT cle, type_mime FROM medias WHERE id=? AND entite=?').get(n, entite) as
+    | { cle: string; type_mime: string }
+    | undefined;
+  if (!m || !(m.type_mime in TYPES_IMAGE) || m.type_mime === 'image/webp') return undefined;
+  const octets = await lire(m.cle);
+  return octets ? `data:${m.type_mime};base64,${octets.toString('base64')}` : undefined;
+}
+
+/**
  * Deux chemins de dépôt, deux plafonds. Ce n'est pas une subtilité gratuite :
  *
  * - **par action serveur** (le chemin local), le corps de la requête passe par

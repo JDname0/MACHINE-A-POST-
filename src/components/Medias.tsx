@@ -182,7 +182,7 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
               <div className="carte" key={m.id}>
                 {video ? (
                   <video
-                    src={src}
+                    src={`${src}#t=2`}
                     controls
                     preload="metadata"
                     playsInline
@@ -231,6 +231,8 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
                   <span className="pastille">{poids(m.octets)}</span>
                   {m.origine === 'genere' ? <span className="pastille" data-t="accent">généré</span> : null}
                   {m.origine === 'video' ? <span className="pastille" data-t="accent">studio</span> : null}
+                  {m.origine === 'photo' ? <span className="pastille" data-t="accent">photo de fond du post</span> : null}
+                  {m.origine === 'clip' ? <span className="pastille" data-t="accent">clip · fond de plan vidéo</span> : null}
                   {c ? (
                     <span className="pastille" data-t={c.exact ? 'ok' : 'alerte'} title={c.ou}>
                       {c.exact ? c.nom : 'hors cadre'}
