@@ -103,6 +103,10 @@ laissés par l'IA bloquent la validation. La page calendrier exporte
   base en ligne dans `data/machine-prod-<date>.db` et refuse de l'écraser si
   elle contient des actions absentes de la base locale. Pousser ensuite sur
   `main` : le redéploiement fait relire la nouvelle base aux instances.
+- **Première mise en ligne des données : 11/11/2026.** Base locale fusionnée
+  avec la base en ligne (3 posts et 34 entrées de journal repris), 142 médias
+  envoyés. Les deux bases d'avant la fusion sont gardées dans le store, sous
+  `machine-a-post/sauvegardes/` — un chemin que l'application ne lit jamais.
 - **Persistance** : store Blob privé `machine-a-post-base`, connecté en **OIDC**.
   Donc `blobActif()` teste `BLOB_STORE_ID` et pas seulement
   `BLOB_READ_WRITE_TOKEN` — ne pas « simplifier » ce test, ça ferait retomber
