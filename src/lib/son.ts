@@ -560,7 +560,8 @@ export async function composerBandeSon(duree: number, reperes: Repere[], o: Opti
   musique.gain.linearRampToValueAtTime(0, duree);
   musique.connect(maitre);
   const bruitages = ac.createGain();
-  bruitages.gain.value = 0.8;
+  // Sous une voix off, les bruitages reculent : la voix porte le message.
+  bruitages.gain.value = o.voix?.length ? 0.55 : 0.8;
   bruitages.connect(maitre);
   const rev = ac.createConvolver();
   rev.buffer = reverbe(ac, o.style === 'veolt' ? 1.6 : 2.8, o.style === 'veolt' ? 3 : 2.2, alea);
@@ -575,7 +576,7 @@ export async function composerBandeSon(duree: number, reperes: Repere[], o: Opti
   let morceau: AudioBuffer | null = null;
   if (o.musique && o.musiqueUrl) {
     try {
-      morceau = await niveler(await ac.decodeAudioData(await (await fetch(o.musiqueUrl)).arrayBuffer()), o.voix?.length ? -21 : -18);
+      morceau = prolonger(ac, await niveler(await ac.decodeAudioData(await (await fetch(o.musiqueUrl)).arrayBuffer()), -15), duree);
     } catch {
       morceau = null;
     }
@@ -608,7 +609,7 @@ export async function composerBandeSon(duree: number, reperes: Repere[], o: Opti
       s.connect(g).connect(maitre);
       s.start(Math.max(0, v.t));
       const fin = Math.min(duree, v.t + buf.duration);
-      musique.gain.setTargetAtTime(vol * 0.32, Math.max(0, v.t - 0.15), 0.08);
+      musique.gain.setTargetAtTime(vol * 0.3, Math.max(0, v.t - 0.15), 0.08);
       musique.gain.setTargetAtTime(vol, fin + 0.1, 0.25);
     } catch {
       // Une voix illisible ne bloque pas la vidéo : elle sort sans.
@@ -654,6 +655,63 @@ async function loudness(b: AudioBuffer): Promise<number> {
   const moyenne = absolus.reduce((a, b2) => a + b2, 0) / absolus.length;
   const relatifs = absolus.filter((p) => lufs(p) > lufs(moyenne) - 10);
   return lufs(relatifs.reduce((a, b2) => a + b2, 0) / Math.max(1, relatifs.length));
+}
+
+/**
+ * Un morceau généré s'éteint parfois bien avant la fin demandée (fondu de
+ * plusieurs secondes) : la vidéo finirait sur un trou. On repère où le corps du
+ * morceau s'arrête, et on le rejoue depuis un point de reprise, en fondus
+ * enchaînés, jusqu'à la fin de la vidéo — c'est le fondu de fin de la vidéo
+ * qui conclut. Un morceau qui tient jusqu'au bout n'est pas touché.
+ */
+function prolonger(ac: BaseAudioContext, b: AudioBuffer, duree: number): AudioBuffer {
+  const sr = b.sampleRate;
+  const pas = Math.floor(sr * 0.1);
+  const d0 = b.getChannelData(0);
+  const niveaux: number[] = [];
+  for (let i = 0; i + pas <= b.length; i += pas) {
+    let somme = 0;
+    for (let j = i; j < i + pas; j++) somme += d0[j] * d0[j];
+    niveaux.push(10 * Math.log10(somme / pas + 1e-12));
+  }
+  if (niveaux.length < 50) return b;
+  const mediane = [...niveaux].sort((x, y) => x - y)[Math.floor(niveaux.length / 2)];
+  let fin = niveaux.length - 1;
+  while (fin > 0 && niveaux[fin] < mediane - 12) fin--;
+  if (fin * 0.1 >= duree - 3) return b;
+  let coupe = fin;
+  while (coupe > 0 && niveaux[coupe] < mediane - 3) coupe--;
+  const tCoupe = coupe * 0.1;
+  if (tCoupe < 10) return b;
+  const reprise = Math.max(4, tCoupe * 0.3);
+  const xf = 0.8;
+  const n = Math.ceil(sr * (duree + 0.5));
+  const out = ac.createBuffer(b.numberOfChannels, n, sr);
+  // Segments : [0, coupe], puis [reprise, coupe] autant que nécessaire.
+  const segments: Array<[number, number, number]> = [[0, tCoupe, 0]];
+  let pos = tCoupe - xf;
+  while (pos < duree) {
+    segments.push([reprise, tCoupe, pos]);
+    pos += tCoupe - reprise - xf;
+  }
+  for (let c = 0; c < b.numberOfChannels; c++) {
+    const src = b.getChannelData(c);
+    const dst = out.getChannelData(c);
+    segments.forEach(([de, a, ou], k) => {
+      const i0 = Math.floor(de * sr);
+      const i1 = Math.floor(a * sr);
+      const o0 = Math.floor(ou * sr);
+      const lx = Math.floor(xf * sr);
+      for (let i = i0; i < i1 && o0 + (i - i0) < n; i++) {
+        const r = i - i0;
+        let g = 1;
+        if (k > 0 && r < lx) g = Math.sin((r / lx) * (Math.PI / 2));
+        if (i1 - i < lx) g *= Math.sin(((i1 - i) / lx) * (Math.PI / 2));
+        dst[o0 + r] += src[i] * g;
+      }
+    });
+  }
+  return out;
 }
 
 /** Ramène un morceau ou une voix à une loudness donnée, sans limiteur (le mixage final s'en charge). */

@@ -17,6 +17,34 @@ inventée, aucune passerelle entre les deux entités.
 | Blender | `outils/blender/noyau_particules.py` | Le même noyau de particules en vrai rendu 3D (profondeur de champ, halo du compositeur), séquence PNG transparente |
 | Voix, clips, LLM local | `src/lib/fournisseurs-media.ts` | ElevenLabs (voix off plan par plan, bouton dans le studio), Runway (image → vidéo), Ollama (modèle ouvert local) — prêts, en attente de clés |
 
+## 1 bis. Higgsfield — branché depuis le 11/11 (abonnement Starter, 270 crédits)
+
+Higgsfield sert de **porte d'entrée unique** : il donne accès aux voix
+ElevenLabs v4, à ElevenLabs Music et à une vingtaine de modèles vidéo, sans
+abonnement séparé. Coûts relevés le 11/11 :
+
+| Usage | Modèle | Coût |
+|---|---|---|
+| Voix off, une phrase | ElevenLabs v4 (via Higgsfield) | **0,3 crédit** |
+| Musique 45–50 s, instrumentale | ElevenLabs Music v2.5 | **≈ 7,3 crédits** |
+| Clip 5 s, 9:16, 720p, muet | Seedance 2.0 Mini / Grok 1.5 Lite | **5 crédits** |
+| Clip 5 s, 720p | Kling 3.0 Turbo | 7,5 crédits |
+| Clip 5 s, 720p | Seedance 2.5 | 35 crédits |
+
+Première production (11/11) : 15 voix, 2 musiques, 4 clips → **41 crédits**.
+Les fichiers passent par la médiathèque locale avec
+`node scripts/importer-media.mjs <entite> <clip|musique|voix> <fichier>` :
+un plan de script qui porte `clip: 'veolt-orbite'` prend le clip en fond, le
+morceau rattaché au post remplace la musique synthétisée, et les voix
+`voix-plan-<N>.mp3` se calent au début de leur plan.
+
+Le CDN de Higgsfield (`d8j0ntlcm91z4.cloudfront.net`, `cdn.higgsfield.ai`) a été
+ajouté au réseau de l'environnement cloud pour rapatrier les fichiers.
+
+**Blender** (installé dans l'environnement cloud, 4.0) : `outils/blender/logo_3d.py`
+rend le logotype de chaque marque en vraie 3D (reflets, halo), déposé comme
+clip `veolt-logo-3d` / `magistria-logo-3d` pour le plan « marque ».
+
 ## 2. Recommandations, par ordre d'effet sur la qualité
 
 ### 1) La voix off — le plus grand saut

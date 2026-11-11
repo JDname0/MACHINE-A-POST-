@@ -131,6 +131,11 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   tombe faute de mémoire. Ne pas « optimiser » ce `setTimeout`.
 - L'écran produit MagistrIA est en **verre nuit, encre #E9EEF5, accents cyan** ;
   le bordeaux n'y sert qu'au bouton d'action (« Valider »).
+- **Higgsfield** (abonnement Starter) fournit voix (ElevenLabs v4), musiques et
+  clips : surveiller les crédits (≈ 0,3 par voix, 7 par musique, 5 par clip
+  Seedance Mini). Les fichiers entrent par `scripts/importer-media.mjs` ; un
+  plan de script les appelle par nom (`clip: 'veolt-orbite'`). Un clip absent
+  n'est pas une erreur : le plan retombe sur la 3D / la carte.
 - `src/lib/export-ae.ts` (projet After Effects .jsx), `outils/blender/`
   (noyau de particules en vrai rendu), `src/lib/fournisseurs-media.ts`
   (ElevenLabs, Runway, Ollama — clés serveur uniquement, bouton pressé par
