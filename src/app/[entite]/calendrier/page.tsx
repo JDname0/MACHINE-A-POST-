@@ -11,6 +11,9 @@ import { recalerCalendrier, memoriserSemaine } from '@/app/actions';
 import { BoutonVideo } from '@/components/BoutonVideo';
 import { ProductionLot } from '@/components/ProductionLot';
 import { GenerateurArticle } from '@/components/GenerateurArticle';
+import { ImporterPost } from '@/components/ImporterPost';
+import { TOUS_FORMATS } from '@/lib/formats';
+import { depotDirect, plafondDepotVideo, TAILLE_MAX_DOCUMENT, TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO } from '@/lib/medias';
 import { ARTICLES, articlesDe } from '@/lib/sujets';
 import { iaDisponible } from '@/lib/ia';
 import { echeancesVideo, imagesMemoire, montagePret } from '@/lib/production';
@@ -37,11 +40,12 @@ export default async function Calendrier({
     memorises?: string;
     cree?: string;
     deja?: string;
+    importe?: string;
     erreurArticle?: string;
   }>;
 }) {
   const { entite } = await params;
-  const { recale, apercu, reglages, refait, memorises, cree, deja, erreurArticle } = await searchParams;
+  const { recale, apercu, reglages, refait, memorises, cree, deja, erreurArticle, importe } = await searchParams;
   const ouvert = apercu ? publication(Number(apercu)) : undefined;
   const e = entite as EntiteSlug;
   const m = marque(e);
@@ -80,6 +84,12 @@ export default async function Calendrier({
       libelle: `${p.semaine ? `S${p.semaine} · ` : ''}${court(p.date_prevue)} · ${format(p.format_slug).nom.replace(/^.*— /, '')} — ${p.titre}`,
     }));
   const creneau = prochainCreneauBlog(e);
+  // « Importer un post fait ailleurs » : les formats de la marque, et le chemin
+  // de dépôt disponible (direct au store en production, action en local).
+  const direct = depotDirect();
+  const plafondLocal = plafondDepotVideo();
+  const demain = new Date();
+  demain.setDate(demain.getDate() + 1);
   const libelleCreneau = `${court(creneau.date)}${creneau.semaine ? ` (semaine ${creneau.semaine})` : ' (après les 12 semaines)'}`;
 
   // Le premier lundi actuel, et celui qu'on propose : le lundi qui vient.
@@ -119,6 +129,25 @@ export default async function Calendrier({
           creneau={{ date: creneau.date, libelle: libelleCreneau }}
           ouvert={!!erreurArticle}
         />
+
+        <details className="encart" style={{ marginBottom: 18 }}>
+          <summary style={{ cursor: 'pointer' }}>
+            <strong>📥 Importer un post fait ailleurs</strong>{' '}
+            <span className="aide">— vidéo, images, carrousel ou PDF, avec son texte : il entre au calendrier en brouillon</span>
+          </summary>
+          <div style={{ marginTop: 12 }}>
+            <ImporterPost
+              entite={e}
+              formats={TOUS_FORMATS.filter((x) => m.reseaux[x.reseau] !== 'exclu' && x.reseau !== 'blog').map((x) => ({ slug: x.slug, nom: x.nom }))}
+              piliers={m.piliers.map((x) => ({ slug: x.slug, nom: x.nom }))}
+              personas={m.personas.map((x) => ({ slug: x.slug, nom: x.nom }))}
+              preuveIndice={m.preuvesAutorisees.slice(0, 2).join(' ; ')}
+              dateDefaut={iso(demain)}
+              direct={direct}
+              plafonds={direct ? { image: TAILLE_MAX_IMAGE, video: TAILLE_MAX_VIDEO, document: TAILLE_MAX_DOCUMENT } : { image: plafondLocal, video: plafondLocal, document: plafondLocal }}
+            />
+          </div>
+        </details>
 
         {memorises != null && !apercu ? (
           <div className="encart" style={{ marginBottom: 14 }}>
@@ -280,7 +309,9 @@ export default async function Calendrier({
           p={ouvert}
           fermer={`/${e}/calendrier`}
           notice={
-            cree === '1'
+            importe === '1'
+              ? '✅ Post importé en brouillon. Vérifie le texte découpé (accroche, appel), la preuve et les fichiers, puis valide.'
+              : cree === '1'
               ? '✅ Article généré en brouillon. Relis-le, complète les éventuels « [?] », puis valide.'
               : deja === '1'
                 ? 'Cet article du plan est déjà au calendrier : le voici, plutôt qu’un doublon.'

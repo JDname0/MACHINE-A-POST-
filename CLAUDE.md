@@ -75,11 +75,21 @@ tout ce qu'il faut pour le produire et le poster, selon le format :
 | Article de blog | « Régénérer l'article » + couverture 1200 × 630 (gabarit `couverture`) ; **« ✍️ Générer un article »** en haut du calendrier (`GenerateurArticle.tsx`) : développer un post du calendrier, poser un article de la réserve du plan, ou requête libre (IA, `redigerArticle` dans `ia.ts`) | Télécharger la couverture, vue « lecture », « Copier en HTML (site) » |
 | Vidéo | « Générer / Régénérer la vidéo » (navigateur), lot par semaine | Télécharger la vidéo |
 | Tous | « Régénérer le texte » depuis le sujet (sans IA), « Réécrire avec l'IA » (proposition à adopter) | « Copier le texte » (légende seule pour un carrousel) |
+| **Post fait ailleurs** | « 📥 Téléverser un post fait ailleurs » dans l'aperçu (vidéo, images, PDF) ; « 📥 Importer un post fait ailleurs » en haut du calendrier (post + texte + fichiers) | Les fichiers fournis **sont** le post ; le généré passe en repli. Carrousel : ordre ↑ ↓, PDF LinkedIn assemblé depuis les images fournies |
 
 « Régénérer le texte » met l'ancien texte au journal et repasse le post en
 brouillon s'il a changé. Une ligne par semaine du calendrier lance les visuels
 de la semaine. **Rien de tout ça ne publie** : Valider reste le geste de Jonathan.
 La route PDF, comme la route PNG, vérifie la session elle-même.
+
+**Post fait ailleurs** (`TeleverserLivrables.tsx`, `ImporterPost.tsx`, `envoi-livrables.ts`) :
+les fichiers sont des médias d'origine `livrable`, rangés par `medias.ordre`.
+En production ils partent **directement** au store (vidéo jusqu'à 300 Mo, PDF
+50 Mo) puis `enregistrerTeleversement` les inscrit ; en local, l'action
+`deposerLivrables`. Le PDF n'est accepté **que** comme livrable, pas dans la
+médiathèque générale. Un post importé entre en brouillon, découpé comme les
+autres (accroche, corps, appel, hashtags), et passe les garde-fous : persona et
+preuve sont demandés à l'import, une preuve vide le laisse bloqué.
 
 Le générateur d'articles **s'appuie sur le calendrier** : la date proposée est
 le prochain créneau « blog » libre (`prochainCreneauBlog`), un article qui

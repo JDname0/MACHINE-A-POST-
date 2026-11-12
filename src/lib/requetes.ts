@@ -281,3 +281,27 @@ export function prochainCreneauBlog(entite: EntiteSlug): { date: string; semaine
   dernier.setUTCDate(dernier.getUTCDate() + 7);
   return { date: iso(dernier) < min ? min : iso(dernier), semaine: null };
 }
+
+/**
+ * Le post fourni : les fichiers faits hors de la machine et téléversés sur ce
+ * post (origine « livrable »), dans l'ordre de publication — les pages d'un
+ * carrousel se suivent par `ordre`, puis par nom de fichier.
+ */
+export function livrablesDe(publicationId: number): LigneMedia[] {
+  return db()
+    .prepare("SELECT * FROM medias WHERE publication_id = ? AND origine = 'livrable' ORDER BY COALESCE(ordre, 1e9), nom COLLATE NOCASE, id")
+    .all(publicationId) as LigneMedia[];
+}
+
+/** La semaine du calendrier où tombe une date, si elle tombe dans l'une d'elles. */
+export function semaineDuCalendrier(entite: EntiteSlug, date: string): number | null {
+  const j = new Date(`${date}T12:00:00Z`);
+  const lundi = new Date(j);
+  lundi.setUTCDate(j.getUTCDate() - ((j.getUTCDay() + 6) % 7));
+  const dimanche = new Date(lundi);
+  dimanche.setUTCDate(lundi.getUTCDate() + 6);
+  const r = db()
+    .prepare('SELECT semaine FROM publications WHERE entite=? AND semaine IS NOT NULL AND date_prevue BETWEEN ? AND ? LIMIT 1')
+    .get(entite, lundi.toISOString().slice(0, 10), dimanche.toISOString().slice(0, 10)) as { semaine: number } | undefined;
+  return r?.semaine ?? null;
+}

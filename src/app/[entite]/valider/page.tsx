@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Flanc } from '@/components/Flanc';
 import { marque, type EntiteSlug } from '@/lib/marques';
 import { format } from '@/lib/formats';
-import { publications, compteursMenu, formaterDate, LIBELLE_STATUT, mediasDePublication } from '@/lib/requetes';
+import { publications, compteursMenu, formaterDate, LIBELLE_STATUT, livrablesDe, mediasDePublication } from '@/lib/requetes';
 import { constatsDe, lienVisuel, texteAColler } from '@/lib/fiche';
 import { trancher, memoriserSemaine } from '@/app/actions';
 import { AssistantIA } from '@/components/AssistantIA';
@@ -106,6 +106,9 @@ export default async function Valider({
           const { constats, validable } = constatsDe(p);
           const visuel = lienVisuel(p);
           const medias = mediasDePublication(p.id);
+          // Un post fait ailleurs se valide sur ses propres fichiers, pas sur le visuel généré.
+          const fournis = livrablesDe(p.id);
+          const premier = fournis[0];
           const blocages = constats.filter((c) => c.niveau === 'blocage');
           const alertes = constats.filter((c) => c.niveau === 'alerte');
           const tranche = !A_TRANCHER.has(p.statut);
@@ -142,7 +145,34 @@ export default async function Valider({
 
               <div className="grille" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', alignItems: 'start' }}>
                 <div>
-                  {visuel ? (
+                  {premier ? (
+                    <div>
+                      {premier.type_mime.startsWith('video/') ? (
+                        <video
+                          src={`/${e}/medias/${premier.id}#t=1`}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          style={{ width: '100%', maxHeight: 420, borderRadius: 10, background: '#000', display: 'block' }}
+                        />
+                      ) : premier.type_mime.startsWith('image/') ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={`/${e}/medias/${premier.id}`}
+                          alt={`Post fourni — ${p.titre}`}
+                          loading="lazy"
+                          style={{ width: '100%', height: 'auto', borderRadius: 10, border: '1px solid var(--ligne)', display: 'block' }}
+                        />
+                      ) : (
+                        <a className="encart" style={{ display: 'block', margin: 0 }} href={`/${e}/medias/${premier.id}`} target="_blank" rel="noreferrer">
+                          📄 {premier.nom} — ouvrir le document
+                        </a>
+                      )}
+                      <div className="aide" style={{ marginTop: 6 }}>
+                        📥 Post fourni, fait hors de la machine · {fournis.length} fichier{fournis.length > 1 ? 's' : ''} — tout voir dans le calendrier.
+                      </div>
+                    </div>
+                  ) : visuel ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={visuel}

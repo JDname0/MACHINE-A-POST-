@@ -26,6 +26,8 @@ const TYPES_SERVIS = new Set([
   'video/webm',
   'audio/mpeg',
   'audio/wav',
+  // Un carrousel LinkedIn fait ailleurs arrive en PDF (post fourni).
+  'application/pdf',
 ]);
 
 export async function GET(requete: Request, { params }: { params: Promise<{ entite: string; id: string }> }) {

@@ -177,6 +177,7 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
             const c = cadre(m.largeur, m.hauteur);
             const src = `/${entite}/medias/${m.id}`;
             const video = estVideo(m.type_mime);
+            const pdf = m.type_mime === 'application/pdf';
             const d = duree(m.duree_s);
             return (
               <div className="carte" key={m.id}>
@@ -196,6 +197,27 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
                       display: 'block',
                     }}
                   />
+                ) : pdf ? (
+                  <a
+                    href={src}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Ouvrir le document"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      aspectRatio: '4 / 5',
+                      background: 'var(--fond)',
+                      borderRadius: 9,
+                      border: '1px solid var(--ligne)',
+                      fontSize: 15,
+                      fontWeight: 600,
+                    }}
+                  >
+                    📄 Document PDF — ouvrir
+                  </a>
                 ) : (
                   <a href={src} target="_blank" rel="noreferrer" title="Ouvrir en taille réelle">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -222,7 +244,7 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
 
                 <div className="rang" style={{ gap: 6, marginTop: 9 }}>
                   <span className="pastille" data-t={video ? 'accent' : undefined}>
-                    {video ? 'vidéo' : 'image'}
+                    {video ? 'vidéo' : pdf ? 'document' : 'image'}
                   </span>
                   <span className="pastille">
                     {m.largeur && m.hauteur ? `${m.largeur} × ${m.hauteur}` : 'dimensions inconnues'}
@@ -233,6 +255,7 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
                   {m.origine === 'video' ? <span className="pastille" data-t="accent">studio</span> : null}
                   {m.origine === 'photo' ? <span className="pastille" data-t="accent">photo de fond du post</span> : null}
                   {m.origine === 'clip' ? <span className="pastille" data-t="accent">clip · fond de plan vidéo</span> : null}
+                  {m.origine === 'livrable' ? <span className="pastille" data-t="accent">post fourni · fait ailleurs</span> : null}
                   {c ? (
                     <span className="pastille" data-t={c.exact ? 'ok' : 'alerte'} title={c.ou}>
                       {c.exact ? c.nom : 'hors cadre'}

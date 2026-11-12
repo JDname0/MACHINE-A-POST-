@@ -227,6 +227,9 @@ function migrer(d: Database.Database) {
     ['medias', 'origine', "TEXT NOT NULL DEFAULT 'apporte'"],
     // Signature du contenu d'un visuel généré : évite d'en mémoriser deux fois le même.
     ['medias', 'empreinte', 'TEXT'],
+    // Rang d'un fichier dans un post fourni (« livrable ») : l'ordre des pages
+    // d'un carrousel fait ailleurs. Vide pour tout le reste.
+    ['medias', 'ordre', 'INTEGER'],
   ];
   for (const [table, colonne, type] of ajouts) {
     const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;

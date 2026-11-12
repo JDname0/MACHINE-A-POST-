@@ -47,6 +47,15 @@ export const TYPES_VIDEO: Record<string, string> = {
 };
 
 export const TYPES_ACCEPTES: Record<string, string> = { ...TYPES_IMAGE, ...TYPES_VIDEO };
+/**
+ * Un document (le PDF d'un carrousel LinkedIn fait ailleurs). Accepté
+ * seulement comme **post fourni** (origine « livrable ») : la médiathèque
+ * générale reste aux images et aux vidéos, qui sont la matière des montages.
+ */
+export const TYPES_DOCUMENT: Record<string, string> = { 'application/pdf': 'pdf' };
+/** Ce qu'on peut téléverser comme post fait hors de la machine. */
+export const TYPES_LIVRABLE: Record<string, string> = { ...TYPES_ACCEPTES, ...TYPES_DOCUMENT };
+export const estDocument = (typeMime: string) => typeMime in TYPES_DOCUMENT;
 /** Pistes audio (voix off ElevenLabs, musique déposée) : servies au studio, pas montrées comme visuels. */
 export const TYPES_AUDIO: Record<string, string> = { 'audio/mpeg': 'mp3', 'audio/wav': 'wav' };
 
@@ -84,11 +93,12 @@ export async function photoEnDonnees(entite: string, id: string | number | null 
 export const TAILLE_MAX_ACTION = 4 * 1024 * 1024;
 export const TAILLE_MAX_IMAGE = 10 * 1024 * 1024;
 export const TAILLE_MAX_VIDEO = 300 * 1024 * 1024;
+export const TAILLE_MAX_DOCUMENT = 50 * 1024 * 1024;
 
 /** Le plafond qui s'applique vraiment, selon le chemin et le type. */
 export function plafond(typeMime: string, directVersBlob: boolean): number {
   if (!directVersBlob) return TAILLE_MAX_ACTION;
-  return estVideo(typeMime) ? TAILLE_MAX_VIDEO : TAILLE_MAX_IMAGE;
+  return estVideo(typeMime) ? TAILLE_MAX_VIDEO : estDocument(typeMime) ? TAILLE_MAX_DOCUMENT : TAILLE_MAX_IMAGE;
 }
 
 /**
@@ -113,7 +123,7 @@ const PREFIXE = 'machine-a-post/medias/';
 const DOSSIER = EN_SERVERLESS ? '/tmp/medias' : path.join(process.cwd(), 'data', 'medias');
 
 export function nouvelleCle(typeMime: string): string {
-  return `${randomUUID()}.${TYPES_ACCEPTES[typeMime] ?? TYPES_AUDIO[typeMime] ?? 'bin'}`;
+  return `${randomUUID()}.${TYPES_ACCEPTES[typeMime] ?? TYPES_AUDIO[typeMime] ?? TYPES_DOCUMENT[typeMime] ?? 'bin'}`;
 }
 
 export async function ecrire(cle: string, octets: Buffer, typeMime: string): Promise<void> {

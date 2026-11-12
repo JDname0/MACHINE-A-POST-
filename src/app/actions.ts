@@ -539,6 +539,165 @@ export async function genererArticle(fd: FormData) {
   redirect(`${retour}?apercu=${id}&cree=1`);
 }
 
+/** Le rang suivant dans un post fourni : les fichiers s'ajoutent à la suite. */
+function prochainRangLivrable(publicationId: number): number {
+  const r = db().prepare("SELECT MAX(ordre) m FROM medias WHERE publication_id=? AND origine='livrable'").get(publicationId) as { m: number | null };
+  return (r.m ?? 0) + 1;
+}
+
+/**
+ * « Importer un post fait ailleurs » : crée le post (format, date, texte,
+ * persona, preuve) ; les fichiers suivent, téléversés sur lui par le
+ * navigateur. Le texte collé est découpé comme un post de la machine : premier
+ * paragraphe en accroche, dernier en appel s'il pose une question, hashtags
+ * finaux à part. Le post entre en **brouillon** et passe les garde-fous comme
+ * les autres — rien ne part sans « Valider ».
+ */
+export async function creerPostImporte(fd: FormData): Promise<{ ok: true; id: number } | { ok: false; raison: string }> {
+  const entite = String(fd.get('entite'));
+  const { marque, estEntite } = await import('@/lib/marques');
+  const { format, TOUS_FORMATS } = await import('@/lib/formats');
+  const { semaineDuCalendrier } = await import('@/lib/requetes');
+  if (!estEntite(entite)) return { ok: false, raison: 'Entité inconnue.' };
+  const m = marque(entite);
+  const formatSlug = String(fd.get('format_slug') ?? '');
+  if (!TOUS_FORMATS.some((f) => f.slug === formatSlug) || m.reseaux[format(formatSlug as never).reseau] === 'exclu') {
+    return { ok: false, raison: 'Format inconnu ou exclu pour cette marque.' };
+  }
+  const date = String(fd.get('date_prevue') ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, raison: 'Date manquante.' };
+  const pilier = m.piliers.some((x) => x.slug === fd.get('pilier')) ? String(fd.get('pilier')) : m.piliers[0].slug;
+  const persona = m.personas.some((x) => x.slug === fd.get('persona')) ? String(fd.get('persona')) : null;
+  const titre = String(fd.get('titre') ?? '').trim().slice(0, 200) || 'Post importé';
+  const preuve = String(fd.get('preuve') ?? '').trim() || null;
+
+  // Le texte collé, découpé comme un post de la machine.
+  const brut = String(fd.get('texte') ?? '').replace(/\r\n/g, '\n').trim();
+  const blocs = brut.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  let hashtags = '';
+  if (blocs.length && /^(#[\p{L}\p{N}_]+\s*)+$/u.test(blocs[blocs.length - 1])) hashtags = blocs.pop()!;
+  const accroche = blocs.shift() ?? '';
+  const appel = blocs.length > 1 && blocs[blocs.length - 1].includes('?') ? blocs.pop()! : '';
+  const corps = blocs.join('\n\n');
+
+  try {
+    const info = db()
+      .prepare(
+        `INSERT INTO publications (entite, format_slug, pilier, persona, sujet_ref, date_prevue, semaine, phase, raison,
+          statut, titre, accroche, corps, appel, hashtags, consignes_visuel, preuve, indicateur)
+         VALUES (?,?,?,?,NULL,?,?,NULL,?, 'brouillon', ?,?,?,?,?,?,?,?)`,
+      )
+      .run(
+        entite,
+        formatSlug,
+        pilier,
+        persona,
+        date,
+        semaineDuCalendrier(entite, date),
+        `Post fait hors de la machine, importé le ${new Date().toISOString().slice(0, 10)}.`,
+        titre,
+        accroche,
+        corps,
+        appel,
+        hashtags,
+        'POST FOURNI — les fichiers joints sont le post ; le visuel généré par l’outil ne sert que de repli.',
+        preuve,
+        format(formatSlug as never).indicateurCle,
+      );
+    const id = Number(info.lastInsertRowid);
+    tracer('post importé', `publication ${id} (${date}) : « ${titre} » · ${formatSlug}`, entite);
+    await sauvegarder();
+    revalidatePath(`/${entite}/calendrier`);
+    revalidatePath(`/${entite}/publications`);
+    revalidatePath(`/${entite}/valider`);
+    return { ok: true, id };
+  } catch (e) {
+    if (/UNIQUE/i.test((e as Error).message)) {
+      return { ok: false, raison: 'Un post de ce format et de ce pilier existe déjà ce jour-là : changer la date ou le pilier.' };
+    }
+    throw e;
+  }
+}
+
+/**
+ * Le dépôt d'un post fourni quand le store Blob n'existe pas (développement
+ * local) : les fichiers passent par l'action. En production, le navigateur les
+ * envoie directement au store, puis `enregistrerTeleversement` les inscrit.
+ */
+export async function deposerLivrables(fd: FormData): Promise<{ posees: number; refus: string[] }> {
+  const entite = String(fd.get('entite'));
+  const publicationId = Number(fd.get('publication_id'));
+  const { publication } = await import('@/lib/requetes');
+  const p = publication(publicationId);
+  if (!p || p.entite !== entite) return { posees: 0, refus: ['Post introuvable.'] };
+  const { TYPES_LIVRABLE, nouvelleCle, ecrire, dimensions, dimensionsVideo, estVideo, estDocument, poids, plafondDepotVideo } = await import('@/lib/medias');
+  const refus: string[] = [];
+  let posees = 0;
+  for (const f of fd.getAll('fichiers').filter((x): x is File => x instanceof File && x.size > 0)) {
+    if (!(f.type in TYPES_LIVRABLE)) {
+      refus.push(`${f.name} — ${f.type || 'type inconnu'} : image, vidéo ou PDF seulement`);
+      continue;
+    }
+    if (f.size > plafondDepotVideo()) {
+      refus.push(`${f.name} — ${poids(f.size)}, au-delà de ce que ce chemin de dépôt accepte`);
+      continue;
+    }
+    const octets = Buffer.from(await f.arrayBuffer());
+    const d = estDocument(f.type) ? null : estVideo(f.type) ? dimensionsVideo(octets) : dimensions(octets, f.type);
+    const cle = nouvelleCle(f.type);
+    await ecrire(cle, octets, f.type);
+    db()
+      .prepare(
+        `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, duree_s, publication_id, origine, ordre)
+         VALUES (?,?,?,?,?,?,?,?,?, 'livrable', ?)`,
+      )
+      .run(
+        entite,
+        cle,
+        f.name,
+        f.type,
+        octets.byteLength,
+        d?.largeur ?? null,
+        d?.hauteur ?? null,
+        (d && 'duree' in d ? d.duree : null) ?? null,
+        publicationId,
+        prochainRangLivrable(publicationId),
+      );
+    posees++;
+  }
+  if (posees) tracer('post fourni téléversé', `publication ${publicationId} : ${posees} fichier(s)`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/visuels`);
+  revalidatePath(`/${entite}/publications/${publicationId}`);
+  return { posees, refus };
+}
+
+/** Change l'ordre d'un fichier dans un post fourni (une page de carrousel monte ou descend). */
+export async function deplacerLivrable(fd: FormData) {
+  const entite = String(fd.get('entite'));
+  const id = Number(fd.get('id'));
+  const sens = fd.get('sens') === 'haut' ? -1 : 1;
+  const retour = String(fd.get('retour') ?? '') || `/${entite}/calendrier`;
+  const { livrablesDe } = await import('@/lib/requetes');
+  const m = db().prepare("SELECT publication_id FROM medias WHERE id=? AND entite=? AND origine='livrable'").get(id, entite) as
+    | { publication_id: number }
+    | undefined;
+  if (m) {
+    const liste = livrablesDe(m.publication_id);
+    const i = liste.findIndex((x) => x.id === id);
+    const j = i + sens;
+    if (i >= 0 && j >= 0 && j < liste.length) {
+      [liste[i], liste[j]] = [liste[j], liste[i]];
+      const maj = db().prepare('UPDATE medias SET ordre=? WHERE id=?');
+      db().transaction(() => liste.forEach((x, k) => maj.run(k + 1, x.id)))();
+      await sauvegarder();
+    }
+  }
+  revalidatePath(`/${entite}/calendrier`);
+  redirect(retour);
+}
+
 /** Demande une réécriture à l'IA. Le post n'est pas touché : la proposition attend une décision. */
 export async function demanderIA(fd: FormData) {
   const id = Number(fd.get('id'));
@@ -1048,7 +1207,11 @@ export async function supprimerMedia(fd: FormData) {
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/visuels`);
+  revalidatePath(`/${entite}/calendrier`);
   if (row.publication_id) revalidatePath(`/${entite}/publications/${row.publication_id}`);
+  // Retiré depuis l'aperçu du calendrier : on y revient.
+  const retour = String(fd.get('retour') ?? '');
+  if (retour.startsWith(`/${entite}/`)) redirect(retour);
 }
 
 /**
@@ -1072,8 +1235,9 @@ export async function enregistrerTeleversement(fd: FormData) {
   if (!chemin.startsWith(prefixe)) return { ok: false as const, raison: 'Chemin de dépôt inattendu.' };
   const cle = chemin.slice(prefixe.length);
 
-  const { TYPES_ACCEPTES } = await import('@/lib/medias');
+  const { TYPES_ACCEPTES, TYPES_LIVRABLE } = await import('@/lib/medias');
   const { head } = await import('@vercel/blob');
+  const livrable = fd.get('origine') === 'livrable';
   let taille: number;
   let typeMime: string;
   try {
@@ -1083,7 +1247,7 @@ export async function enregistrerTeleversement(fd: FormData) {
   } catch {
     return { ok: false as const, raison: 'Fichier introuvable dans le stockage — dépôt interrompu ?' };
   }
-  if (!(typeMime in TYPES_ACCEPTES)) return { ok: false as const, raison: `Type refusé : ${typeMime}.` };
+  if (!(typeMime in (livrable ? TYPES_LIVRABLE : TYPES_ACCEPTES))) return { ok: false as const, raison: `Type refusé : ${typeMime}.` };
 
   const n = (k: string) => {
     const v = String(fd.get(k) ?? '').trim();
@@ -1094,8 +1258,8 @@ export async function enregistrerTeleversement(fd: FormData) {
 
   db()
     .prepare(
-      `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, duree_s, legende, publication_id, origine)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, duree_s, legende, publication_id, origine, ordre)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
     )
     .run(
       entite,
@@ -1108,7 +1272,8 @@ export async function enregistrerTeleversement(fd: FormData) {
       n('duree_s'),
       String(fd.get('legende') ?? '').trim() || null,
       publicationId,
-      fd.get('origine') === 'video' ? 'video' : 'apporte',
+      livrable ? 'livrable' : fd.get('origine') === 'video' ? 'video' : 'apporte',
+      livrable && publicationId ? prochainRangLivrable(publicationId) : null,
     );
   if (fd.get('origine') === 'video' && publicationId) await remplacerAnciennesVideos(publicationId, cle);
   tracer('fichier déposé', `${fd.get('nom')} · ${typeMime}`, entite);

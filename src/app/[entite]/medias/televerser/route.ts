@@ -2,7 +2,7 @@ import { handleUploadPresigned, type HandleUploadPresignedBody } from '@vercel/b
 import { issueSignedToken } from '@vercel/blob';
 import { estEntite } from '@/lib/marques';
 import { connecte } from '@/lib/auth';
-import { TYPES_IMAGE, TYPES_VIDEO, TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO } from '@/lib/medias';
+import { TYPES_IMAGE, TYPES_VIDEO, TYPES_DOCUMENT, TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO, TAILLE_MAX_DOCUMENT } from '@/lib/medias';
 
 /**
  * Signe un jeton pour que le navigateur téléverse **directement** vers le
@@ -30,7 +30,7 @@ import { TYPES_IMAGE, TYPES_VIDEO, TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO } from '@/
  *   une vérification côté navigateur, qu'on ne contrôle pas.
  */
 
-const CHEMIN_ATTENDU = /^machine-a-post\/medias\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp|gif|mp4|mov|webm)$/;
+const CHEMIN_ATTENDU = /^machine-a-post\/medias\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp|gif|mp4|mov|webm|pdf)$/;
 
 export async function POST(requete: Request, { params }: { params: Promise<{ entite: string }> }) {
   if (!(await connecte())) return new Response('Non autorisé', { status: 401 });
@@ -47,9 +47,10 @@ export async function POST(requete: Request, { params }: { params: Promise<{ ent
       getSignedToken: async (chemin) => {
         if (!CHEMIN_ATTENDU.test(chemin)) throw new Error('Chemin de dépôt refusé');
         const video = /\.(mp4|mov|webm)$/.test(chemin);
+        const document = /\.pdf$/.test(chemin);
         const contraintes = {
-          allowedContentTypes: Object.keys(video ? TYPES_VIDEO : TYPES_IMAGE),
-          maximumSizeInBytes: video ? TAILLE_MAX_VIDEO : TAILLE_MAX_IMAGE,
+          allowedContentTypes: Object.keys(video ? TYPES_VIDEO : document ? TYPES_DOCUMENT : TYPES_IMAGE),
+          maximumSizeInBytes: video ? TAILLE_MAX_VIDEO : document ? TAILLE_MAX_DOCUMENT : TAILLE_MAX_IMAGE,
         };
         // Une heure : le temps d'un gros téléversement sur une connexion
         // moyenne, pas davantage. Le jeton ne porte que l'écriture, et que sur
