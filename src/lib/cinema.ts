@@ -1554,7 +1554,7 @@ export function sceneObjet3D(
       // Six cadrages nommés (face, trois-quarts, plongée, profil, dos, détail) : l'objet
       // y oscille à peine — ce sont des prises de vue, pas un manège.
       const [ang, inc] = VUES[k % VUES.length];
-      const img = moteur.rendre({ t: e.t, couleur: cols[k % cols.length], angle: ang + Math.sin(tl * 0.8 + k) * 0.1, inclinaison: inc, fil: 0 });
+      const img = moteur.rendre({ t: e.t, couleur: cols[k % cols.length], angle: ang + Math.sin(tl * 0.8 + k) * 0.1, inclinaison: inc, fil: 0, leger: true });
       const iy = y + ch / 2 - taille / 2 - ch * 0.03;
       ombreSol(cx, x + cw / 2, iy + taille * moteur.pied, taille * 0.3, 1);
       cx.drawImage(img, x + cw / 2 - taille / 2, iy, taille, taille);

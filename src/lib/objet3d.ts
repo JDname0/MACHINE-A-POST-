@@ -35,6 +35,12 @@ export interface EtatObjet {
   inclinaison: number;
   /** 1 : maillage brut (fil de fer) ; 0 : rendu final. */
   fil: number;
+  /**
+   * Rendu allégé, pour une petite vignette (grille de déclinaisons) : la toile
+   * interne est divisée par deux. Six rendus en pleine définition par image
+   * feraient ramer la fabrication pour un détail que la vignette ne montre pas.
+   */
+  leger?: boolean;
 }
 
 export interface MoteurObjet {
@@ -226,9 +232,15 @@ export async function creerMoteurObjet(marque: 'veolt' | 'magistria', cote: numb
   const visible = 2 * CAM_Z * Math.tan((26 / 2) * (Math.PI / 180));
   const pied = 0.5 + (demi + 0.35 * 0.2) / visible;
 
+  let taille = interne;
   return {
     pied,
     rendre(e: EtatObjet) {
+      const voulue = e.leger ? Math.round(interne / 2) : interne;
+      if (voulue !== taille) {
+        taille = voulue;
+        renderer.setSize(taille, taille, false);
+      }
       couleur.set(e.couleur);
       liquide.color.copy(couleur);
       liquide.emissive.copy(couleur).multiplyScalar(0.16);
