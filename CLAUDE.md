@@ -206,11 +206,16 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   (Veolt) et du fondu flouté (MagistrIA). MagistrIA n'ouvre au volet que ses
   chapitres — ne pas lui donner le montage de Veolt.
 - **Scènes qui montrent** : `mots` (typographie plein cadre), `courbe`,
-  `parcours`, `rapport`, `objet3d`, `vitrine`. Une `courbe` n'affiche **aucune
-  valeur** sur ses axes ; `rapport` et `objet3d` sont des EXEMPLES, et leur
-  `mention` le dit à l'écran. Ne pas retirer ces mentions : c'est la règle 2.
-- **`objet3d`** est un vrai rendu three.js (matériaux physiques, éclairage par
-  environnement), sur une toile réutilisée : la dessiner avant le rendu suivant.
+  `parcours`, `rapport`, `objet3d`, `vitrine`, `dashboard` (indicateurs,
+  graphique gradué, jauge). Une `courbe` sans `unite` n'affiche **aucune
+  valeur** ; avec `unite`, comme un `dashboard`, elle est graduée et porte des
+  chiffres d'EXEMPLE. `rapport`, `objet3d`, `dashboard` : la `mention` le dit à
+  l'écran. Ne pas retirer ces mentions : c'est la règle 2.
+- **`objet3d`** est un vrai rendu three.js : verre en transmission, liquide,
+  capot métal, étiquette imprimée, studio de boîtes à lumière préfiltré,
+  sur-échantillonnage 1,5×, reflet et ombre au sol. La toile est réutilisée :
+  la dessiner avant le rendu suivant. Le liquide est opaque **exprès** : deux
+  matériaux en transmission ne se voient pas l'un à travers l'autre.
 - **Caméra d'écran** dans `sceneApp` : une passe « à sec » (`aSec`) calcule le
   point d'attention, puis la fenêtre est poussée vers lui. La poussée est
   bornée pour rester dans les marges — ne pas l'augmenter sans regarder une

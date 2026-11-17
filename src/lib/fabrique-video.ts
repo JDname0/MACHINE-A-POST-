@@ -41,7 +41,7 @@ import { CollecteReperes, codecAudio, composerBandeSon, encoderAudio, FREQ, type
 import { verre, grainFilm, vignette, filtreDisponible } from './verre';
 import type { Forme3D, Moteur3D, Place3D } from './scene3d';
 import type { MoteurObjet } from './objet3d';
-import { appliquerCamera, cameraDe, composerRaccord, raccordDe, DUREE_RACCORD, sceneCourbe, sceneMots, sceneObjet3D, sceneParcours, sceneRapport, sceneVitrine } from './cinema';
+import { appliquerCamera, cameraDe, composerRaccord, raccordDe, DUREE_RACCORD, sceneCourbe, sceneMots, sceneDashboard, sceneObjet3D, sceneParcours, sceneRapport, sceneVitrine } from './cinema';
 import { enregistrerTeleversement, deposerVideoMontee } from '@/app/actions';
 
 export interface ImageDispo {
@@ -327,7 +327,7 @@ async function preparerRendu(m: Montage) {
   let moteurObjet: MoteurObjet | null = null;
   if (plans.some((x) => x.scene?.type === 'objet3d')) {
     const { creerMoteurObjet } = await import('./objet3d');
-    moteurObjet = await creerMoteurObjet(marque, Math.round(L * 0.9));
+    moteurObjet = await creerMoteurObjet(marque, Math.round(L * 0.9), titre.famille);
   }
   const formeDefaut: Forme3D = marque === 'veolt' ? 'sphere' : 'cerveau';
   const PLACES: Record<Place3D, { cx: number; cy: number; r: number; i: number }> = {
@@ -883,6 +883,7 @@ async function preparerRendu(m: Montage) {
     else if (sc.type === 'parcours') sceneParcours(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'rapport') sceneRapport(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'objet3d') sceneObjet3D(cx, env, sc, moteurObjet, tl, d, y0, y1);
+    else if (sc.type === 'dashboard') sceneDashboard(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'vitrine') sceneVitrine(cx, env, sc, plans[i].source.type === 'media' ? sources[i] : null, tl, y0, y1);
   };
 

@@ -93,7 +93,7 @@ export function mouvementDe(p: PlanMontage, i: number): MouvementCamera {
   // L'accroche, la marque et la fin se regardent de face : une poussée lente, rien d'autre.
   if (i === 0 || sc === 'fin' || sc === 'marque' || sc === 'mots') return 'pousse';
   // Un écran produit ou un tableau se lit : la caméra n'y dérive pas de côté.
-  if (sc === 'app' || sc === 'analyse' || sc === 'tableur' || sc === 'rapport' || sc === 'site') return i % 2 ? 'pousse' : 'recul';
+  if (sc === 'app' || sc === 'analyse' || sc === 'tableur' || sc === 'rapport' || sc === 'site' || sc === 'dashboard' || sc === 'courbe') return i % 2 ? 'pousse' : 'recul';
   return CYCLE[i % CYCLE.length];
 }
 
@@ -455,10 +455,10 @@ export function sceneCourbe(cx: C2D, e: Env, sc: Extract<Scene, { type: 'courbe'
 
   // Zone de tracé.
   const pad = L * 0.045;
-  const px0 = x + pad;
+  const px0 = x + pad + (sc.unite ? L * 0.045 : 0);
   const px1 = x + w - pad;
   const etiq = sc.etiquettesX?.length ? L * 0.05 : 0;
-  const py0 = yw + chrome + pad * 1.5;
+  const py0 = yw + chrome + pad * (sc.unite ? 2 : 1.5);
   const py1 = yw + h - pad - etiq;
   const min = Math.min(...sc.points);
   const max = Math.max(...sc.points);
@@ -466,9 +466,26 @@ export function sceneCourbe(cx: C2D, e: Env, sc: Extract<Scene, { type: 'courbe'
   const X = (k: number) => px0 + ((px1 - px0) * k) / Math.max(1, sc.points.length - 1);
   const Y = (v: number) => py1 - ((v - min) / amp) * (py1 - py0);
 
-  // Lignes de repère horizontales, très discrètes — aucune graduation chiffrée.
-  cx.fillStyle = 'rgba(255,255,255,0.07)';
-  for (let k = 0; k <= 4; k++) cx.fillRect(px0, py0 + ((py1 - py0) * k) / 4, px1 - px0, 1);
+  if (sc.unite) {
+    // Axe gradué : une valeur ronde par trait, l'unité en tête d'axe.
+    cx.font = fonte(e.f.mono, L * 0.0175);
+    for (const v of graduations(min, max, 6)) {
+      if (v < min - amp * 0.02 || v > max + amp * 0.02 || v === 0) continue;
+      cx.fillStyle = 'rgba(255,255,255,0.1)';
+      cx.fillRect(px0, Y(v), px1 - px0, 1);
+      cx.fillStyle = e.douce;
+      const lab = nombre(v);
+      cx.fillText(lab, px0 - 10 - cx.measureText(lab).width, Y(v) + L * 0.006);
+    }
+    espacer(cx, 1.2);
+    cx.fillStyle = e.douce;
+    cx.fillText(`EN ${sc.unite.toUpperCase()}`, px0, py0 - L * 0.022);
+    espacer(cx, 0);
+  } else {
+    // Sans unité : des lignes de repère très discrètes, aucune graduation chiffrée.
+    cx.fillStyle = 'rgba(255,255,255,0.07)';
+    for (let k = 0; k <= 4; k++) cx.fillRect(px0, py0 + ((py1 - py0) * k) / 4, px1 - px0, 1);
+  }
   // La ligne du zéro, quand la courbe passe dessous : c'est elle qu'on regarde.
   const sousZero = min < 0 && max > 0;
   if (sousZero) {
@@ -623,7 +640,9 @@ export function sceneCourbe(cx: C2D, e: Env, sc: Extract<Scene, { type: 'courbe'
       const tn = L * (e.vertical ? 0.03 : 0.024);
       const police = fonte(e.f.corps, tn);
       cx.font = police;
-      const nw = cx.measureText(sc.repere.note).width + tn * 3;
+      // Avec une unité, la note porte la valeur du point.
+      const noteR = sc.unite ? `${sc.repere.note} · ${nombre(sc.points[k])} ${sc.unite}` : sc.repere.note;
+      const nw = cx.measureText(noteR).width + tn * 3;
       const dessus = my > (py0 + py1) / 2;
       const nx = Math.min(px1 - nw, Math.max(px0, mx - nw / 2));
       const ny = dessus ? my - tn * 3.6 : my + tn * 1.5;
@@ -632,7 +651,7 @@ export function sceneCourbe(cx: C2D, e: Env, sc: Extract<Scene, { type: 'courbe'
         cx.save();
         cx.globalAlpha = aF * an;
         cx.translate(0, (1 - an) * (dessus ? 16 : -16));
-        pastilleVerre(cx, nx, ny, sc.repere.note, police, tn, { teinte: e.teinteVerre, t: e.t, encre: e.encre, pastille: col, intensite: 1.15 });
+        pastilleVerre(cx, nx, ny, noteR, police, tn, { teinte: 'rgba(0,0,0,0.5)', t: e.t, encre: e.encre, pastille: col, intensite: 1.15 });
         cx.restore();
       }
     }
@@ -649,6 +668,396 @@ export function sceneCourbe(cx: C2D, e: Env, sc: Extract<Scene, { type: 'courbe'
     yl += tLeg * 1.4;
   });
   if (sc.mention) mentionSous(cx, e, sc.mention, yl + tLeg * 0.3, tLeg * 0.66, apparition(tl, 0.5, 0.5));
+  cx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tableau de bord : indicateurs, graphique gradué, jauge
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Une graduation « ronde » : 1, 2, 2,5 ou 5 × 10ⁿ, pour quatre à six traits. */
+function graduations(min: number, max: number, voulues = 5): number[] {
+  const etendue = max - min || 1;
+  const brut = etendue / voulues;
+  const puissance = Math.pow(10, Math.floor(Math.log10(brut)));
+  const pas = [1, 2, 2.5, 5, 10].map((k) => k * puissance).find((k) => k >= brut) ?? brut;
+  const debut = Math.floor(min / pas) * pas;
+  const out: number[] = [];
+  for (let v = debut; v <= max + pas * 0.999; v += pas) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+function nombre(v: number): string {
+  return v.toLocaleString('fr-FR').replace(/[\s  ]/g, ' ').replace('-', '−');
+}
+
+/** « 180 k€ » qui défile jusqu'à sa valeur : seule la partie chiffrée s'anime. */
+function compter(valeur: string, p: number): string {
+  const m = valeur.match(/^([^\d−-]*)([−-]?)(\d[\d\s  ]*(?:,\d+)?)(.*)$/);
+  if (!m) return valeur;
+  const decimales = (m[3].split(',')[1] ?? '').length;
+  const cible = parseFloat(m[3].replace(/[\s  ]/g, '').replace(',', '.'));
+  const v = cible * p;
+  const txt = v.toLocaleString('fr-FR', { minimumFractionDigits: decimales, maximumFractionDigits: decimales }).replace(/[\s  ]/g, ' ');
+  return m[1] + m[2] + txt + m[4];
+}
+
+/**
+ * Un tableau de bord qui se construit : les indicateurs s'allument, les axes
+ * se graduent, les barres montent avec leur valeur, le repère désigne ce qu'il
+ * faut lire, la jauge se remplit. Tout y est précis — graduations rondes,
+ * unités, valeurs — et tout y est un EXEMPLE : la `mention` le dit à l'écran.
+ */
+export function sceneDashboard(cx: C2D, e: Env, sc: Extract<Scene, { type: 'dashboard' }>, tl: number, d: number, y0: number, y1: number) {
+  const { L } = e;
+  const x = e.marge;
+  const w = e.largeurTexte;
+  const tM = L * 0.022;
+  const basH = tM * 2.8;
+  const chrome = L * 0.058;
+  const pad = L * 0.032;
+  const nK = sc.indicateurs.length;
+  const kh = L * 0.2;
+  const jh = sc.jauge ? L * 0.21 : 0;
+  const hMax = y1 - y0 - basH;
+  const h = Math.min(hMax, chrome + pad * 2 + kh + pad + L * 0.98 + (jh ? jh + pad : 0));
+  const yw = y0 + Math.max(0, (hMax - h) * 0.3);
+  const aF = apparition(tl, 0.05, 0.55);
+  const alerte = e.app.alerteEncre;
+  const filet = 'rgba(255,255,255,0.13)';
+  const veolt = e.marque === 'veolt';
+
+  cx.save();
+  cx.globalAlpha = aF;
+  cx.translate(0, (1 - aF) * 50);
+  verre(cx, x, yw, w, h, 22, { teinte: e.teinteVerre, t: e.t, flou: 28, lentille: 1.06 });
+  for (let k = 0; k < 3; k++) {
+    cx.beginPath();
+    cx.arc(x + 30 + k * 22, yw + chrome / 2, 6.5, 0, Math.PI * 2);
+    cx.fillStyle = k === 0 ? e.accent : 'rgba(255,255,255,0.2)';
+    cx.fill();
+  }
+  cx.font = fonte(e.f.mono, L * 0.0185);
+  espacer(cx, 1);
+  cx.fillStyle = e.douce;
+  cx.fillText(sc.fenetre, x + 106, yw + chrome / 2 + L * 0.0065);
+  espacer(cx, 0);
+  cx.fillStyle = filet;
+  cx.fillRect(x, yw + chrome, w, 1.5);
+
+  // ── Indicateurs ──
+  const gap = L * 0.02;
+  const kw = (w - pad * 2 - gap * (nK - 1)) / nK;
+  const ky = yw + chrome + pad;
+  sc.indicateurs.forEach((ind, k) => {
+    const t0 = 0.4 + k * 0.22;
+    const a = (tl - t0) / 0.5;
+    if (a <= 0) return;
+    e.repere('pop', t0 + 0.02);
+    const kx = x + pad + k * (kw + gap);
+    const col = ind.ton === 'alerte' ? alerte : e.accent;
+    cx.save();
+    cx.globalAlpha = aF * sortie(a);
+    cx.translate(0, (1 - sortie(a)) * 18);
+    cx.beginPath();
+    cx.roundRect(kx, ky, kw, kh, 14);
+    cx.fillStyle = 'rgba(255,255,255,0.045)';
+    cx.fill();
+    cx.strokeStyle = ind.ton === 'alerte' ? `${alerte}88` : filet;
+    cx.lineWidth = 1.5;
+    cx.stroke();
+    // Le trait de couleur en tête de tuile : ce qui distingue l'indicateur d'alerte.
+    cx.fillStyle = col;
+    cx.fillRect(kx + 14, ky, kw * 0.28, 3);
+    const tl2 = L * 0.0165;
+    cx.font = fonte(e.f.mono, tl2);
+    espacer(cx, 1.2);
+    cx.fillStyle = e.douce;
+    let lib = ind.libelle.toUpperCase();
+    while (cx.measureText(lib).width > kw - 26 && lib.length > 4) lib = lib.slice(0, -1);
+    cx.fillText(lib, kx + 14, ky + kh * 0.27);
+    espacer(cx, 0);
+    const tv = ajuster(cx, e.f.titre, ind.valeur, kw - 28, L * (veolt ? 0.088 : 0.064));
+    cx.font = fonte(e.f.titre, tv);
+    cx.fillStyle = ind.ton === 'alerte' ? alerte : e.encre;
+    cx.fillText(compter(ind.valeur, sortie((tl - t0 - 0.1) / 0.9)), kx + 14, ky + kh * 0.27 + tv * (veolt ? 1.02 : 1.12));
+    if (ind.note) {
+      let tn = L * 0.0185;
+      cx.font = fonte(e.f.corpsL, tn);
+      while (cx.measureText(ind.note).width > kw - 26 && tn > L * 0.013) {
+        tn *= 0.95;
+        cx.font = fonte(e.f.corpsL, tn);
+      }
+      cx.fillStyle = ind.ton === 'alerte' ? alerte : e.douce;
+      cx.fillText(ind.note, kx + 14, ky + kh - L * 0.022);
+    }
+    cx.restore();
+  });
+
+  // ── Graphique gradué ──
+  const g = sc.graphique;
+  const gy = ky + kh + pad;
+  const gh = yw + h - pad - (jh ? jh + pad : 0) - gy;
+  const gx = x + pad;
+  const gw = w - pad * 2;
+  const aG = apparition(tl, 0.85, 0.5);
+  cx.globalAlpha = aF * aG;
+  cx.beginPath();
+  cx.roundRect(gx, gy, gw, gh, 14);
+  cx.fillStyle = 'rgba(255,255,255,0.03)';
+  cx.fill();
+  cx.strokeStyle = filet;
+  cx.lineWidth = 1.5;
+  cx.stroke();
+  const tT = L * 0.027;
+  cx.font = fonte(e.f.corps, tT);
+  cx.fillStyle = e.encre;
+  cx.fillText(g.titre, gx + 18, gy + tT * 1.75);
+  // Légende des séries, à droite du titre.
+  const couleurs = [e.accent, 'rgba(255,255,255,0.42)', e.accent2];
+  const tLg = L * 0.019;
+  cx.font = fonte(e.f.corpsL, tLg);
+  let lx = gx + gw - 18;
+  [...g.series].reverse().forEach((s2, kr) => {
+    const k = g.series.length - 1 - kr;
+    const tw = cx.measureText(s2.nom).width;
+    lx -= tw;
+    cx.fillStyle = e.douce;
+    cx.fillText(s2.nom, lx, gy + tT * 3.1);
+    lx -= tLg * 1.1;
+    cx.fillStyle = couleurs[k % couleurs.length];
+    cx.fillRect(lx, gy + tT * 3.1 - tLg * 0.72, tLg * 0.7, tLg * 0.7);
+    lx -= tLg * 1.3;
+  });
+  if (g.unite) {
+    cx.font = fonte(e.f.mono, L * 0.017);
+    espacer(cx, 1.2);
+    cx.fillStyle = e.douce;
+    cx.fillText(`EN ${g.unite.toUpperCase()}`, gx + 18, gy + tT * 3.1);
+    espacer(cx, 0);
+  }
+
+  const toutes = g.series.flatMap((s2) => s2.valeurs);
+  const vmin = Math.min(0, ...toutes);
+  const vmax = Math.max(0, ...toutes);
+  // De l'air au-dessus des barres : la note du repère s'y pose sans rien couvrir.
+  const ticks = graduations(vmin, vmax * (g.repere ? 1.38 : 1.1));
+  const tmin = ticks[0];
+  const tmax = ticks[ticks.length - 1];
+  const tAxe = L * 0.0175;
+  cx.font = fonte(e.f.mono, tAxe);
+  const axeW = Math.max(...ticks.map((v) => cx.measureText(nombre(v)).width)) + 16;
+  const px0 = gx + 18 + axeW;
+  const px1 = gx + gw - 22;
+  const py0 = gy + tT * 4.4;
+  const py1 = gy + gh - L * 0.062;
+  const Y = (v: number) => py1 - ((v - tmin) / (tmax - tmin || 1)) * (py1 - py0);
+  // Graduations : un trait fin par valeur ronde, le zéro en plein.
+  ticks.forEach((v, k) => {
+    const at = apparition(tl, 0.95 + k * 0.05, 0.35);
+    cx.globalAlpha = aF * aG * at;
+    cx.fillStyle = e.douce;
+    cx.font = fonte(e.f.mono, tAxe);
+    const lab = nombre(v);
+    cx.fillText(lab, px0 - 12 - cx.measureText(lab).width, Y(v) + tAxe * 0.35);
+    if (v === 0) {
+      cx.fillStyle = 'rgba(255,255,255,0.5)';
+      cx.fillRect(px0, Y(v) - 1, (px1 - px0) * at, 2);
+    } else {
+      cx.save();
+      cx.setLineDash([5, 8]);
+      cx.strokeStyle = 'rgba(255,255,255,0.14)';
+      cx.lineWidth = 1.2;
+      cx.beginPath();
+      cx.moveTo(px0, Y(v));
+      cx.lineTo(px0 + (px1 - px0) * at, Y(v));
+      cx.stroke();
+      cx.restore();
+    }
+    // Le petit trait de graduation, côté axe.
+    cx.fillStyle = 'rgba(255,255,255,0.4)';
+    cx.fillRect(px0 - 6, Y(v) - 1, 6, 2);
+  });
+  cx.globalAlpha = aF * aG;
+  cx.fillStyle = 'rgba(255,255,255,0.4)';
+  cx.fillRect(px0 - 1, py0 - 6, 2, py1 - py0 + 6);
+
+  const nE = g.etiquettes.length;
+  const nS = g.series.length;
+  const pasX = (px1 - px0) / nE;
+  const tDeb = 1.25;
+  const tVal = L * 0.021;
+  const centreX = (j: number) => px0 + pasX * (j + 0.5);
+  e.repere('compteur', tDeb, tDeb + 0.7 + nE * 0.12);
+  g.etiquettes.forEach((et, j) => {
+    cx.font = fonte(e.f.mono, tAxe);
+    cx.fillStyle = e.douce;
+    cx.globalAlpha = aF * aG * apparition(tl, 1.0 + j * 0.06, 0.35);
+    cx.fillText(et, centreX(j) - cx.measureText(et).width / 2, py1 + L * 0.036);
+  });
+  if (g.type === 'ligne') {
+    // Lignes : le trait avance, chaque point se pose avec sa valeur.
+    g.series.forEach((s2, k) => {
+      const col = couleurs[k % couleurs.length];
+      const pts = s2.valeurs.map((v, j) => [centreX(j), Y(v)] as [number, number]);
+      const prog = douce((tl - tDeb - k * 0.2) / 1.6);
+      if (prog <= 0) return;
+      const lisse = echantillonner(pts, 14);
+      const nb = Math.max(2, Math.round(lisse.length * prog));
+      cx.globalAlpha = aF * aG;
+      cx.beginPath();
+      cx.moveTo(lisse[0][0], lisse[0][1]);
+      for (let q = 1; q < nb; q++) cx.lineTo(lisse[q][0], lisse[q][1]);
+      cx.lineWidth = L * 0.006;
+      cx.lineJoin = 'round';
+      cx.lineCap = 'round';
+      cx.strokeStyle = col;
+      if (k === 0) {
+        cx.shadowColor = e.accent;
+        cx.shadowBlur = 20;
+      }
+      cx.stroke();
+      cx.shadowBlur = 0;
+      pts.forEach((p, j) => {
+        const ap = (prog * (pts.length - 1) - j + 0.15) / 0.5;
+        if (ap <= 0) return;
+        const neg = s2.valeurs[j] < 0;
+        cx.globalAlpha = aF * aG * sortie(ap);
+        cx.beginPath();
+        cx.arc(p[0], p[1], L * 0.0085 * ressort(ap), 0, Math.PI * 2);
+        cx.fillStyle = neg ? alerte : col;
+        cx.fill();
+        cx.beginPath();
+        cx.arc(p[0], p[1], L * 0.0035, 0, Math.PI * 2);
+        cx.fillStyle = e.fond;
+        cx.fill();
+        if (k === 0) {
+          cx.font = fonte(e.f.corps, tVal);
+          cx.fillStyle = neg ? alerte : e.encre;
+          const lab = nombre(s2.valeurs[j]);
+          cx.fillText(lab, p[0] - cx.measureText(lab).width / 2, p[1] + (neg ? tVal * 1.7 : -tVal * 0.8));
+        }
+      });
+    });
+  } else {
+    // Barres groupées : elles montent depuis le zéro, leur valeur se pose dessus.
+    const lb = Math.min(pasX * 0.34, L * 0.07);
+    const eb = lb * 0.14;
+    g.series.forEach((s2, k) => {
+      s2.valeurs.forEach((v, j) => {
+        const t0 = tDeb + j * 0.14 + k * 0.1;
+        const p = ressort((tl - t0) / 0.9);
+        if (tl <= t0) return;
+        const bx = centreX(j) - (nS * lb + (nS - 1) * eb) / 2 + k * (lb + eb);
+        const yz = Y(0);
+        const yv = Y(v * p);
+        const neg = v < 0;
+        cx.globalAlpha = aF * aG;
+        cx.beginPath();
+        cx.roundRect(bx, Math.min(yz, yv), lb, Math.max(2, Math.abs(yz - yv)), neg ? [0, 0, 6, 6] : [6, 6, 0, 0]);
+        if (neg) cx.fillStyle = alerte;
+        else if (k === 0) {
+          const gr = cx.createLinearGradient(0, yv, 0, yz);
+          const cols = e.degrade ?? [e.accent, `${e.accent}99`];
+          gr.addColorStop(0, cols[cols.length - 1]);
+          gr.addColorStop(1, cols[0]);
+          cx.fillStyle = gr;
+          cx.shadowColor = e.accent;
+          cx.shadowBlur = 16;
+        } else cx.fillStyle = couleurs[k % couleurs.length];
+        cx.fill();
+        cx.shadowBlur = 0;
+        const av = apparition(tl, t0 + 0.45, 0.35);
+        if (av > 0) {
+          cx.globalAlpha = aF * aG * av;
+          cx.font = fonte(e.f.corps, tVal * (k === 0 ? 1 : 0.9));
+          cx.fillStyle = neg ? alerte : k === 0 ? e.encre : e.douce;
+          const lab = nombre(v);
+          cx.fillText(lab, bx + lb / 2 - cx.measureText(lab).width / 2, neg ? yv + tVal * 1.3 : yv - tVal * 0.5);
+        }
+      });
+    });
+  }
+  // Le repère : un cadre autour de ce qu'il faut lire, et sa note.
+  if (g.repere) {
+    const tR = tDeb + nE * 0.14 + 1.1;
+    const ar = (tl - tR) / 0.5;
+    if (ar > 0) {
+      e.repere('scintille', tR, tR + 0.5);
+      const j = g.repere.index;
+      const col = g.repere.ton === 'alerte' ? alerte : e.accent2;
+      cx.globalAlpha = aF * aG * sortie(ar);
+      cx.beginPath();
+      cx.roundRect(centreX(j) - pasX * 0.44, py0 - 4, pasX * 0.88, py1 - py0 + L * 0.05, 10);
+      cx.setLineDash([9, 7]);
+      cx.lineDashOffset = -tl * 14;
+      cx.strokeStyle = col;
+      cx.lineWidth = 2.5;
+      cx.stroke();
+      cx.setLineDash([]);
+      const tn = L * 0.024;
+      const police = fonte(e.f.corps, tn);
+      cx.font = police;
+      const nw = cx.measureText(g.repere.note).width + tn * 3;
+      const nx = Math.min(px1 - nw + 10, Math.max(gx + 10, centreX(j) - nw / 2));
+      cx.save();
+      cx.translate(0, (1 - sortie(ar)) * 14);
+      pastilleVerre(cx, nx, py0 - tn * 0.2, g.repere.note, police, tn, { teinte: 'rgba(0,0,0,0.5)', t: e.t, encre: e.encre, pastille: col, intensite: 1.15 });
+      cx.restore();
+    }
+  }
+
+  // ── Jauge ──
+  if (sc.jauge) {
+    const j = sc.jauge;
+    const jy = yw + h - pad - jh;
+    const tJ = Math.max(1.6, d * 0.5);
+    const aj = apparition(tl, tJ, 0.5);
+    cx.globalAlpha = aF * aj;
+    cx.beginPath();
+    cx.roundRect(gx, jy, gw, jh, 14);
+    cx.fillStyle = 'rgba(255,255,255,0.03)';
+    cx.fill();
+    cx.strokeStyle = filet;
+    cx.lineWidth = 1.5;
+    cx.stroke();
+    const r = jh * 0.33;
+    const jcx = gx + pad + r + 6;
+    const jcy = jy + jh / 2;
+    const p = douce((tl - tJ - 0.15) / 1.1) * j.part;
+    if (aj > 0) e.repere('compteur', tJ + 0.15, tJ + 1.2);
+    cx.lineWidth = r * 0.3;
+    cx.lineCap = 'round';
+    cx.beginPath();
+    cx.arc(jcx, jcy, r, 0, Math.PI * 2);
+    cx.strokeStyle = 'rgba(255,255,255,0.12)';
+    cx.stroke();
+    cx.beginPath();
+    cx.arc(jcx, jcy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+    cx.strokeStyle = e.degrade ? degradeH(cx, jcx - r, r * 2, e.degrade) : e.accent;
+    cx.shadowColor = e.accent;
+    cx.shadowBlur = 18;
+    cx.stroke();
+    cx.shadowBlur = 0;
+    const pct = `${Math.round(p * 100)} %`;
+    cx.font = fonte(e.f.corps, r * 0.5);
+    cx.fillStyle = e.encre;
+    cx.fillText(pct, jcx - cx.measureText(pct).width / 2, jcy + r * 0.18);
+    const tx = jcx + r + pad * 1.2;
+    const tLib = L * 0.029;
+    cx.font = fonte(e.f.corps, tLib);
+    cx.fillStyle = e.encre;
+    cx.fillText(j.libelle, tx, jcy - tLib * 0.25);
+    let tt2 = L * 0.022;
+    cx.font = fonte(e.f.corpsL, tt2);
+    while (cx.measureText(j.texte).width > gx + gw - tx - 14 && tt2 > L * 0.015) {
+      tt2 *= 0.95;
+      cx.font = fonte(e.f.corpsL, tt2);
+    }
+    cx.fillStyle = e.douce;
+    cx.fillText(j.texte, tx, jcy + tLib * 0.95);
+  }
+  cx.restore();
+  mentionSous(cx, e, sc.mention, yw + h + tM * 2.1, tM, apparition(tl, 0.5, 0.5));
   cx.globalAlpha = 1;
 }
 
@@ -1042,6 +1451,42 @@ const VUES: Array<[number, number]> = [
   [-0.55, 0.26],
 ];
 
+/**
+ * Le reflet de l'objet sur le sol du studio : son image retournée sous le
+ * pied, qui s'efface en descendant. C'est lui, avec l'ombre de contact, qui
+ * pose l'objet au lieu de le laisser flotter.
+ */
+let toileReflet: HTMLCanvasElement | null = null;
+function refletSol(cx: C2D, img: HTMLCanvasElement, x: number, y: number, cote: number, pied: number, force: number) {
+  if (force <= 0) return;
+  const n = img.width;
+  if (!toileReflet) toileReflet = document.createElement('canvas');
+  if (toileReflet.width !== n || toileReflet.height !== n) {
+    toileReflet.width = n;
+    toileReflet.height = n;
+  }
+  const r = toileReflet.getContext('2d')!;
+  r.globalCompositeOperation = 'source-over';
+  r.clearRect(0, 0, n, n);
+  // L'image retournée autour de la ligne du pied.
+  r.save();
+  r.translate(0, 2 * pied * n);
+  r.scale(1, -1);
+  r.drawImage(img, 0, 0);
+  r.restore();
+  // Elle ne garde que le haut du reflet, en fondu.
+  r.globalCompositeOperation = 'destination-in';
+  const g = r.createLinearGradient(0, pied * n, 0, pied * n + n * 0.26);
+  g.addColorStop(0, 'rgba(0,0,0,0.55)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  r.fillStyle = g;
+  r.fillRect(0, 0, n, n);
+  cx.save();
+  cx.globalAlpha *= force;
+  cx.drawImage(toileReflet, x, y, cote, cote);
+  cx.restore();
+}
+
 /** L'ombre de contact sous l'objet : sans elle il flotte, et le rendu fait « maquette ». */
 function ombreSol(cx: C2D, x: number, y: number, r: number, a: number) {
   cx.save();
@@ -1110,14 +1555,15 @@ export function sceneObjet3D(
       // y oscille à peine — ce sont des prises de vue, pas un manège.
       const [ang, inc] = VUES[k % VUES.length];
       const img = moteur.rendre({ t: e.t, couleur: cols[k % cols.length], angle: ang + Math.sin(tl * 0.8 + k) * 0.1, inclinaison: inc, fil: 0 });
-      ombreSol(cx, x + cw / 2, y + ch * 0.86, taille * 0.3, 1);
-      cx.drawImage(img, x + cw / 2 - taille / 2, y + ch / 2 - taille / 2 - ch * 0.02, taille, taille);
+      const iy = y + ch / 2 - taille / 2 - ch * 0.03;
+      ombreSol(cx, x + cw / 2, iy + taille * moteur.pied, taille * 0.3, 1);
+      cx.drawImage(img, x + cw / 2 - taille / 2, iy, taille, taille);
       const lib = sc.etiquettes?.[k];
       if (lib) {
         cx.font = fonte(e.f.mono, L * 0.018);
         espacer(cx, 1.5);
         cx.fillStyle = e.douce;
-        cx.fillText(lib.toUpperCase(), x + L * 0.022, y + ch - L * 0.02);
+        cx.fillText(lib.toUpperCase(), x + L * 0.022, y + L * 0.036);
         espacer(cx, 0);
       }
       cx.restore();
@@ -1126,7 +1572,7 @@ export function sceneObjet3D(
   }
 
   // La place des pastilles de coloris et des étiquettes est réservée sous l'objet.
-  const pied = L * 0.15;
+  const pied = L * 0.17;
   const taille = Math.min(e.largeurTexte * 1.16, zone - pied);
   const cxo = L / 2;
   const cyo = y0 + (zone - pied) * 0.5;
@@ -1154,7 +1600,7 @@ export function sceneObjet3D(
     const gx = cxo - cote / 2;
     const gy = cyo - cote / 2;
     const xv = gx + cote * (1 - p);
-    ombreSol(cx, cxo, cyo + cote * 0.4, cote * 0.3, aE * p);
+    ombreSol(cx, cxo, gy + cote * moteur.pied, cote * 0.3, aE * p);
     cx.globalAlpha = aE;
     // Gauche du volet : le maillage brut.
     const fil = moteur.rendre({ t: e.t, couleur: cols[0], angle, inclinaison: 0.16, fil: 1 });
@@ -1168,8 +1614,9 @@ export function sceneObjet3D(
     const rendu = moteur.rendre({ t: e.t, couleur: cols[0], angle, inclinaison: 0.16, fil: 0 });
     cx.save();
     cx.beginPath();
-    cx.rect(xv, gy, gx + cote - xv + 4, cote);
+    cx.rect(xv, gy, gx + cote - xv + 4, cote * 1.3);
     cx.clip();
+    refletSol(cx, rendu, gx, gy, cote, moteur.pied, 1);
     cx.drawImage(rendu, gx, gy, cote, cote);
     cx.restore();
     if (p > 0 && p < 1) {
@@ -1217,8 +1664,9 @@ export function sceneObjet3D(
   const img = moteur.rendre({ t: e.t, couleur, angle, inclinaison: 0.14 + 0.05 * Math.sin(tl * 0.6), fil: 0 });
   const entree = 0.86 + 0.14 * ressort(tl / 0.9);
   const cote = taille * entree;
-  ombreSol(cx, cxo, cyo + cote * 0.4, cote * 0.3, aE);
+  ombreSol(cx, cxo, cyo - cote / 2 + cote * moteur.pied, cote * 0.3, aE);
   cx.globalAlpha = aE;
+  refletSol(cx, img, cxo - cote / 2, cyo - cote / 2, cote, moteur.pied, 1);
   cx.drawImage(img, cxo - cote / 2, cyo - cote / 2, cote, cote);
   // L'éclat du changement de coloris.
   if (k > 0 && dans < 0.5) {

@@ -176,6 +176,11 @@ export type Scene =
       points: number[];
       etiquettesX?: string[];
       repere?: { index: number; note: string };
+      /**
+       * Avec une unité (« k€ »), l'axe vertical est gradué et le repère porte sa
+       * valeur : les points sont alors des chiffres d'EXEMPLE, et la mention doit le dire.
+       */
+      unite?: string;
       /** Zone mise en avant, entre deux indices (« l'intervalle probable »). */
       bande?: { de: number; a: number; note?: string };
       legende?: string;
@@ -199,7 +204,27 @@ export type Scene =
    * de passer en fond voilé derrière le texte : c'est lui qu'on regarde.
    * Sans clip (nom introuvable), le plan retombe sur son titre seul.
    */
-  | { type: 'vitrine'; etiquette?: string; mention?: string };
+  | { type: 'vitrine'; etiquette?: string; mention?: string }
+  /**
+   * Un tableau de bord qui se construit : indicateurs, graphique GRADUÉ (axes,
+   * unités, valeurs sur chaque barre ou point), repère, jauge. La précision est
+   * réelle ; les données sont un EXEMPLE, et `mention` — obligatoire — le dit.
+   */
+  | {
+      type: 'dashboard';
+      fenetre: string;
+      indicateurs: Array<{ libelle: string; valeur: string; note?: string; ton?: 'neutre' | 'alerte' }>;
+      graphique: {
+        titre: string;
+        unite?: string;
+        type: 'barres' | 'ligne';
+        etiquettes: string[];
+        series: Array<{ nom: string; valeurs: number[] }>;
+        repere?: { index: number; note: string; ton?: 'neutre' | 'alerte' };
+      };
+      jauge?: { libelle: string; part: number; texte: string };
+      mention: string;
+    };
 
 export interface PlanMontage {
   duree: number;
