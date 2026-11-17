@@ -206,6 +206,27 @@ export type Scene =
    */
   | { type: 'vitrine'; etiquette?: string; mention?: string }
   /**
+   * Une galerie d'images RÉELLES livrées avec l'outil (`IMAGES_LIVREES`) : deux
+   * bandes de vignettes qui défilent en sens contraire, comme sur veolt.fr.
+   * Chaque vignette porte son nom et sa nature (« Concept · Parfumerie ») :
+   * un concept reste un concept, il n'est jamais présenté comme un client.
+   */
+  | { type: 'galerie'; images: string[]; mention?: string }
+  /**
+   * Avant / après d'une page d'accueil : une MAQUETTE d'exemple (entreprise
+   * fictive, dite à l'écran). Un volet découvre la version refaite, puis les
+   * trois repères se posent dessus. Aucun chiffre de conversion : on montre le
+   * travail, on n'annonce pas de résultat.
+   */
+  | {
+      type: 'avant-apres';
+      enseigne: string;
+      avant: { accroche: string; boutons: string[] };
+      apres: { promesse: string; bouton: string; preuves: string[] };
+      reperes: string[];
+      mention: string;
+    }
+  /**
    * Un tableau de bord qui se construit : indicateurs, graphique GRADUÉ (axes,
    * unités, valeurs sur chaque barre ou point), repère, jauge. La précision est
    * réelle ; les données sont un EXEMPLE, et `mention` — obligatoire — le dit.
@@ -383,18 +404,34 @@ export function plansDepuisPost(
 /**
  * Clips livrés avec l'outil (`public/clips`), utilisables en fond de plan sans
  * passer par la médiathèque : un script les appelle par nom (`clip: '…'`).
- * Ce sont les films de démonstration montrés sur veolt.fr, repris le 17/11 en
+ * Ce sont des films du portfolio vidéo du studio, repris le 17/11 en
  * 720 × 1280. Identifiants négatifs : ils ne croisent jamais ceux de la base.
  * Un clip du même nom déposé dans la médiathèque passe devant.
  *
- * Ce sont des DÉMONSTRATIONS du studio (marques et personnages de fiction) :
- * un plan qui les montre le dit à l'écran, et aucun script ne les présente
- * comme un travail fait pour un client (règle 2 du dépôt).
+ * Un plan qui les montre dit seulement « film produit par le studio » : aucun
+ * script ne nomme un client ni n'annonce un résultat (règle 2 du dépôt).
  */
 export const CLIPS_LIVRES: Array<{ id: number; entite: 'veolt' | 'magistria'; nom: string; url: string }> = [
   { id: -1, entite: 'veolt', nom: 'veolt-demo-canette', url: '/clips/veolt-demo-canette.mp4' },
   { id: -2, entite: 'veolt', nom: 'veolt-demo-espace', url: '/clips/veolt-demo-espace.mp4' },
   { id: -3, entite: 'veolt', nom: 'veolt-demo-tonic', url: '/clips/veolt-demo-tonic.mp4' },
 ];
+
+/**
+ * Images livrées avec l'outil (`public/actifs`), appelées par nom dans une
+ * scène `galerie`. Pour Veolt : les huit concepts de sites montrés sur
+ * veolt.fr (repris le 17/11), avec le nom et la nature que le site leur donne.
+ * Ce sont des CONCEPTS — le site le dit, la vignette aussi.
+ */
+export const IMAGES_LIVREES: Record<string, { entite: 'veolt' | 'magistria'; url: string; nom: string; nature: string }> = {
+  'concept-elysia': { entite: 'veolt', url: '/actifs/veolt/concept-elysia.jpg', nom: 'Elysia', nature: 'Concept · E-commerce high-tech' },
+  'concept-novo': { entite: 'veolt', url: '/actifs/veolt/concept-novo.jpg', nom: 'Novo', nature: 'Concept · Vitrine minimaliste' },
+  'concept-atelier-noir': { entite: 'veolt', url: '/actifs/veolt/concept-atelier-noir.jpg', nom: 'Atelier Noir', nature: 'Concept · Parfumerie' },
+  'concept-nova': { entite: 'veolt', url: '/actifs/veolt/concept-nova.jpg', nom: 'Nova', nature: 'Concept · Sneakers' },
+  'concept-aurelie': { entite: 'veolt', url: '/actifs/veolt/concept-aurelie.jpg', nom: 'Aurélie', nature: 'Concept · Horlogerie' },
+  'concept-velora': { entite: 'veolt', url: '/actifs/veolt/concept-velora.jpg', nom: 'Velora', nature: 'Concept · Skincare' },
+  'concept-moka': { entite: 'veolt', url: '/actifs/veolt/concept-moka.jpg', nom: 'Moka', nature: 'Concept · Café' },
+  'concept-orme': { entite: 'veolt', url: '/actifs/veolt/concept-orme.jpg', nom: 'Orme', nature: 'Concept · Mobilier' },
+};
 
 export const dureeTotale = (plans: PlanMontage[]) => plans.reduce((n, p) => n + p.duree, 0);

@@ -206,8 +206,8 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   (Veolt) et du fondu flouté (MagistrIA). MagistrIA n'ouvre au volet que ses
   chapitres — ne pas lui donner le montage de Veolt.
 - **Scènes qui montrent** : `mots` (typographie plein cadre), `courbe`,
-  `parcours`, `rapport`, `objet3d`, `vitrine`, `dashboard` (indicateurs,
-  graphique gradué, jauge). Une `courbe` sans `unite` n'affiche **aucune
+  `parcours`, `rapport`, `objet3d`, `vitrine`, `galerie`, `avant-apres`,
+  `dashboard` (indicateurs, graphique gradué, jauge). Une `courbe` sans `unite` n'affiche **aucune
   valeur** ; avec `unite`, comme un `dashboard`, elle est graduée et porte des
   chiffres d'EXEMPLE. `rapport`, `objet3d`, `dashboard` : la `mention` le dit à
   l'écran. Ne pas retirer ces mentions : c'est la règle 2.
@@ -220,10 +220,14 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   point d'attention, puis la fenêtre est poussée vers lui. La poussée est
   bornée pour rester dans les marges — ne pas l'augmenter sans regarder une
   scène avec `bulles`.
-- **Clips livrés** (`CLIPS_LIVRES`, `public/clips`) : les films de démonstration
-  de veolt.fr, appelables par nom sans médiathèque. Ce sont des démonstrations
-  du studio, jamais un travail client : un plan qui les montre porte
-  l'étiquette « Démonstration du studio ».
+- **Clips et images livrés** (`CLIPS_LIVRES`, `IMAGES_LIVREES`, `public/clips`,
+  `public/actifs`) : trois films du portfolio vidéo du studio et les huit
+  concepts de sites de veolt.fr, appelables par nom sans médiathèque. Un film
+  est dit « produit par le studio », un concept reste un « concept » : ni
+  client nommé, ni résultat. La scène `galerie` refuse l'image de l'autre entité.
+- **`avant-apres`** est une maquette d'exemple (entreprise fictive, dite à
+  l'écran) : aucun chiffre de conversion tant qu'aucune mesure réelle n'existe.
+- La barre de progression porte une encoche par plan.
 - **Vérifier une vidéo sans l'ouvrir dans le studio** : `window.__fabrique`
   (développement) expose `preparerRendu` et `fabriquer` ; un navigateur sans
   tête peut rendre n'importe quelle image d'un script et encoder le fichier.

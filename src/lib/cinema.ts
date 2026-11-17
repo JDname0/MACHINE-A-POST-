@@ -93,7 +93,7 @@ export function mouvementDe(p: PlanMontage, i: number): MouvementCamera {
   // L'accroche, la marque et la fin se regardent de face : une poussée lente, rien d'autre.
   if (i === 0 || sc === 'fin' || sc === 'marque' || sc === 'mots') return 'pousse';
   // Un écran produit ou un tableau se lit : la caméra n'y dérive pas de côté.
-  if (sc === 'app' || sc === 'analyse' || sc === 'tableur' || sc === 'rapport' || sc === 'site' || sc === 'dashboard' || sc === 'courbe') return i % 2 ? 'pousse' : 'recul';
+  if (sc === 'app' || sc === 'analyse' || sc === 'tableur' || sc === 'rapport' || sc === 'site' || sc === 'dashboard' || sc === 'courbe' || sc === 'avant-apres' || sc === 'galerie') return i % 2 ? 'pousse' : 'recul';
   return CYCLE[i % CYCLE.length];
 }
 
@@ -1430,6 +1430,404 @@ export function sceneVitrine(
   cx.restore();
   if (sc.mention) mentionSous(cx, e, sc.mention, y1 - tM * 0.4, tM, apparition(tl, 0.5, 0.5));
   cx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Galerie : deux bandes d'images réelles qui défilent en sens contraire
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ImageGalerie {
+  img: HTMLImageElement;
+  nom: string;
+  nature: string;
+}
+
+export function sceneGalerie(cx: C2D, e: Env, sc: Extract<Scene, { type: 'galerie' }>, images: ImageGalerie[], tl: number, y0: number, y1: number) {
+  const { L } = e;
+  const tM = L * 0.022;
+  const basH = sc.mention ? tM * 2.8 : 0;
+  const zy0 = y0;
+  const zy1 = y1 - basH;
+  if (!images.length) {
+    if (sc.mention) mentionSous(cx, e, sc.mention, y1 - tM * 0.4, tM, apparition(tl, 0.5, 0.5));
+    return;
+  }
+  const gap = L * 0.03;
+  const cw = (e.largeurTexte - gap) / 2;
+  const barre = cw * 0.075; // la barre de navigateur au-dessus de chaque capture
+  const ih = cw * (270 / 420);
+  const lib = L * 0.062;
+  const ch = barre + ih + lib;
+  const pas = ch + gap;
+  const colonnes = [images.filter((_, k) => k % 2 === 0), images.filter((_, k) => k % 2 === 1)];
+  e.repere('whoosh', 0.05);
+  cx.save();
+  cx.beginPath();
+  cx.rect(0, zy0, L, zy1 - zy0);
+  cx.clip();
+  colonnes.forEach((col, c) => {
+    if (!col.length) return;
+    const total = col.length * pas;
+    // Une bande monte, l'autre descend — lentement : on doit pouvoir lire chaque vignette.
+    const sens = c === 0 ? -1 : 1;
+    const decal = (tl * L * 0.05 * sens + (c === 1 ? pas * 0.5 : 0)) % total;
+    const x = e.marge + c * (cw + gap);
+    const nb = Math.ceil((zy1 - zy0) / pas) + 2;
+    for (let q = -1; q < nb; q++) {
+      const k = (((q % col.length) + col.length) % col.length);
+      const im = col[k];
+      let y = zy0 + q * pas + decal;
+      // Ramener dans la fenêtre visible en bouclant.
+      while (y < zy0 - pas) y += total;
+      while (y > zy1 + pas) y -= total;
+      if (y > zy1 || y + ch < zy0) continue;
+      const rang = c + q * 2;
+      const a = (tl - 0.08 - Math.max(0, rang) * 0.07) / 0.6;
+      if (a <= 0) continue;
+      const p = sortie(a);
+      cx.save();
+      cx.globalAlpha = p;
+      cx.translate(0, (1 - p) * 40 * -sens);
+      // La carte : barre de navigateur, capture, libellé.
+      cx.shadowColor = 'rgba(0,0,0,0.5)';
+      cx.shadowBlur = 40;
+      cx.shadowOffsetY = 16;
+      cx.beginPath();
+      cx.roundRect(x, y, cw, barre + ih, 14);
+      cx.fillStyle = '#16131A';
+      cx.fill();
+      cx.shadowColor = 'transparent';
+      cx.shadowBlur = 0;
+      cx.shadowOffsetY = 0;
+      for (let d = 0; d < 3; d++) {
+        cx.beginPath();
+        cx.arc(x + barre * 0.55 + d * barre * 0.42, y + barre / 2, barre * 0.13, 0, Math.PI * 2);
+        cx.fillStyle = d === 0 ? e.accent : 'rgba(255,255,255,0.22)';
+        cx.fill();
+      }
+      cx.save();
+      cx.beginPath();
+      cx.roundRect(x, y + barre, cw, ih, [0, 0, 14, 14]);
+      cx.clip();
+      cx.drawImage(im.img, x, y + barre, cw, ih);
+      cx.restore();
+      cx.beginPath();
+      cx.roundRect(x, y, cw, barre + ih, 14);
+      cx.strokeStyle = 'rgba(255,255,255,0.16)';
+      cx.lineWidth = 1.5;
+      cx.stroke();
+      cx.font = fonte(e.f.corps, L * 0.026);
+      cx.fillStyle = e.encre;
+      cx.fillText(im.nom, x + 4, y + barre + ih + lib * 0.5);
+      cx.font = fonte(e.f.mono, L * 0.0155);
+      espacer(cx, 1.2);
+      cx.fillStyle = e.accent2;
+      cx.fillText(im.nature.toUpperCase(), x + 4, y + barre + ih + lib * 0.88);
+      espacer(cx, 0);
+      cx.restore();
+    }
+  });
+  cx.restore();
+  // Fondus haut et bas : les vignettes entrent et sortent sans se couper net.
+  const fondu = (ya: number, yb: number) => {
+    const g = cx.createLinearGradient(0, ya, 0, yb);
+    g.addColorStop(0, e.fond);
+    g.addColorStop(1, `${e.fond}00`);
+    cx.fillStyle = g;
+    cx.fillRect(0, Math.min(ya, yb), L, Math.abs(yb - ya));
+  };
+  fondu(zy0 - 2, zy0 + L * 0.07);
+  fondu(zy1 + 2, zy1 - L * 0.09);
+  if (sc.mention) mentionSous(cx, e, sc.mention, y1 - tM * 0.4, tM, apparition(tl, 0.5, 0.5));
+  cx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Avant / après d'une page d'accueil
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function sceneAvantApres(cx: C2D, e: Env, sc: Extract<Scene, { type: 'avant-apres' }>, tl: number, d: number, y0: number, y1: number) {
+  const { L } = e;
+  const tM = L * 0.022;
+  const basH = tM * 2.8;
+  const x = e.marge;
+  const w = e.largeurTexte;
+  // Sous la fenêtre : la légende numérotée des repères, puis la mention.
+  const hLegende = sc.reperes.length * L * 0.051 + L * 0.05;
+  const h = Math.min(y1 - y0 - basH - hLegende, w * 1.18);
+  const y = y0 + Math.max(0, (y1 - y0 - basH - hLegende - h) * 0.3);
+  const aF = apparition(tl, 0.05, 0.55);
+  const chrome = L * 0.06;
+  const pad = w * 0.06;
+  // Trois temps : l'avant seul, le volet, puis les repères sur l'après.
+  const tVolet = Math.max(1.8, d * 0.26);
+  const dVolet = 1.2;
+  const pv = douce((tl - tVolet) / dVolet);
+  const tRep = tVolet + dVolet + 0.3;
+  const pasR = Math.max(0.8, (d - tRep - 1) / Math.max(1, sc.reperes.length));
+  e.repere('whoosh', tVolet);
+
+  const cadre = () => {
+    cx.beginPath();
+    cx.roundRect(x, y, w, h, 20);
+  };
+  const barreNav = (clair: boolean) => {
+    cx.fillStyle = clair ? '#ECE9E4' : '#201C26';
+    cx.beginPath();
+    cx.roundRect(x, y, w, chrome, [20, 20, 0, 0]);
+    cx.fill();
+    for (let k = 0; k < 3; k++) {
+      cx.beginPath();
+      cx.arc(x + 28 + k * 22, y + chrome / 2, 6.5, 0, Math.PI * 2);
+      cx.fillStyle = clair ? '#C9C4BC' : 'rgba(255,255,255,0.25)';
+      cx.fill();
+    }
+    cx.beginPath();
+    cx.roundRect(x + 110, y + chrome * 0.22, w - 150, chrome * 0.56, chrome * 0.28);
+    cx.fillStyle = clair ? '#FFFFFF' : 'rgba(255,255,255,0.08)';
+    cx.fill();
+    cx.font = fonte(e.f.mono, L * 0.0165);
+    cx.fillStyle = clair ? '#8A857D' : 'rgba(255,255,255,0.5)';
+    cx.fillText('exemple-de-site.fr', x + 128, y + chrome * 0.62);
+  };
+  const cy0 = y + chrome;
+  const ch = h - chrome;
+
+  // ── AVANT : une page où l'on ne sait pas ce qui se vend ──
+  const pageAvant = () => {
+    cx.fillStyle = '#F2F0EC';
+    cx.fillRect(x, cy0, w, ch);
+    // Menu surchargé.
+    cx.font = fonte(e.f.corpsL, L * 0.0165);
+    cx.fillStyle = '#8A857D';
+    let mx = x + pad;
+    for (const lien of ['Accueil', 'Société', 'Savoir-faire', 'Actualités', 'Galerie', 'Liens', 'Contact']) {
+      cx.fillText(lien, mx, cy0 + ch * 0.06);
+      mx += cx.measureText(lien).width + L * 0.022;
+    }
+    // Un carrousel gris, une accroche vague.
+    const by = cy0 + ch * 0.1;
+    const bh = ch * 0.36;
+    const g = cx.createLinearGradient(x, by, x + w, by + bh);
+    g.addColorStop(0, '#C9C5BE');
+    g.addColorStop(1, '#A9A49C');
+    cx.fillStyle = g;
+    cx.fillRect(x + pad, by, w - pad * 2, bh);
+    cx.fillStyle = 'rgba(255,255,255,0.75)';
+    cx.font = fonte(e.f.corps, L * 0.036);
+    const acc = e.lignes(cx, sc.avant.accroche, w - pad * 4);
+    acc.forEach((l, k) => cx.fillText(l, x + pad * 2, by + bh * 0.42 + k * L * 0.046));
+    // Les points du carrousel.
+    for (let k = 0; k < 5; k++) {
+      cx.beginPath();
+      cx.arc(x + w / 2 - 44 + k * 22, by + bh - 22, 5, 0, Math.PI * 2);
+      cx.fillStyle = k === 1 ? '#FFFFFF' : 'rgba(255,255,255,0.45)';
+      cx.fill();
+    }
+    // Des boutons qui se font concurrence, tous au même poids.
+    const nbB = sc.avant.boutons.length;
+    const bw = (w - pad * 2 - (nbB - 1) * 14) / nbB;
+    sc.avant.boutons.forEach((b, k) => {
+      const bx = x + pad + k * (bw + 14);
+      const byy = by + bh + ch * 0.045;
+      cx.beginPath();
+      cx.roundRect(bx, byy, bw, ch * 0.07, 6);
+      cx.fillStyle = '#DAD6CF';
+      cx.fill();
+      cx.font = fonte(e.f.corpsL, L * 0.0185);
+      cx.fillStyle = '#5E5A54';
+      const bwT = cx.measureText(b).width;
+      cx.fillText(b, bx + bw / 2 - bwT / 2, byy + ch * 0.045);
+    });
+    // Puis du texte, beaucoup de texte.
+    let ty = by + bh + ch * 0.17;
+    for (let q = 0; q < 9; q++) {
+      cx.fillStyle = '#D5D1CA';
+      cx.fillRect(x + pad, ty, (w - pad * 2) * (0.7 + 0.3 * hasard(q + 3)), ch * 0.014);
+      ty += ch * 0.033;
+    }
+  };
+
+  // ── APRÈS : une promesse, un bouton, les preuves ──
+  const pageApres = () => {
+    const g = cx.createLinearGradient(x, cy0, x, cy0 + ch);
+    g.addColorStop(0, '#15111B');
+    g.addColorStop(1, '#0C0A10');
+    cx.fillStyle = g;
+    cx.fillRect(x, cy0, w, ch);
+    const halo = cx.createRadialGradient(x + w * 0.8, cy0 + ch * 0.2, 0, x + w * 0.8, cy0 + ch * 0.2, w * 0.7);
+    halo.addColorStop(0, `${e.accent}44`);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    cx.fillStyle = halo;
+    cx.fillRect(x, cy0, w, ch);
+    cx.font = fonte(e.f.mono, L * 0.019);
+    espacer(cx, 2);
+    cx.fillStyle = 'rgba(255,255,255,0.7)';
+    cx.fillText(sc.enseigne.toUpperCase(), x + pad, cy0 + ch * 0.075);
+    espacer(cx, 0);
+    // La promesse, grande, lisible sans défiler.
+    let tp = L * 0.064;
+    cx.font = fonte(e.f.corps, tp);
+    let ls = e.lignes(cx, sc.apres.promesse, w - pad * 2);
+    while (ls.length > 3 && tp > L * 0.04) {
+      tp *= 0.94;
+      cx.font = fonte(e.f.corps, tp);
+      ls = e.lignes(cx, sc.apres.promesse, w - pad * 2);
+    }
+    cx.fillStyle = '#FFFFFF';
+    ls.forEach((l, k) => cx.fillText(l, x + pad, cy0 + ch * 0.2 + k * tp * 1.16));
+    const yb = cy0 + ch * 0.2 + ls.length * tp * 1.16 + ch * 0.01;
+    // Un seul bouton.
+    cx.font = fonte(e.f.corps, L * 0.027);
+    const bwT = cx.measureText(sc.apres.bouton).width;
+    cx.beginPath();
+    cx.roundRect(x + pad, yb, bwT + L * 0.09, ch * 0.085, ch * 0.0425);
+    cx.fillStyle = e.degrade ? degradeH(cx, x + pad, bwT + L * 0.09, e.degrade) : e.accent;
+    cx.shadowColor = e.accent;
+    cx.shadowBlur = 28;
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.fillStyle = '#FFFFFF';
+    cx.fillText(sc.apres.bouton, x + pad + L * 0.045, yb + ch * 0.055);
+    // Les preuves, avant tout argument.
+    const yp = yb + ch * 0.16;
+    const nbP = sc.apres.preuves.length;
+    const pw = (w - pad * 2 - (nbP - 1) * 14) / nbP;
+    sc.apres.preuves.forEach((pr, k) => {
+      const px = x + pad + k * (pw + 14);
+      cx.beginPath();
+      cx.roundRect(px, yp, pw, ch * 0.13, 12);
+      cx.fillStyle = 'rgba(255,255,255,0.06)';
+      cx.fill();
+      cx.strokeStyle = 'rgba(255,255,255,0.16)';
+      cx.lineWidth = 1.5;
+      cx.stroke();
+      cx.beginPath();
+      cx.arc(px + 22, yp + ch * 0.04, 6, 0, Math.PI * 2);
+      cx.fillStyle = e.accent2;
+      cx.fill();
+      let tpr = L * 0.021;
+      cx.font = fonte(e.f.corpsL, tpr);
+      let pls = e.lignes(cx, pr, pw - 28);
+      while (pls.length > 2 && tpr > L * 0.015) {
+        tpr *= 0.94;
+        cx.font = fonte(e.f.corpsL, tpr);
+        pls = e.lignes(cx, pr, pw - 28);
+      }
+      cx.fillStyle = 'rgba(255,255,255,0.86)';
+      pls.forEach((l, q) => cx.fillText(l, px + 14, yp + ch * 0.085 + q * tpr * 1.25));
+    });
+    // Le reste de la page, discret.
+    let ty = yp + ch * 0.2;
+    for (let q = 0; q < 4; q++) {
+      cx.fillStyle = 'rgba(255,255,255,0.08)';
+      cx.fillRect(x + pad, ty, (w - pad * 2) * (0.75 + 0.25 * hasard(q + 9)), ch * 0.013);
+      ty += ch * 0.032;
+    }
+    return { yPromesse: cy0 + ch * 0.2 - tp * 0.5, yBouton: yb + ch * 0.04, yPreuves: yp + ch * 0.065 };
+  };
+
+  cx.save();
+  cx.globalAlpha = aF;
+  cx.translate(0, (1 - aF) * 50);
+  cx.shadowColor = 'rgba(0,0,0,0.55)';
+  cx.shadowBlur = 70;
+  cx.shadowOffsetY = 28;
+  cadre();
+  cx.fillStyle = '#0C0A10';
+  cx.fill();
+  cx.shadowColor = 'transparent';
+  cx.shadowBlur = 0;
+  cx.shadowOffsetY = 0;
+  const xv = x + w * (1 - pv);
+  // L'avant, à gauche du volet.
+  cx.save();
+  cadre();
+  cx.clip();
+  cx.beginPath();
+  cx.rect(x, y, Math.max(0, xv - x), h);
+  cx.clip();
+  barreNav(true);
+  pageAvant();
+  cx.restore();
+  // L'après, à droite.
+  let ancres = { yPromesse: 0, yBouton: 0, yPreuves: 0 };
+  cx.save();
+  cadre();
+  cx.clip();
+  cx.beginPath();
+  cx.rect(xv, y, x + w - xv, h);
+  cx.clip();
+  barreNav(false);
+  ancres = pageApres();
+  cx.restore();
+  cadre();
+  cx.strokeStyle = 'rgba(255,255,255,0.18)';
+  cx.lineWidth = 2;
+  cx.stroke();
+  // L'arête du volet.
+  if (pv > 0 && pv < 1) {
+    cx.save();
+    cx.globalCompositeOperation = 'lighter';
+    cx.fillStyle = e.degrade ? degradeH(cx, xv - 3, 6, e.degrade) : e.accent;
+    cx.shadowColor = e.accent;
+    cx.shadowBlur = 40;
+    cx.fillRect(xv - 2.5, y + 8, 5, h - 16);
+    cx.restore();
+  }
+  // Étiquette AVANT / APRÈS.
+  const tE = L * 0.022;
+  espacer(cx, 2);
+  const police = fonte(e.f.mono, tE);
+  if (pv < 0.5) pastilleVerre(cx, x + w - L * 0.2, y + chrome + 18, 'AVANT', police, tE, { teinte: 'rgba(0,0,0,0.55)', t: e.t, encre: '#FFFFFF', pastille: '#A9A49C', intensite: 1 });
+  else pastilleVerre(cx, x + w - L * 0.2, y + chrome + 18, 'APRÈS', police, tE, { teinte: 'rgba(0,0,0,0.55)', t: e.t, encre: '#FFFFFF', pastille: e.accent, intensite: 1.1 });
+  espacer(cx, 0);
+  // Les repères, posés sur l'après : numéro sur la page, phrase à côté.
+  const ys = [ancres.yPromesse, ancres.yBouton, ancres.yPreuves];
+  sc.reperes.forEach((r, k) => {
+    const t0 = tRep + k * pasR;
+    const a = (tl - t0) / 0.5;
+    if (a <= 0 || pv < 1) return;
+    e.repere('pop', t0 + 0.02);
+    const ry = ys[Math.min(k, ys.length - 1)];
+    const rr = L * 0.024 * ressort(a);
+    const rx = x + w - L * 0.012;
+    cx.beginPath();
+    cx.arc(rx, ry, rr, 0, Math.PI * 2);
+    cx.fillStyle = e.accent2;
+    cx.shadowColor = e.accent2;
+    cx.shadowBlur = 22;
+    cx.fill();
+    cx.shadowBlur = 0;
+    cx.font = fonte(e.f.corps, L * 0.024);
+    cx.fillStyle = '#12101A';
+    const nt = String(k + 1);
+    cx.fillText(nt, rx - cx.measureText(nt).width / 2, ry + L * 0.0085);
+  });
+  cx.restore();
+  // Sous la fenêtre : la légende des repères, numérotée.
+  let yl = y + h + L * 0.062;
+  sc.reperes.forEach((r, k) => {
+    const t0 = tRep + k * pasR;
+    const a = sortie((tl - t0 - 0.1) / 0.45);
+    if (a <= 0) return;
+    cx.globalAlpha = a;
+    const tR = L * 0.03;
+    cx.beginPath();
+    cx.arc(x + tR * 0.6, yl - tR * 0.32, tR * 0.62, 0, Math.PI * 2);
+    cx.fillStyle = e.accent2;
+    cx.fill();
+    cx.font = fonte(e.f.corps, tR * 0.74);
+    cx.fillStyle = '#12101A';
+    const nt = String(k + 1);
+    cx.fillText(nt, x + tR * 0.6 - cx.measureText(nt).width / 2, yl - tR * 0.06);
+    cx.font = fonte(e.f.corps, tR);
+    cx.fillStyle = e.encre;
+    cx.fillText(r, x + tR * 1.7 + (1 - a) * 16, yl);
+    yl += tR * 1.7;
+  });
+  cx.globalAlpha = 1;
+  mentionSous(cx, e, sc.mention, y1 - tM * 0.4, tM, apparition(tl, 0.5, 0.5));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

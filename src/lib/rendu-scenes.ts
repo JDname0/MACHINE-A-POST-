@@ -1247,11 +1247,14 @@ function appInterne(
  */
 export function sceneApp(cx: C2D, e: Env, sc: Extract<Scene, { type: 'app' }>, tl: number, d: number, y0: number, y1: number) {
   const legende = Boolean(sc.flux || sc.mention);
-  let fs = e.L * (e.vertical ? 0.038 : 0.03);
-  for (let essai = 0; essai < 5; essai++) {
+  // On part d'un corps généreux et on ne réduit que si le contenu l'exige : un
+  // écran peu rempli se lit en grand au lieu de flotter dans une petite carte.
+  let fs = e.L * (e.vertical ? 0.05 : 0.034);
+  const ESSAIS = 8;
+  for (let essai = 0; essai < ESSAIS; essai++) {
     const dispo = y1 - y0 - (legende ? fs * 3.6 : 0);
     const besoin = appInterne(cx, e, sc, tl, d, y0, y1, fs, 0, true);
-    if (besoin <= dispo || essai === 4) {
+    if (besoin <= dispo || essai === ESSAIS - 1) {
       const h = Math.min(dispo, Math.max(besoin, fs * 9));
       const cy0 = y0 + Math.max(0, (dispo - h) * 0.28);
       const bas = cy0 + h + (legende ? fs * 3.6 : 0);

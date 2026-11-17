@@ -18,6 +18,7 @@
  */
 
 import type { PlanMontage, Scene } from './montage';
+import { IMAGES_LIVREES } from './montage';
 import {
   dessinerFond,
   dessinerChapitre,
@@ -41,7 +42,7 @@ import { CollecteReperes, codecAudio, composerBandeSon, encoderAudio, FREQ, type
 import { verre, grainFilm, vignette, filtreDisponible } from './verre';
 import type { Forme3D, Moteur3D, Place3D } from './scene3d';
 import type { MoteurObjet } from './objet3d';
-import { appliquerCamera, cameraDe, composerRaccord, raccordDe, DUREE_RACCORD, sceneCourbe, sceneMots, sceneDashboard, sceneObjet3D, sceneParcours, sceneRapport, sceneVitrine } from './cinema';
+import { appliquerCamera, cameraDe, composerRaccord, raccordDe, DUREE_RACCORD, sceneCourbe, sceneMots, sceneAvantApres, sceneDashboard, sceneGalerie, sceneObjet3D, sceneParcours, sceneRapport, sceneVitrine, type ImageGalerie } from './cinema';
 import { enregistrerTeleversement, deposerVideoMontee } from '@/app/actions';
 
 export interface ImageDispo {
@@ -322,6 +323,20 @@ async function preparerRendu(m: Montage) {
   if (plans.some((x) => x.noyau)) {
     const { creerMoteur3D } = await import('./scene3d');
     moteur3D = await creerMoteur3D(marque, L, H, 0.75);
+  }
+  // ── Images livrées (scène `galerie`) : chargées une fois, par nom ──
+  const galeries = new Map<string, ImageGalerie>();
+  for (const nomImage of new Set(plans.flatMap((x) => (x.scene?.type === 'galerie' ? x.scene.images : [])))) {
+    const fiche = IMAGES_LIVREES[nomImage];
+    if (!fiche || fiche.entite !== marque) continue; // la cloison : jamais l'image de l'autre entité
+    try {
+      const img = new Image();
+      img.src = fiche.url;
+      await img.decode();
+      galeries.set(nomImage, { img, nom: fiche.nom, nature: fiche.nature });
+    } catch {
+      // Image absente : la galerie se fera sans elle.
+    }
   }
   // ── Objet 3D réellement rendu (scène `objet3d`), chargé seulement si un plan le demande ──
   let moteurObjet: MoteurObjet | null = null;
@@ -884,6 +899,17 @@ async function preparerRendu(m: Montage) {
     else if (sc.type === 'rapport') sceneRapport(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'objet3d') sceneObjet3D(cx, env, sc, moteurObjet, tl, d, y0, y1);
     else if (sc.type === 'dashboard') sceneDashboard(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'avant-apres') sceneAvantApres(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'galerie')
+      sceneGalerie(
+        cx,
+        env,
+        sc,
+        sc.images.map((n) => galeries.get(n)).filter((g): g is ImageGalerie => Boolean(g)),
+        tl,
+        y0,
+        y1,
+      );
     else if (sc.type === 'vitrine') sceneVitrine(cx, env, sc, plans[i].source.type === 'media' ? sources[i] : null, tl, y0, y1);
   };
 
@@ -1028,6 +1054,10 @@ async function preparerRendu(m: Montage) {
     if (cols.length === 1) g.addColorStop(1, cols[0]);
     cx2.fillStyle = g;
     cx2.fillRect(0, 0, L * borne(t / t0), h);
+    // Une encoche à chaque changement de plan : la barre dit aussi où l'on en est
+    // dans le film, pas seulement combien il reste.
+    cx2.fillStyle = th.fond;
+    for (let q = 1; q < bornes.length; q++) cx2.fillRect(Math.round((L * bornes[q][0]) / t0) - 2, 0, 4, h);
   };
 
   const tmp2 = document.createElement('canvas');
