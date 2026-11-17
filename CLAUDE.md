@@ -196,6 +196,33 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   Seedance Mini). Les fichiers entrent par `scripts/importer-media.mjs` ; un
   plan de script les appelle par nom (`clip: 'veolt-orbite'`). Un clip absent
   n'est pas une erreur : le plan retombe sur la 3D / la carte.
+**Motion design v4** (17/11) — `src/lib/cinema.ts`, `src/lib/objet3d.ts` :
+
+- **Caméra virtuelle** : chaque plan a un mouvement lent (`cameraDe`), le décor
+  le suit à 40 %, la 3D à 70 %, le premier plan à 100 % — c'est cet écart qui
+  donne la profondeur. Le sous-titre, la barre et le grain restent hors caméra.
+  L'échelle du premier plan ne descend jamais sous 1 : rien ne découvre un bord.
+- **Raccords** (`raccordDe`) : glissé, volet, iris, en plus du « à travers »
+  (Veolt) et du fondu flouté (MagistrIA). MagistrIA n'ouvre au volet que ses
+  chapitres — ne pas lui donner le montage de Veolt.
+- **Scènes qui montrent** : `mots` (typographie plein cadre), `courbe`,
+  `parcours`, `rapport`, `objet3d`, `vitrine`. Une `courbe` n'affiche **aucune
+  valeur** sur ses axes ; `rapport` et `objet3d` sont des EXEMPLES, et leur
+  `mention` le dit à l'écran. Ne pas retirer ces mentions : c'est la règle 2.
+- **`objet3d`** est un vrai rendu three.js (matériaux physiques, éclairage par
+  environnement), sur une toile réutilisée : la dessiner avant le rendu suivant.
+- **Caméra d'écran** dans `sceneApp` : une passe « à sec » (`aSec`) calcule le
+  point d'attention, puis la fenêtre est poussée vers lui. La poussée est
+  bornée pour rester dans les marges — ne pas l'augmenter sans regarder une
+  scène avec `bulles`.
+- **Clips livrés** (`CLIPS_LIVRES`, `public/clips`) : les films de démonstration
+  de veolt.fr, appelables par nom sans médiathèque. Ce sont des démonstrations
+  du studio, jamais un travail client : un plan qui les montre porte
+  l'étiquette « Démonstration du studio ».
+- **Vérifier une vidéo sans l'ouvrir dans le studio** : `window.__fabrique`
+  (développement) expose `preparerRendu` et `fabriquer` ; un navigateur sans
+  tête peut rendre n'importe quelle image d'un script et encoder le fichier.
+
 - `src/lib/export-ae.ts` (projet After Effects .jsx), `outils/blender/`
   (noyau de particules en vrai rendu), `src/lib/fournisseurs-media.ts`
   (ElevenLabs, Runway, Ollama — clés serveur uniquement, bouton pressé par

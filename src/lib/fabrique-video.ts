@@ -40,6 +40,8 @@ import { deuxLignes } from './coupe';
 import { CollecteReperes, codecAudio, composerBandeSon, encoderAudio, FREQ, type OptionsSon, type VoixOff } from './son';
 import { verre, grainFilm, vignette, filtreDisponible } from './verre';
 import type { Forme3D, Moteur3D, Place3D } from './scene3d';
+import type { MoteurObjet } from './objet3d';
+import { appliquerCamera, cameraDe, composerRaccord, raccordDe, DUREE_RACCORD, sceneCourbe, sceneMots, sceneObjet3D, sceneParcours, sceneRapport, sceneVitrine } from './cinema';
 import { enregistrerTeleversement, deposerVideoMontee } from '@/app/actions';
 
 export interface ImageDispo {
@@ -320,6 +322,12 @@ async function preparerRendu(m: Montage) {
   if (plans.some((x) => x.noyau)) {
     const { creerMoteur3D } = await import('./scene3d');
     moteur3D = await creerMoteur3D(marque, L, H, 0.75);
+  }
+  // ── Objet 3D réellement rendu (scène `objet3d`), chargé seulement si un plan le demande ──
+  let moteurObjet: MoteurObjet | null = null;
+  if (plans.some((x) => x.scene?.type === 'objet3d')) {
+    const { creerMoteurObjet } = await import('./objet3d');
+    moteurObjet = await creerMoteurObjet(marque, Math.round(L * 0.9));
   }
   const formeDefaut: Forme3D = marque === 'veolt' ? 'sphere' : 'cerveau';
   const PLACES: Record<Place3D, { cx: number; cy: number; r: number; i: number }> = {
@@ -856,6 +864,8 @@ async function preparerRendu(m: Montage) {
   const dessinerScene = (cx: CanvasRenderingContext2D, i: number, tl: number, t: number, sc: Scene, d: number) => {
     if (sc.type === 'fin') return sceneFinV2(cx, env, sc, plans[i].texte, tl);
     if (sc.type === 'marque') return sceneMarque(cx, env, sc, tl);
+    // Typographie cinétique : plein cadre, sans titre au-dessus.
+    if (sc.type === 'mots') return sceneMots(cx, env, sc, tl, d);
     const y0 = dessinerTitre(cx, i, tl, t, 'haut') + L * 0.055;
     // Un sous-titre karaoké réserve le bas de l'écran.
     const y1 = H - (vertical ? 250 : 175) - (plans[i].sousTitre ? hauteurSousTitre(env) : 0);
@@ -869,6 +879,11 @@ async function preparerRendu(m: Montage) {
     else if (sc.type === 'recap') sceneRecap(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'site') sceneSite(cx, env, sc, tl, d, y0, y1);
     else if (sc.type === 'bento') sceneBento(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'courbe') sceneCourbe(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'parcours') sceneParcours(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'rapport') sceneRapport(cx, env, sc, tl, d, y0, y1);
+    else if (sc.type === 'objet3d') sceneObjet3D(cx, env, sc, moteurObjet, tl, d, y0, y1);
+    else if (sc.type === 'vitrine') sceneVitrine(cx, env, sc, plans[i].source.type === 'media' ? sources[i] : null, tl, y0, y1);
   };
 
   // Toile de travail pour les fondus : le plan entrant y est dessiné, puis
@@ -896,13 +911,13 @@ async function preparerRendu(m: Montage) {
     const genere = x.source.type === 'media' && m.images.find((k) => x.source.type === 'media' && k.id === x.source.id)?.origine === 'genere';
     const clip = img instanceof HTMLVideoElement;
 
+    // La caméra virtuelle du plan : le décor la suit à 40 %, la 3D à 70 %, le
+    // premier plan entièrement — c'est l'écart entre les trois qui fait la profondeur.
+    const cam = cameraDe(x, i, tl, b - a, env);
     const decor = x.source.type === 'carte' ? (x.fond ?? th.fondDefaut ?? 'carte') : 'carte';
     if (x.source.type === 'carte' && decor !== 'carte') {
       cx.save();
-      const z = 1 + punch * 0.6;
-      cx.translate(L / 2, H / 2);
-      cx.scale(z, z);
-      cx.translate(-L / 2, -H / 2);
+      appliquerCamera(cx, cam, L, H, 0.4, 0.025 + punch * 0.6);
       dessinerFond(cx, env, decor, t);
       cx.restore();
     } else if (x.source.type === 'carte') {
@@ -910,6 +925,13 @@ async function preparerRendu(m: Montage) {
     } else if (genere) {
       // Un visuel généré porte déjà son texte à la charte : il passe tel quel.
       couvrir(cx, img, L, H, 1 + 0.04 * u + punch);
+    } else if (x.scene?.type === 'vitrine') {
+      // Vitrine : le clip est montré dans son cadre par la scène ; derrière, le décor de la marque.
+      const dv = x.fond ?? th.fondDefaut ?? 'horizon';
+      cx.save();
+      appliquerCamera(cx, cam, L, H, 0.4, 0.025 + punch * 0.6);
+      dessinerFond(cx, env, dv === 'carte' ? 'horizon' : dv, t);
+      cx.restore();
     } else if (clip && x.scene?.type === 'marque') {
       // Le logotype en 3D (Blender) : plein cadre, sans voile — c'est le sujet.
       couvrir(cx, img, L, H, 1 + punch);
@@ -951,7 +973,12 @@ async function preparerRendu(m: Montage) {
     }
 
     // La couche 3D des sites, posée en « screen » sur le décor.
-    if (x.source.type === 'carte') dessinerNoyau(cx, i, tl, t, b - a);
+    if (x.source.type === 'carte') {
+      cx.save();
+      appliquerCamera(cx, cam, L, H, 0.7);
+      dessinerNoyau(cx, i, tl, t, b - a);
+      cx.restore();
+    }
 
     // Lueur qui dérive : elle donne de la vie aux fonds fixes, sans distraire.
     if (th.lueur) {
@@ -967,6 +994,8 @@ async function preparerRendu(m: Montage) {
     }
 
     if (!genere) {
+      cx.save();
+      appliquerCamera(cx, cam, L, H, 1);
       if (x.scene && x.scene.type !== 'titre') dessinerScene(cx, i, tl, t, x.scene, b - a);
       else dessinerTitre(cx, i, tl, t, x.source.type === 'media' && !x.centre ? 'bas' : 'centre');
       if (x.annotation) {
@@ -977,6 +1006,8 @@ async function preparerRendu(m: Montage) {
         dessinerAnnotation(cx, env, x.annotation, tl, b - a, ax, ay);
         dessinerFleche(cx, env, ax - L * 0.03, ay - L * 0.035, ax - L * 0.12, ay - L * 0.13, borne((tl - (b - a) * 0.5 - 0.5) / 0.5));
       }
+      cx.restore();
+      // Le sous-titre reste hors caméra : il se lit, il ne voyage pas.
       if (x.sousTitre) {
         const v = m.son?.voix?.find((k) => k.t >= a - 0.01 && k.t < b);
         dessinerSousTitre(cx, env, x.sousTitre, tl, b - a, v?.duree ? [v.t - a, v.t - a + v.duree] : undefined);
@@ -1011,7 +1042,21 @@ async function preparerRendu(m: Montage) {
     if (i < 0) i = plans.length - 1;
     const [a, b] = bornes[i];
     ctx.filter = 'none';
-    if (m.rythme === 'pose' && i > 0 && t - a < FONDU_FLOU) {
+    const dernier = plans.length - 1;
+    const rac = i > 0 ? raccordDe(plans, i, m.rythme) : 'coupe';
+    const racSuivant = i < dernier ? raccordDe(plans, i + 1, m.rythme) : 'coupe';
+    if (i > 0 && (rac === 'glisse' || rac === 'volet' || rac === 'iris') && t - a < DUREE_RACCORD[rac]) {
+      // Raccords composés (v4) : les deux plans sont dessinés, puis assemblés.
+      dessinerPlan(tctx2, i - 1, Math.min(t, bornes[i - 1][1] - 0.001));
+      dessinerPlan(tctx, i, t);
+      composerRaccord(ctx, rac, (t - a) / DUREE_RACCORD[rac], tmp2, tmp, {
+        L,
+        H,
+        fond: th.fond,
+        couleurs: th.barre?.length ? th.barre : [th.accent],
+        flou,
+      });
+    } else if (rac === 'fondu' && i > 0 && t - a < FONDU_FLOU) {
       // MagistrIA : fondu enchaîné à travers le flou — l'image sortante se
       // dissout pendant que l'entrante se met au point.
       const p = (t - a) / FONDU_FLOU;
@@ -1027,10 +1072,10 @@ async function preparerRendu(m: Montage) {
       ctx.drawImage(tmp, 0, 0);
       ctx.globalAlpha = 1;
       ctx.filter = 'none';
-    } else if (m.rythme === 'sec' && ((i > 0 && t - a < WHIP) || (i < plans.length - 1 && b - t < WHIP * 0.45))) {
+    } else if ((i > 0 && rac === 'travers' && t - a < WHIP) || (i < dernier && racSuivant === 'travers' && b - t < WHIP * 0.45)) {
       // Veolt : coupe « à travers » — zoom et flou de vitesse de part et
       // d'autre de la coupe, éclair de marque au raccord.
-      const entrant = i > 0 && t - a < WHIP;
+      const entrant = i > 0 && rac === 'travers' && t - a < WHIP;
       const p = entrant ? 1 - (t - a) / WHIP : 1 - (b - t) / (WHIP * 0.45);
       const force = entrant ? p * p : p * p * 0.7;
       dessinerPlan(tctx, i, t);
@@ -1098,7 +1143,10 @@ async function preparerRendu(m: Montage) {
     duree: t0,
     reperes: collecte.liste,
     marque,
-    fermer: () => moteur3D?.detruire(),
+    fermer: () => {
+      moteur3D?.detruire();
+      moteurObjet?.detruire();
+    },
   };
 }
 

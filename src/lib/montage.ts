@@ -42,6 +42,28 @@ export interface BulleApp {
   hauteur?: number;
 }
 
+/**
+ * Le mouvement de la caméra virtuelle pendant un plan (motion design v4). Sans
+ * réglage, chaque plan reçoit un mouvement lent, différent de celui du plan
+ * précédent : une image qui ne bouge jamais se lit comme une diapositive.
+ * Le décor bouge moins que le premier plan (parallaxe) — c'est ce qui donne
+ * la profondeur.
+ */
+export type MouvementCamera = 'pousse' | 'recul' | 'derive-gauche' | 'derive-droite' | 'monte' | 'descend' | 'fixe';
+export interface CameraPlan {
+  mouvement?: MouvementCamera;
+  /** 1 par défaut ; 0 fige, 2 double l'amplitude. */
+  force?: number;
+}
+
+/**
+ * Le raccord à l'entrée d'un plan. `auto` : celui de la marque, varié d'un plan
+ * à l'autre. `travers` : zoom et flou de vitesse ; `fondu` : fondu flouté ;
+ * `glisse` : le plan entrant pousse le sortant vers le haut ; `volet` : volet
+ * en biais à l'arête lumineuse ; `iris` : ouverture en cercle ; `coupe` : sèche.
+ */
+export type TransitionPlan = 'auto' | 'coupe' | 'travers' | 'fondu' | 'glisse' | 'volet' | 'iris';
+
 export type SourcePlan = { type: 'carte' } | { type: 'media'; id: number };
 
 export type EtatCitation = 'verifiee' | 'inconnue' | 'hors-corpus';
@@ -134,7 +156,50 @@ export type Scene =
       couleur?: string;
       reperes?: string[];
       mention?: string;
-    };
+    }
+  // ── Motion design v4 (17/11) ────────────────────────────────────────────
+  /**
+   * Typographie cinétique plein cadre : les lignes arrivent l'une après
+   * l'autre, chacune taillée à la largeur de l'écran. C'est l'accroche des
+   * trois premières secondes. Le `texte` du plan garde la phrase entière
+   * (aperçus, cartes, accessibilité) ; il n'est pas redessiné.
+   */
+  | { type: 'mots'; lignes: Array<{ texte: string; accent?: boolean; petit?: boolean }>; mode?: 'pile' | 'un-par-un' }
+  /**
+   * Une courbe qui se trace (trésorerie, distribution) dans un panneau de
+   * verre. AUCUNE valeur n'est affichée sur l'axe : la forme est un EXEMPLE,
+   * et la mention le dit. `repere` pose un marqueur et sa note sur un point.
+   */
+  | {
+      type: 'courbe';
+      fenetre: string;
+      points: number[];
+      etiquettesX?: string[];
+      repere?: { index: number; note: string };
+      /** Zone mise en avant, entre deux indices (« l'intervalle probable »). */
+      bande?: { de: number; a: number; note?: string };
+      legende?: string;
+      mention?: string;
+    }
+  /** Un parcours vertical : une lumière descend la ligne, chaque étape s'allume. `fort` : l'étape qu'on souligne. */
+  | { type: 'parcours'; etapes: Array<{ titre: string; detail?: string; fort?: boolean }> }
+  /**
+   * Un rapport qui défile vite, puis s'arrête : quelques phrases surlignées,
+   * chacune avec ce qu'elle commande. Le reste s'estompe. Document d'EXEMPLE.
+   */
+  | { type: 'rapport'; titre: string; pages?: number; phrases: Array<{ texte: string; note: string }>; mention?: string }
+  /**
+   * Un vrai objet 3D, rendu image par image par le studio (three.js) : un
+   * modèle d'EXEMPLE, dit à l'écran. `heros` : il tourne et change de coloris ;
+   * `grille` : les déclinaisons s'alignent ; `fil` : du maillage au rendu.
+   */
+  | { type: 'objet3d'; mode: 'heros' | 'grille' | 'fil'; coloris?: string[]; etiquettes?: string[]; mention?: string }
+  /**
+   * Le clip du plan montré dans un cadre, comme une pièce de vitrine, au lieu
+   * de passer en fond voilé derrière le texte : c'est lui qu'on regarde.
+   * Sans clip (nom introuvable), le plan retombe sur son titre seul.
+   */
+  | { type: 'vitrine'; etiquette?: string; mention?: string };
 
 export interface PlanMontage {
   duree: number;
@@ -163,6 +228,10 @@ export interface PlanMontage {
    * nom de fichier sans extension. Résolu au montage ; introuvable : la carte.
    */
   clip?: string;
+  /** Mouvement de caméra du plan ; absent : automatique. */
+  camera?: CameraPlan;
+  /** Raccord d'entrée du plan ; absent : automatique. */
+  transition?: TransitionPlan;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
@@ -189,6 +258,8 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     ...(p.sousTitre ? { sousTitre: p.sousTitre } : {}),
     ...(p.noyau ? { noyau: p.noyau } : {}),
     ...(p.clip ? { clip: p.clip } : {}),
+    ...(p.camera ? { camera: p.camera } : {}),
+    ...(p.transition ? { transition: p.transition } : {}),
   }));
 }
 
@@ -283,5 +354,22 @@ export function plansDepuisPost(
   }
   return plans;
 }
+
+/**
+ * Clips livrés avec l'outil (`public/clips`), utilisables en fond de plan sans
+ * passer par la médiathèque : un script les appelle par nom (`clip: '…'`).
+ * Ce sont les films de démonstration montrés sur veolt.fr, repris le 17/11 en
+ * 720 × 1280. Identifiants négatifs : ils ne croisent jamais ceux de la base.
+ * Un clip du même nom déposé dans la médiathèque passe devant.
+ *
+ * Ce sont des DÉMONSTRATIONS du studio (marques et personnages de fiction) :
+ * un plan qui les montre le dit à l'écran, et aucun script ne les présente
+ * comme un travail fait pour un client (règle 2 du dépôt).
+ */
+export const CLIPS_LIVRES: Array<{ id: number; entite: 'veolt' | 'magistria'; nom: string; url: string }> = [
+  { id: -1, entite: 'veolt', nom: 'veolt-demo-canette', url: '/clips/veolt-demo-canette.mp4' },
+  { id: -2, entite: 'veolt', nom: 'veolt-demo-espace', url: '/clips/veolt-demo-espace.mp4' },
+  { id: -3, entite: 'veolt', nom: 'veolt-demo-tonic', url: '/clips/veolt-demo-tonic.mp4' },
+];
 
 export const dureeTotale = (plans: PlanMontage[]) => plans.reduce((n, p) => n + p.duree, 0);

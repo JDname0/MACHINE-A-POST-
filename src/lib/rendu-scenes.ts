@@ -559,6 +559,10 @@ function segments(texte: string): Array<{ t: string; gras: boolean; renvoi?: num
   return out;
 }
 
+/** Passe « à sec » de l'écran produit : la mise en page est calculée, rien n'est dessiné. */
+let aSec = false;
+let focusCourant = 0;
+
 interface Disposition {
   hauteur: number;
   dessiner: (y: number, tl: number) => void;
@@ -1082,6 +1086,25 @@ function appInterne(
   // Première passe : on ne fait que mesurer la hauteur utile.
   if (mesurer) return chrome + ongletsH + pad * 1.6 + cumul + saisieH;
 
+  // Le point d'attention : le centre de l'élément en train d'arriver, suivi en
+  // douceur d'un élément au suivant. `sceneApp` y pousse la caméra (v4).
+  {
+    let df = 0;
+    for (let k = 0; k < dispo.length; k++) {
+      const a = apparition(tl, debuts[k], 0.55);
+      if (a <= 0) break;
+      df = df + (Math.max(0, hauts[k] + dispo[k].hauteur - zh) - df) * a;
+    }
+    const centre = (k: number) => zy + Math.min(zh, hauts[k] - df + Math.min(dispo[k].hauteur, zh) / 2);
+    let fy = dispo.length ? centre(0) : y0 + h / 2;
+    for (let k = 1; k < dispo.length; k++) {
+      const p = borne((tl - debuts[k]) / 0.9);
+      fy += (centre(k) - fy) * p * p * (3 - 2 * p);
+    }
+    focusCourant = Math.min(y0 + h - fs * 2, Math.max(y0 + fs * 3, fy));
+  }
+  if (aSec) return 0;
+
   // ── Fenêtre ──
   const aF = apparition(tl, 0, 0.55);
   cx.save();
@@ -1231,7 +1254,25 @@ export function sceneApp(cx: C2D, e: Env, sc: Extract<Scene, { type: 'app' }>, t
     if (besoin <= dispo || essai === 4) {
       const h = Math.min(dispo, Math.max(besoin, fs * 9));
       const cy0 = y0 + Math.max(0, (dispo - h) * 0.28);
-      appInterne(cx, e, sc, tl, d, cy0, cy0 + h + (legende ? fs * 3.6 : 0), fs, h, false);
+      const bas = cy0 + h + (legende ? fs * 3.6 : 0);
+      // Caméra d'écran (v4) : une fois la fenêtre posée, on s'approche de ce
+      // qui s'écrit et on le suit — comme un enregistrement d'écran monté, pas
+      // une capture fixe. La poussée reste dans les marges : rien ne sort du cadre.
+      aSec = true;
+      try {
+        appInterne(cx, e, sc, tl, d, cy0, bas, fs, h, false);
+      } finally {
+        aSec = false;
+      }
+      const pe = borne((tl - 0.9) / 1.4);
+      const z = 1 + (sc.bulles?.length ? 0.05 : 0.085) * pe * pe * (3 - 2 * pe);
+      const haut = focusCourant + (cy0 - focusCourant) * z;
+      cx.save();
+      cx.translate(e.L / 2, focusCourant + Math.max(0, y0 - e.L * 0.012 - haut));
+      cx.scale(z, z);
+      cx.translate(-e.L / 2, -focusCourant);
+      appInterne(cx, e, sc, tl, d, cy0, bas, fs, h, false);
+      cx.restore();
       return;
     }
     fs *= 0.9;

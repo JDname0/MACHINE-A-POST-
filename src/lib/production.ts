@@ -16,7 +16,7 @@ import { publications, type LignePublication } from './requetes';
 import { attendu, dureeConseillee } from './conformite-media';
 import { visuelsDuPost } from './fiche';
 import { videosDe } from './videos';
-import { cadreVideo, plansDepuisPost, plansDepuisScript, type PlanMontage } from './montage';
+import { cadreVideo, plansDepuisPost, plansDepuisScript, CLIPS_LIVRES, type PlanMontage } from './montage';
 import { deuxLignes, THEMES } from './visuels';
 import { TYPES_IMAGE, depotDirect, plafondDepotVideo } from './medias';
 import type { Montage, ThemeStudio } from './fabrique-video';
@@ -152,6 +152,8 @@ export function matiereStudio(entite: EntiteSlug, memoire: ImageMemoire[]) {
   return [
     ...memoire.map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'image' as const })),
     ...clipsMemoire(entite).map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'video' as const })),
+    // Les clips livrés avec l'outil (démonstrations du site), toujours disponibles.
+    ...CLIPS_LIVRES.filter((x) => x.entite === entite).map((x) => ({ id: x.id, url: x.url, nom: `${x.nom}.mp4`, origine: 'clip', type: 'video' as const })),
   ];
 }
 
@@ -201,7 +203,10 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
   // Les clips nommés par le script (« veolt-orbite ») pris dans la médiathèque.
   const clips = clipsMemoire(p.entite as EntiteSlug);
   plans.forEach((x, i) => {
-    const c = x.clip ? clips.find((k) => k.nom.replace(/\.[a-z0-9]+$/i, '') === x.clip) : undefined;
+    // La médiathèque d'abord ; à défaut, un clip livré avec l'outil (public/clips).
+    const c =
+      (x.clip ? clips.find((k) => k.nom.replace(/\.[a-z0-9]+$/i, '') === x.clip) : undefined) ??
+      (x.clip ? CLIPS_LIVRES.find((k) => k.entite === p.entite && k.nom === x.clip) : undefined);
     if (c) plans[i] = { ...x, source: { type: 'media', id: c.id } };
   });
 

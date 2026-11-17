@@ -17,6 +17,15 @@ inventée, aucune passerelle entre les deux entités.
 | Blender | `outils/blender/noyau_particules.py` | Le même noyau de particules en vrai rendu 3D (profondeur de champ, halo du compositeur), séquence PNG transparente |
 | Voix, clips, LLM local | `src/lib/fournisseurs-media.ts` | ElevenLabs (voix off plan par plan, bouton dans le studio), Runway (image → vidéo), Ollama (modèle ouvert local) — prêts, en attente de clés |
 
+### Ajouts du 17/11 (motion design v4)
+
+| Brique | Fichier | Ce que ça donne |
+|---|---|---|
+| Caméra et raccords | `src/lib/cinema.ts` | Mouvement de caméra sur chaque plan avec parallaxe (décor / 3D / premier plan), raccords glissé, volet et iris, caméra qui suit ce qui s'écrit dans l'écran produit |
+| Scènes | `src/lib/cinema.ts` | Typographie cinétique plein cadre, courbe qui se trace, parcours qui s'allume, rapport qui défile et s'arrête sur ses phrases, film montré en vitrine |
+| Objet 3D réel | `src/lib/objet3d.ts` | Un modèle 3D d'exemple rendu image par image (vernis, métal, éclairage de studio) : il tourne, change de coloris, se montre en maillage puis en rendu, se décline en six cadrages |
+| Films du site | `public/clips` | Les trois films de démonstration de veolt.fr, appelables par nom dans un script |
+
 ## 1 bis. Higgsfield — branché depuis le 11/11 (abonnement Starter, 270 crédits)
 
 Higgsfield sert de **porte d'entrée unique** : il donne accès aux voix
