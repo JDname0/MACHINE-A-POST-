@@ -53,7 +53,7 @@ export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer:
 
   return (
     <>
-      <Link href={fermer} scroll={false} aria-label="Fermer l’aperçu" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.28)', zIndex: 69 }} />
+      <Link href={fermer} scroll={false} aria-label="Fermer l’aperçu" style={{ position: 'fixed', inset: 0, background: 'var(--voile-modal)', zIndex: 69 }} />
       <aside
         aria-label={`Aperçu — ${p.titre ?? ''}`}
         style={{
@@ -65,7 +65,7 @@ export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer:
           overflow: 'auto',
           background: 'var(--fond)',
           borderLeft: '1px solid var(--ligne)',
-          boxShadow: '-12px 0 40px rgba(0,0,0,.18)',
+          boxShadow: '-12px 0 40px rgba(0,0,0,.6)',
           zIndex: 70,
           padding: '18px 20px 80px',
         }}
@@ -101,7 +101,7 @@ export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer:
 
         {/* ── Le post fourni : fait ailleurs, téléversé ici ───────────── */}
         {fourni ? (
-          <div className="carte" style={{ marginBottom: 12, outline: '2px solid var(--accent)', outlineOffset: -2 }}>
+          <div className="carte" style={{ marginBottom: 12, outline: '2px solid var(--accent-texte)', outlineOffset: -2 }}>
             <h3>📥 Post fourni — fait hors de la machine</h3>
             <p className="aide" style={{ margin: '4px 0 10px' }}>
               Ces fichiers sont le post. Ce que l’outil avait généré reste plus bas, en repli.

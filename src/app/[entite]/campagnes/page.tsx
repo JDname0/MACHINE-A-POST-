@@ -94,7 +94,7 @@ export default async function Campagnes({ params }: { params: Promise<{ entite: 
                     <strong style={{ color: 'var(--encre)' }}>Audience.</strong> {c.audience}
                   </div>
                   <div style={{ fontSize: 12.5, color: 'var(--encre-dim)' }}>
-                    <strong style={{ color: 'var(--alerte)' }}>Note.</strong> {c.note}
+                    <strong style={{ color: 'var(--attention)' }}>Note.</strong> {c.note}
                   </div>
                 </div>
 
@@ -112,7 +112,7 @@ export default async function Campagnes({ params }: { params: Promise<{ entite: 
                     <div className="etiq">coût par clic</div>
                   </div>
                   <div>
-                    <div className="chiffre" style={{ fontSize: 21, color: 'var(--accent)' }}>
+                    <div className="chiffre" style={{ fontSize: 21, color: 'var(--accent-texte)' }}>
                       {euros(coutParConversation)}
                     </div>
                     <div className="etiq">coût par conversation engagée</div>

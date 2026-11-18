@@ -67,7 +67,7 @@ export function TeleverserLivrables({
       </button>
       {etat ? <div className="aide" style={{ marginTop: 6 }}>{etat}</div> : null}
       {refus.length ? (
-        <ul className="aide" style={{ marginTop: 6, color: 'var(--danger, #b00020)' }}>
+        <ul className="aide" style={{ marginTop: 6, color: 'var(--grave)' }}>
           {refus.map((x) => (
             <li key={x}>{x}</li>
           ))}

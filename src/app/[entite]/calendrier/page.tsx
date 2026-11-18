@@ -269,7 +269,7 @@ export default async function Calendrier({
                               href={`/${e}/calendrier?apercu=${p.id}`}
                               scroll={false}
                               title={p.raison ?? ''}
-                              style={ouvert?.id === p.id ? { outline: '2px solid var(--accent)' } : undefined}
+                              style={ouvert?.id === p.id ? { outline: '2px solid var(--accent-texte)' } : undefined}
                             >
                               <div className="r">
                                 {attendu(p.format_slug) === 'video' ? '🎬 ' : /carrousel/.test(p.format_slug) ? '🗂️ ' : attendu(p.format_slug) === 'image' ? '🖼️ ' : '✍️ '}

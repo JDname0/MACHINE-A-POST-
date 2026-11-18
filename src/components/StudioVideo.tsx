@@ -463,7 +463,7 @@ export function StudioVideo(p: Props) {
           ) : null}
           {etat.phase === 'envoi' ? <p className="aide" style={{ marginTop: 8 }}>Envoi… {etat.pourcent} %</p> : null}
           {etat.phase === 'enregistre' ? (
-            <p className="aide" style={{ marginTop: 8, color: 'var(--ok)' }}>
+            <p className="aide" style={{ marginTop: 8, color: 'var(--bon)' }}>
               ✅ Vidéo rangée dans la médiathèque et rattachée au post. Elle passera par le contrôle du format dans le composeur.
             </p>
           ) : null}

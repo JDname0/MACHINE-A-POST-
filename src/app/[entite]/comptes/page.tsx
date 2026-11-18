@@ -79,7 +79,7 @@ export default async function Comptes({ params }: { params: Promise<{ entite: st
                     <strong style={{ color: 'var(--encre)' }}>Difficulté réelle.</strong> {spec.difficulte}
                   </div>
                   <div style={{ fontSize: 12.5, color: 'var(--encre-dim)' }}>
-                    <strong style={{ color: 'var(--alerte)' }}>Le piège.</strong> {spec.piege}
+                    <strong style={{ color: 'var(--attention)' }}>Le piège.</strong> {spec.piege}
                   </div>
                 </div>
 

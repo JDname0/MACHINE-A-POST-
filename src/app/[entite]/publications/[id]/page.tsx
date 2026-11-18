@@ -203,7 +203,7 @@ export default async function Composeur({
             <div className="carte">
               <h3>Contrôle — {constats.length} constat{constats.length > 1 ? 's' : ''}</h3>
               {constats.length === 0 ? (
-                <p style={{ color: 'var(--ok)' }}>Rien à signaler. Le brouillon peut être validé.</p>
+                <p style={{ color: 'var(--bon)' }}>Rien à signaler. Le brouillon peut être validé.</p>
               ) : (
                 <div style={{ marginTop: 9 }}>
                   {constats.map((c, i) => (

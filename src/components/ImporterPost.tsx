@@ -142,7 +142,7 @@ export function ImporterPost({
       </button>
       {etat ? <div className="aide" style={{ marginTop: 6 }}>{etat}</div> : null}
       {erreur.length ? (
-        <ul className="aide" style={{ marginTop: 6, color: 'var(--danger, #b00020)' }}>
+        <ul className="aide" style={{ marginTop: 6, color: 'var(--grave)' }}>
           {erreur.map((x) => (
             <li key={x}>{x}</li>
           ))}

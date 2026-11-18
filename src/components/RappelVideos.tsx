@@ -67,7 +67,7 @@ export function RappelVideos({
         bottom: 44,
         width: 'min(430px, calc(100vw - 36px))',
         zIndex: 60,
-        boxShadow: '0 12px 40px rgba(0,0,0,.18)',
+        boxShadow: '0 12px 40px rgba(0,0,0,.6)',
         borderRadius: 'var(--rayon)',
         maxHeight: '70vh',
         overflow: 'auto',

@@ -15,7 +15,7 @@ export default async function Connexion({ searchParams }: { searchParams: Promis
           <input id="mdp" name="motDePasse" type="password" autoFocus required />
         </div>
         {erreur ? (
-          <p style={{ color: 'var(--blocage)', fontSize: 13, marginBottom: 12 }}>Mot de passe incorrect.</p>
+          <p style={{ color: 'var(--grave)', fontSize: 13, marginBottom: 12 }}>Mot de passe incorrect.</p>
         ) : null}
         <button type="submit">Entrer</button>
       </form>

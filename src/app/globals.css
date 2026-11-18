@@ -1,66 +1,103 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   Thème clair, deux entités.
+   Thème sombre, deux entités — les couleurs des sites en ligne.
 
-   `data-entite` sur le cadre change l'accent et la police de titre : changer
-   d'entité, c'est changer de métier et de règles, et l'interface doit le dire
-   avant qu'on lise un libellé.
+   `data-entite` sur le cadre change les couleurs et la police de titre :
+   changer d'entité, c'est changer de métier et de règles, et l'interface doit
+   le dire avant qu'on lise un libellé.
+   - Veolt (par défaut, et pages hors entité) : palette de veolt.fr ;
+   - MagistrIA : variables CSS de magistrai.fr (relevées le 2026-11-18).
+   Les nuances intermédiaires (cartes, lignes) sont des mélanges des couleurs
+   du site, jamais une autre gamme.
 
    Deux règles tenues partout, qui viennent des repères de visualisation :
    - les **chiffres** sont en sans (Inter), jamais en Playfair ni en Kanit —
      une police de titre sur un nombre se lit comme de la décoration ;
    - les couleurs d'**état** (bon / attention / grave) sont réservées et
      toujours accompagnées d'un mot : une couleur ne porte jamais seule un sens.
+     Elles ne reprennent aucune couleur de marque.
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces */
-  --fond: #f4f5f7;
-  --carte: #ffffff;
-  --carte-2: #fafbfc;
-  --ligne: #e3e6ea;
-  --ligne-forte: #cfd4da;
+  color-scheme: dark;
 
-  /* Encre */
-  --encre: #15181d;
-  --encre-2: #4b5260;
-  --encre-dim: #737b89;
+  /* Surfaces — veolt.fr : fond #0C0C0C, panneaux #131316, gris #646973 */
+  --fond: #0c0c0c;
+  --carte: #131316;
+  --carte-2: color-mix(in srgb, #131316 90%, #646973);
+  --ligne: color-mix(in srgb, #131316 72%, #646973);
+  --ligne-forte: color-mix(in srgb, #131316 45%, #646973);
 
-  /* Accent — Veolt par défaut */
-  --accent: #a4009a;
-  --accent-fonce: #7c0074;
-  --accent-voile: #fbeaf9;
+  /* Encre — veolt.fr : #EDEBF2, gris #646973 → #BBCCD7 */
+  --encre: #edebf2;
+  --encre-2: #bbccd7;
+  --encre-dim: color-mix(in srgb, #646973 45%, #bbccd7);
+
+  /* Accent — magenta pour l'action (fond, texte blanc), lavande pour le texte */
+  --accent: #b600a8;
+  --accent-survol: #7621b0;
+  --sur-accent: #ffffff;
+  --accent-texte: #c79bff;
+  --accent-voile: color-mix(in srgb, #b600a8 16%, #131316);
+  --accent-trait: color-mix(in srgb, #c79bff 30%, transparent);
   --titre: 'Kanit', 'Inter', system-ui, sans-serif;
   --chiffres: 'Inter', system-ui, sans-serif;
 
-  /* États — palette réservée, jamais réutilisée pour une série */
-  --bon: #0ca30c;
-  --bon-voile: #e8f6e8;
-  --attention: #9a6700;
-  --attention-voile: #fdf3e0;
-  --grave: #d03b3b;
-  --grave-voile: #fdeceb;
+  /* États — palette réservée, jamais réutilisée pour une série ni pour la
+     marque. Valeurs éclaircies pour tenir AA sur fond sombre, voiles et
+     traits mélangés à la carte. */
+  --bon: #46d38a;
+  --attention: #f2d24b;
+  --grave: #ff7676;
 
-  /* Séries — ordre fixe, jamais cyclé. Validé sur fond blanc. */
-  --serie-1: #2a78d6;
-  --serie-2: #eb6834;
-  --serie-3: #1baf7a;
-  --serie-4: #eda100;
-  --serie-5: #e87ba4;
+  /* Séries — ordre fixe, jamais cyclé. Validé sur fond sombre. */
+  --serie-1: #5c9df2;
+  --serie-2: #f2875a;
+  --serie-3: #3cc79a;
+  --serie-4: #e8b23a;
+  --serie-5: #f093bb;
 
-  --ombre: 0 1px 2px rgba(16, 24, 40, 0.05);
-  --ombre-2: 0 2px 8px -2px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --ombre: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --ombre-2: 0 2px 10px -2px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --voile-modal: rgba(0, 0, 0, 0.6);
   --rayon: 12px;
 }
 
 [data-entite='magistria'] {
-  /* Charte relevée dans le produit livré le 2026-10-21 — bordeaux, pas bleu. */
+  /* magistrai.fr : --bg #03050A, --text #E9EEF5, --dim #9AA9BB, --faint #5B6A7C */
+  --fond: #03050a;
+  --carte: color-mix(in srgb, #03050a 90%, #5b6a7c);
+  --carte-2: color-mix(in srgb, #03050a 84%, #5b6a7c);
+  --ligne: color-mix(in srgb, #03050a 62%, #5b6a7c);
+  --ligne-forte: color-mix(in srgb, #03050a 30%, #5b6a7c);
+
+  --encre: #e9eef5;
+  --encre-2: color-mix(in srgb, #e9eef5 50%, #9aa9bb);
+  --encre-dim: #9aa9bb;
+
+  /* Bouton d'action bordeaux comme sur le site ; liens, sur-titres et
+     sélections en cyan. */
   --accent: #7b2d3e;
-  --accent-fonce: #521d29;
-  --accent-voile: #f7edef;
+  --accent-survol: #94384c;
+  --sur-accent: #ffffff;
+  --accent-texte: #3cc8ff;
+  --accent-voile: color-mix(in srgb, #3cc8ff 11%, var(--carte));
+  --accent-trait: color-mix(in srgb, #3cc8ff 32%, transparent);
   --titre: 'Spectral', Georgia, serif;
-  /* L'or sert d'appui, jamais de couleur d'action : sur fond clair il ne tient
-     pas le contraste d'un texte ou d'un bouton. */
-  --appui: #b8962e;
+  /* L'or sert d'appui seulement, jamais de couleur d'action. */
+  --appui: #e0b85a;
+}
+
+/* Dérivées : recalculées sur chaque cadre d'entité (une variable qui en
+   cite une autre se résout là où elle est déclarée, pas là où on la lit). */
+:root, [data-entite] {
+  --accent-fonce: var(--accent-texte);
+  --bon-texte: var(--bon);
+  --bon-voile: color-mix(in srgb, var(--bon) 13%, var(--carte));
+  --bon-ligne: color-mix(in srgb, var(--bon) 38%, var(--carte));
+  --attention-voile: color-mix(in srgb, var(--attention) 12%, var(--carte));
+  --attention-ligne: color-mix(in srgb, var(--attention) 36%, var(--carte));
+  --grave-voile: color-mix(in srgb, var(--grave) 13%, var(--carte));
+  --grave-ligne: color-mix(in srgb, var(--grave) 38%, var(--carte));
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -102,7 +139,7 @@ code, pre, .mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-
   flex: 1; text-align: center; padding: 6px 4px; border-radius: 7px;
   font-size: 12px; font-weight: 600; color: var(--encre-dim); transition: 0.15s;
 }
-.bascule a[data-actif='1'] { background: var(--accent); color: #fff; box-shadow: var(--ombre); }
+.bascule a[data-actif='1'] { background: var(--accent); color: var(--sur-accent); box-shadow: var(--ombre); }
 .bascule a:not([data-actif='1']):hover { color: var(--encre); background: var(--carte); }
 
 nav.menu { display: flex; flex-direction: column; gap: 2px; }
@@ -129,7 +166,7 @@ nav.menu a[data-actif='1'] .cpt { background: var(--carte); border-color: transp
 .entete { margin-bottom: 24px; }
 .entete .sur {
   font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase;
-  color: var(--accent); font-weight: 650; margin-bottom: 6px;
+  color: var(--accent-texte); font-weight: 650; margin-bottom: 6px;
 }
 .entete p.sous { color: var(--encre-2); margin-top: 8px; max-width: 78ch; font-size: 14px; }
 
@@ -166,7 +203,7 @@ nav.menu a[data-actif='1'] .cpt { background: var(--carte); border-color: transp
 
 /* Jauge : le remplissage porte la sévérité, la piste est un voile du même ton. */
 .jauge { height: 7px; border-radius: 99px; background: var(--ligne); overflow: hidden; margin-top: 10px; }
-.jauge > span { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.4s ease; }
+.jauge > span { display: block; height: 100%; border-radius: 99px; background: var(--accent-texte); transition: width 0.4s ease; }
 .jauge[data-etat='bon'] > span { background: var(--bon); }
 .jauge[data-etat='attention'] > span { background: var(--attention); }
 .jauge[data-etat='grave'] > span { background: var(--grave); }
@@ -184,10 +221,10 @@ nav.menu a[data-actif='1'] .cpt { background: var(--carte); border-color: transp
   padding: 2px 9px; border-radius: 20px; border: 1px solid var(--ligne);
   background: var(--carte-2); color: var(--encre-2); white-space: nowrap;
 }
-.pastille[data-t='ok'] { color: #0a7a0a; background: var(--bon-voile); border-color: #bfe6bf; }
-.pastille[data-t='alerte'] { color: var(--attention); background: var(--attention-voile); border-color: #f0dcb4; }
-.pastille[data-t='blocage'] { color: var(--grave); background: var(--grave-voile); border-color: #f3c7c5; }
-.pastille[data-t='accent'] { color: var(--accent-fonce); background: var(--accent-voile); border-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+.pastille[data-t='ok'] { color: var(--bon-texte); background: var(--bon-voile); border-color: var(--bon-ligne); }
+.pastille[data-t='alerte'] { color: var(--attention); background: var(--attention-voile); border-color: var(--attention-ligne); }
+.pastille[data-t='blocage'] { color: var(--grave); background: var(--grave-voile); border-color: var(--grave-ligne); }
+.pastille[data-t='accent'] { color: var(--accent-fonce); background: var(--accent-voile); border-color: var(--accent-trait); }
 
 /* ── Tableaux ──────────────────────────────────────────────────────────── */
 .tbl-enveloppe {
@@ -215,10 +252,10 @@ input, textarea, select {
 textarea { resize: vertical; line-height: 1.65; }
 input:hover, textarea:hover, select:hover { border-color: var(--encre-dim); }
 input:focus, textarea:focus, select:focus {
-  outline: none; border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  outline: none; border-color: var(--accent-texte);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-texte) 22%, transparent);
 }
-input[type='checkbox'] { width: auto; accent-color: var(--accent); }
+input[type='checkbox'] { width: auto; accent-color: var(--accent-texte); }
 label {
   display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--encre-dim); margin-bottom: 5px; font-weight: 650;
@@ -228,35 +265,35 @@ label {
 
 button, .bouton {
   display: inline-flex; align-items: center; gap: 7px; justify-content: center;
-  background: var(--accent); color: #fff; border: 1px solid transparent; border-radius: 9px;
+  background: var(--accent); color: var(--sur-accent); border: 1px solid transparent; border-radius: 9px;
   padding: 9px 16px; font-weight: 600; font-size: 13.5px; cursor: pointer; width: auto;
   transition: 0.12s; box-shadow: var(--ombre);
 }
-button:hover:not(:disabled), .bouton:hover { background: var(--accent-fonce); }
+button:hover:not(:disabled), .bouton:hover { background: var(--accent-survol); }
 button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 button.fantome, .bouton.fantome { background: var(--carte); border-color: var(--ligne-forte); color: var(--encre); }
 button.fantome:hover:not(:disabled), .bouton.fantome:hover { background: var(--fond); border-color: var(--encre-dim); }
-button.danger { background: var(--carte); border-color: #f3c7c5; color: var(--grave); }
+button.danger { background: var(--carte); border-color: var(--grave-ligne); color: var(--grave); }
 
 /* ── Constats des garde-fous ───────────────────────────────────────────── */
 .constat {
   border: 1px solid var(--ligne); border-left-width: 3px;
   padding: 10px 14px; margin-bottom: 9px; border-radius: 0 10px 10px 0; background: var(--carte-2);
 }
-.constat[data-n='blocage'] { border-left-color: var(--grave); background: var(--grave-voile); border-color: #f3c7c5; border-left-color: var(--grave); }
-.constat[data-n='alerte'] { border-left-color: var(--attention); background: var(--attention-voile); border-color: #f0dcb4; border-left-color: var(--attention); }
-.constat[data-n='conseil'] { border-left-color: var(--accent); }
+.constat[data-n='blocage'] { border-left-color: var(--grave); background: var(--grave-voile); border-color: var(--grave-ligne); border-left-color: var(--grave); }
+.constat[data-n='alerte'] { border-left-color: var(--attention); background: var(--attention-voile); border-color: var(--attention-ligne); border-left-color: var(--attention); }
+.constat[data-n='conseil'] { border-left-color: var(--accent-texte); }
 .constat .regle { font-size: 12.5px; font-weight: 700; }
 .constat .msg { font-size: 13px; margin-top: 2px; }
 .constat .remede { font-size: 12.5px; color: var(--encre-2); margin-top: 5px; }
 
 .encart {
-  background: var(--accent-voile); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
-  border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0;
+  background: var(--accent-voile); border: 1px solid var(--accent-trait);
+  border-left: 3px solid var(--accent-texte); border-radius: 0 10px 10px 0;
   padding: 13px 16px; font-size: 13.5px; color: var(--encre-2);
 }
 .encart strong { color: var(--encre); }
-.encart[data-t='grave'] { background: var(--grave-voile); border-color: #f3c7c5; border-left-color: var(--grave); }
+.encart[data-t='grave'] { background: var(--grave-voile); border-color: var(--grave-ligne); border-left-color: var(--grave); }
 
 pre.bloc {
   background: var(--carte-2); border: 1px solid var(--ligne); border-radius: 10px;
@@ -271,8 +308,8 @@ pre.bloc {
 }
 .echelle .b:first-child { border-radius: 9px 0 0 9px; }
 .echelle .b:last-child { border-right: 1px solid var(--ligne); border-radius: 0 9px 9px 0; }
-.echelle .b[data-atteint='1'] { background: var(--bon-voile); color: #0a7a0a; border-color: #bfe6bf; }
-.echelle .b[data-courant='1'] { background: var(--accent); color: #fff; font-weight: 650; border-color: var(--accent); }
+.echelle .b[data-atteint='1'] { background: var(--bon-voile); color: var(--bon-texte); border-color: var(--bon-ligne); }
+.echelle .b[data-courant='1'] { background: var(--accent); color: var(--sur-accent); font-weight: 650; border-color: var(--accent); }
 
 /* ── Calendrier ────────────────────────────────────────────────────────── */
 .jour {
@@ -286,10 +323,10 @@ pre.bloc {
 }
 .vignette {
   display: block; background: var(--carte-2); border: 1px solid var(--ligne);
-  border-left: 3px solid var(--accent); border-radius: 4px 8px 8px 4px;
+  border-left: 3px solid var(--accent-texte); border-radius: 4px 8px 8px 4px;
   padding: 7px 9px; margin-bottom: 6px; font-size: 11.5px; line-height: 1.35; transition: 0.12s;
 }
-.vignette:hover { background: var(--accent-voile); border-color: color-mix(in srgb, var(--accent) 30%, transparent); border-left-color: var(--accent); }
+.vignette:hover { background: var(--accent-voile); border-color: var(--accent-trait); border-left-color: var(--accent-texte); }
 .vignette .r { font-size: 10px; color: var(--accent-fonce); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 650; }
 .vignette .st { color: var(--encre-dim); margin-top: 3px; }
 .semaine-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
@@ -307,24 +344,34 @@ pre.bloc {
 .pile { display: flex; flex-direction: column; gap: 12px; }
 .rang { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .sep { height: 1px; background: var(--ligne); margin: 26px 0; }
-.lien-accent { color: var(--accent-fonce); font-weight: 500; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent); text-underline-offset: 3px; }
-.lien-accent:hover { text-decoration-color: var(--accent); }
+.lien-accent { color: var(--accent-fonce); font-weight: 500; text-decoration: underline; text-decoration-color: var(--accent-trait); text-underline-offset: 3px; }
+.lien-accent:hover { text-decoration-color: var(--accent-texte); }
 .centre-ecran { display: grid; place-items: center; min-height: 100vh; padding: 20px; background: var(--fond); }
 
 .bandeau-bas {
   position: fixed; bottom: 0; left: 0; right: 0; padding: 7px 14px;
-  background: var(--attention-voile); border-top: 1px solid #f0dcb4;
-  font-size: 11.5px; color: #7a5200; text-align: center; z-index: 50;
+  background: var(--attention-voile); border-top: 1px solid var(--attention-ligne);
+  font-size: 11.5px; color: var(--attention); text-align: center; z-index: 50;
 }
 
 details > summary { cursor: pointer; font-weight: 600; font-size: 14px; list-style: none; }
 details > summary::-webkit-details-marker { display: none; }
-details > summary::before { content: '＋ '; color: var(--accent); font-weight: 700; }
+details > summary::before { content: '＋ '; color: var(--accent-texte); font-weight: 700; }
 details[open] > summary::before { content: '－ '; }
 
 /* ── Impression (rapport mensuel) : la page seule, sans le menu ni les rappels ── */
 @media print {
   .flanc, .bandeau-bas, .sans-impression { display: none !important; }
+  /* Papier : le rapport s'imprime en clair, encre sombre. */
+  :root, .cadre[data-entite] {
+    color-scheme: light;
+    --fond: #ffffff; --carte: #ffffff; --carte-2: #fafbfc;
+    --ligne: #e3e6ea; --ligne-forte: #cfd4da;
+    --encre: #15181d; --encre-2: #4b5260; --encre-dim: #5f6774;
+    --accent-texte: #8a0082; --accent-voile: #f7eef6;
+    --bon: #0a7a0a; --attention: #8a5c00; --grave: #c22f2f;
+  }
+  .cadre[data-entite='magistria'] { --accent-texte: #005f87; --accent-voile: #eef6fa; }
   .cadre { display: block; background: #fff; }
   .corps { padding: 0; max-width: none; }
   .carte, .tbl-enveloppe { break-inside: avoid; box-shadow: none; }
