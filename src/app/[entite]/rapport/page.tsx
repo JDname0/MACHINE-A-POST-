@@ -247,8 +247,69 @@ export default async function Rapport({
               <li>Articles cités par une IA : {r.seo.citesIa}</li>
               <li>Liens obtenus : {r.seo.liensObtenus}</li>
             </ul>
-            <p className="aide">Saisis sur la page SEO ; non datés, donc donnés à la date du jour.</p>
+            <p className="aide">État courant de la page SEO. L&apos;évolution mois par mois, tirée des relevés datés, est juste en dessous.</p>
           </div>
+        </div>
+
+        {/* ── Évolution SEO ──────────────────────────────────────────── */}
+        <h2>Référencement — évolution mois par mois</h2>
+        <p className="aide" style={{ margin: '4px 0 10px' }}>
+          D&apos;après les relevés datés saisis sur la page SEO : pour chaque article ou lien, son dernier relevé du
+          mois. Un mois sans relevé est « {ND} » — la machine ne reporte pas un mois sur l&apos;autre.
+        </p>
+        <div className="tbl-enveloppe" style={{ marginBottom: 22 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Mois</th>
+                <th className="nb">Articles relevés</th>
+                <th className="nb">En top 10</th>
+                <th className="nb">Position moyenne</th>
+                <th className="nb">Cités par une IA</th>
+                <th className="nb">Liens relevés</th>
+                <th className="nb">Liens obtenus</th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.evolutionSeo.map((x, i) => {
+                const avant = i > 0 ? r.evolutionSeo[i - 1] : null;
+                const ecart = (v: number | null, w: number | null | undefined, inverse = false) => {
+                  if (v == null || w == null || v === w) return null;
+                  const mieux = inverse ? v < w : v > w;
+                  const d = Math.round((v - w) * 10) / 10;
+                  return (
+                    <span className="aide" style={{ color: mieux ? 'var(--bon)' : 'var(--attention)' }}>
+                      {' '}({d > 0 ? '+' : ''}{String(d).replace('.', ',')})
+                    </span>
+                  );
+                };
+                return (
+                  <tr key={x.mois} style={x.mois === r.mois ? { fontWeight: 650 } : undefined}>
+                    <td style={{ whiteSpace: 'nowrap' }}>{libelleMois(x.mois)}</td>
+                    <td className="nb">{x.articlesReleves || ND}</td>
+                    <td className="nb">
+                      {x.top10 == null ? ND : `${x.top10}/${x.articlesReleves}`}
+                      {ecart(x.top10, avant?.top10)}
+                    </td>
+                    <td className="nb">
+                      {x.positionMoyenne == null ? ND : String(x.positionMoyenne).replace('.', ',')}
+                      {ecart(x.positionMoyenne, avant?.positionMoyenne, true)}
+                      {x.positionMoyenne != null ? <span className="aide"> · {x.positionsNotees} noté(s)</span> : null}
+                    </td>
+                    <td className="nb">
+                      {n(x.citesIa)}
+                      {ecart(x.citesIa, avant?.citesIa)}
+                    </td>
+                    <td className="nb">{x.liensReleves || ND}</td>
+                    <td className="nb">
+                      {n(x.liensObtenus)}
+                      {ecart(x.liensObtenus, avant?.liensObtenus)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
         {/* ── Détail ─────────────────────────────────────────────────── */}

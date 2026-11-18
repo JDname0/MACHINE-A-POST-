@@ -26,6 +26,8 @@ export interface LignePublication {
   url_publiee: string | null;
   /** Le lien à publier, celui qui porte la référence du post. Voir `suite-veolt.ts`. */
   lien_suivi: string | null;
+  /** Heure de publication prévue, « HH:MM », facultative. */
+  heure_prevue: string | null;
   publie_le: string | null;
 }
 
@@ -49,7 +51,7 @@ export function publications(entite: EntiteSlug, filtres: { statut?: string; res
     sql += ' AND format_slug LIKE ?';
     args.push(`${filtres.reseau === 'linkedin' ? 'li' : filtres.reseau === 'instagram' ? 'ig' : filtres.reseau}-%`);
   }
-  sql += ' ORDER BY date_prevue ASC, id ASC';
+  sql += ' ORDER BY date_prevue ASC, heure_prevue IS NULL, heure_prevue ASC, id ASC';
   return db().prepare(sql).all(...args) as LignePublication[];
 }
 

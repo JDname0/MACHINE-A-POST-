@@ -3,7 +3,7 @@ import { Flanc } from '@/components/Flanc';
 import { marque, type EntiteSlug } from '@/lib/marques';
 import { format } from '@/lib/formats';
 import { compteursMenu, formaterDate, LIBELLE_STATUT } from '@/lib/requetes';
-import { journee, DELAI_RELEVE_JOURS } from '@/lib/suivi';
+import { journee, DELAI_RELEVE_JOURS, heureValide } from '@/lib/suivi';
 import { constatsDe } from '@/lib/fiche';
 import { echeancesVideo } from '@/lib/production';
 
@@ -43,7 +43,7 @@ export default async function Aujourdhui({ params }: { params: Promise<{ entite:
             <span className="pastille" data-t={total === 0 ? 'ok' : 'accent'}>
               {total === 0 ? 'Rien en attente ✓' : `${total} geste${total > 1 ? 's' : ''} en attente`}
             </span>
-            <a className="pastille" href={`/${e}/rappels`} title="Fichier .ics à importer dans ton agenda (téléphone, Google, Outlook)">
+            <a className="pastille" href={`/${e}/rappels`} title="Fichier .ics à importer dans ton agenda (téléphone, Google, Outlook) : chaque post à l'heure prévue sur sa fiche, 9 h sans heure">
               📅 Rappels de publication (.ics)
             </a>
           </div>
@@ -74,6 +74,7 @@ export default async function Aujourdhui({ params }: { params: Promise<{ entite:
                   <tr key={p.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {formaterDate(p.date_prevue)}
+                      {heureValide(p.heure_prevue) ? <strong> · {p.heure_prevue!.replace(':', 'h')}</strong> : null}
                       {retard > 0 ? (
                         <span className="pastille" data-t="alerte" style={{ marginLeft: 6 }}>
                           {retard} j de retard
@@ -123,6 +124,7 @@ export default async function Aujourdhui({ params }: { params: Promise<{ entite:
                     <tr key={p.id}>
                       <td style={{ whiteSpace: 'nowrap' }}>
                         {formaterDate(p.date_prevue)}
+                        {heureValide(p.heure_prevue) ? <strong> · {p.heure_prevue!.replace(':', 'h')}</strong> : null}
                         {p.date_prevue < j.aujourdhui ? (
                           <span className="pastille" data-t="blocage" style={{ marginLeft: 6 }}>
                             date passée
@@ -247,6 +249,7 @@ export default async function Aujourdhui({ params }: { params: Promise<{ entite:
             <ul style={{ margin: '6px 0 0', paddingLeft: 20 }}>
               {j.demain.map((p) => (
                 <li key={p.id} style={{ marginBottom: 4 }}>
+                  {heureValide(p.heure_prevue) ? <strong>{p.heure_prevue!.replace(':', 'h')} · </strong> : null}
                   {format(p.format_slug).nom} — {p.titre}{' '}
                   <span className="pastille" data-t={p.statut === 'valide' ? 'ok' : undefined}>{LIBELLE_STATUT[p.statut]}</span>
                 </li>

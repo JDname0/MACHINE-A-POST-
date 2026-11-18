@@ -70,6 +70,31 @@ function ecartJours(de: string, a: string): number {
   return Math.round((new Date(`${a}T12:00:00Z`).getTime() - new Date(`${de}T12:00:00Z`).getTime()) / 86_400_000);
 }
 
+/** Une heure « HH:MM » valide (00:00 → 23:59), sinon `null`. */
+export function heureValide(h: string | null | undefined): string | null {
+  const v = (h ?? '').trim();
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : null;
+}
+
+/** « 08:30 · » devant un libellé quand le post a une heure prévue, rien sinon. */
+export function prefixeHeure(p: { heure_prevue: string | null }): string {
+  const h = heureValide(p.heure_prevue);
+  return h ? `${h.replace(':', 'h')} · ` : '';
+}
+
+/** Ordre de la journée : par date, puis par heure prévue (les posts sans heure à la fin), puis par id. */
+const ORDRE_JOUR = 'date_prevue, heure_prevue IS NULL, heure_prevue, id';
+
+/**
+ * Les réseaux qui ont réellement au moins une publication dans la base, pour
+ * une entité — le filtre du calendrier n'en propose pas d'autre.
+ */
+export function reseauxPresents(entite: EntiteSlug): ReseauSlug[] {
+  const formats = db().prepare('SELECT DISTINCT format_slug FROM publications WHERE entite=?').all(entite) as Array<{ format_slug: string }>;
+  const vus = new Set(formats.map((f) => format(f.format_slug).reseau as ReseauSlug));
+  return (Object.keys(RESEAUX) as ReseauSlug[]).filter((r) => vus.has(r));
+}
+
 export function estManuel(formatSlug: string): boolean {
   const r = format(formatSlug).reseau;
   if (r === 'blog') return true;
@@ -86,13 +111,13 @@ export function journee(entite: EntiteSlug, maintenant = new Date()): Journee {
 
   const aPublier = (
     d
-      .prepare("SELECT * FROM publications WHERE entite=? AND statut='valide' AND date_prevue <= ? ORDER BY date_prevue, id")
+      .prepare(`SELECT * FROM publications WHERE entite=? AND statut='valide' AND date_prevue <= ? ORDER BY ${ORDRE_JOUR}`)
       .all(entite, aujourdhui) as LignePublication[]
   ).map((p) => ({ p, manuel: estManuel(p.format_slug), retard: ecartJours(p.date_prevue, aujourdhui) }));
 
   const aValiderUrgent = d
     .prepare(
-      "SELECT * FROM publications WHERE entite=? AND statut IN ('brouillon','a-relire') AND date_prevue <= ? ORDER BY date_prevue, id",
+      `SELECT * FROM publications WHERE entite=? AND statut IN ('brouillon','a-relire') AND date_prevue <= ? ORDER BY ${ORDRE_JOUR}`,
     )
     .all(entite, isoJour(dans3)) as LignePublication[];
 
@@ -118,7 +143,7 @@ export function journee(entite: EntiteSlug, maintenant = new Date()): Journee {
     .all(entite) as Array<Commentaire & { titre: string | null; date_prevue: string }>;
 
   const demain = d
-    .prepare("SELECT * FROM publications WHERE entite=? AND date_prevue=? AND statut NOT IN ('publie','abandonne') ORDER BY id")
+    .prepare(`SELECT * FROM publications WHERE entite=? AND date_prevue=? AND statut NOT IN ('publie','abandonne') ORDER BY ${ORDRE_JOUR}`)
     .all(entite, isoJour(lendemain)) as LignePublication[];
 
   return { aujourdhui, aPublier, aValiderUrgent, aMesurer, commentaires, demain };
@@ -161,6 +186,8 @@ function plier(ligne: string): string {
  * rien — il dit seulement que c'est le jour, et où trouver le texte.
  *
  * `heure` : l'heure locale du rappel (« 09:00 »), posée en heure flottante.
+ * Un post qui porte sa propre heure prévue (`heure_prevue`) est rappelé à
+ * cette heure-là ; sans heure, il garde l'heure par défaut.
  */
 export function rappelsIcs(entite: EntiteSlug, base: string, nomMarque: string, heure = '09:00'): { ics: string; n: number } {
   const aujourdhui = isoJour(new Date());
@@ -169,7 +196,7 @@ export function rappelsIcs(entite: EntiteSlug, base: string, nomMarque: string, 
       "SELECT * FROM publications WHERE entite=? AND statut IN ('brouillon','a-relire','valide') AND date_prevue >= date(?, '-7 day') ORDER BY date_prevue, id",
     )
     .all(entite, aujourdhui) as LignePublication[];
-  const [hh, mm] = /^\d{2}:\d{2}$/.test(heure) ? heure.split(':') : ['09', '00'];
+  const parDefaut = heureValide(heure) ?? '09:00';
   const horodatage = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
   const lignes = [
     'BEGIN:VCALENDAR',
@@ -183,6 +210,8 @@ export function rappelsIcs(entite: EntiteSlug, base: string, nomMarque: string, 
     if (!estManuel(p.format_slug)) continue;
     const f = format(p.format_slug);
     const jour = p.date_prevue.replace(/-/g, '');
+    const propre = heureValide(p.heure_prevue);
+    const [hh, mm] = (propre ?? parDefaut).split(':');
     const debut = `${jour}T${hh}${mm}00`;
     const etat =
       p.statut === 'valide'
@@ -197,7 +226,7 @@ export function rappelsIcs(entite: EntiteSlug, base: string, nomMarque: string, 
       plier(`SUMMARY:${echapperIcs(`À poster · ${f.nom} — ${p.titre ?? 'sans titre'}`)}`),
       plier(
         `DESCRIPTION:${echapperIcs(
-          `Statut : ${etat}.\nPublication manuelle : copier le texte depuis la fiche, poster, puis « Marquer comme publié ».\n${base}/${entite}/publications/${p.id}`,
+          `Statut : ${etat}.\n${propre ? `Heure prévue : ${propre}.` : `Pas d'heure prévue sur la fiche : rappel à ${parDefaut}.`}\nPublication manuelle : copier le texte depuis la fiche, poster, puis « Marquer comme publié ».\n${base}/${entite}/publications/${p.id}`,
         )}`,
       ),
       plier(`URL:${base}/${entite}/publications/${p.id}`),
@@ -264,6 +293,74 @@ export interface Rapport {
   commentaires: number;
   campagnes: { releves: number; depense: number | null; impressions: number | null; clics: number | null; conversations: number | null };
   seo: { articles: number; top10: number; citesIa: number; liensObtenus: number };
+  /** Les mois qui précèdent et le mois du rapport, d'après les relevés SEO datés. */
+  evolutionSeo: MoisSeo[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Suivi SEO mois par mois
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Un mois de suivi SEO, calculé uniquement sur les relevés datés de ce mois
+ * (`seo_releves`). Pour chaque article ou lien, c'est son **dernier** relevé
+ * du mois qui compte. Un mois sans relevé d'article laisse les valeurs
+ * d'articles à `null` (« non disponible ») ; idem pour les liens.
+ */
+export interface MoisSeo {
+  mois: string;
+  articlesReleves: number;
+  top10: number | null;
+  citesIa: number | null;
+  /** Moyenne des positions saisies ; `null` si aucune position n'a été notée. */
+  positionMoyenne: number | null;
+  positionsNotees: number;
+  liensReleves: number;
+  liensObtenus: number | null;
+}
+
+function moisPrecedents(mois: string, n: number): string[] {
+  const [a, m] = mois.split('-').map(Number);
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(a, m - 1 - (n - 1 - i), 1));
+    return d.toISOString().slice(0, 7);
+  });
+}
+
+export function evolutionSeo(entite: EntiteSlug, mois: string, n = 6): MoisSeo[] {
+  const d = db();
+  // Le dernier relevé de chaque article (puis de chaque lien) dans le mois.
+  // La jointure sur l'entité de l'article ou du lien garde la cloison même
+  // si une ligne de relevé était mal étiquetée.
+  const articles = d.prepare(
+    `SELECT r.top10, r.cite_par_ia, r.position FROM seo_releves r
+       JOIN articles a ON a.id = r.article_id AND a.entite = r.entite
+      WHERE r.entite = ? AND substr(r.releve_le,1,7) = ?
+        AND r.id = (SELECT MAX(id) FROM seo_releves x
+                     WHERE x.article_id = r.article_id AND x.entite = r.entite AND substr(x.releve_le,1,7) = ?)`,
+  );
+  const liens = d.prepare(
+    `SELECT r.statut FROM seo_releves r
+       JOIN backlinks b ON b.id = r.backlink_id AND b.entite = r.entite
+      WHERE r.entite = ? AND substr(r.releve_le,1,7) = ?
+        AND r.id = (SELECT MAX(id) FROM seo_releves x
+                     WHERE x.backlink_id = r.backlink_id AND x.entite = r.entite AND substr(x.releve_le,1,7) = ?)`,
+  );
+  return moisPrecedents(mois, n).map((m) => {
+    const ar = articles.all(entite, m, m) as Array<{ top10: number | null; cite_par_ia: number | null; position: number | null }>;
+    const li = liens.all(entite, m, m) as Array<{ statut: string | null }>;
+    const positions = ar.map((x) => x.position).filter((x): x is number => x != null);
+    return {
+      mois: m,
+      articlesReleves: ar.length,
+      top10: ar.length ? ar.filter((x) => x.top10).length : null,
+      citesIa: ar.length ? ar.filter((x) => x.cite_par_ia).length : null,
+      positionMoyenne: positions.length ? Math.round((positions.reduce((s, x) => s + x, 0) / positions.length) * 10) / 10 : null,
+      positionsNotees: positions.length,
+      liensReleves: li.length,
+      liensObtenus: li.length ? li.filter((x) => x.statut === 'obtenu').length : null,
+    };
+  });
 }
 
 export function moisValide(m: string | undefined): string {
@@ -277,9 +374,10 @@ export function moisDisponibles(entite: EntiteSlug): string[] {
     .prepare(
       `SELECT DISTINCT substr(date_prevue,1,7) AS m FROM publications WHERE entite=?
        UNION SELECT DISTINCT substr(publie_le,1,7) FROM publications WHERE entite=? AND publie_le IS NOT NULL
+       UNION SELECT DISTINCT substr(releve_le,1,7) FROM seo_releves WHERE entite=?
        ORDER BY 1 DESC`,
     )
-    .all(entite, entite) as Array<{ m: string }>;
+    .all(entite, entite, entite) as Array<{ m: string }>;
   return l.map((x) => x.m).filter(Boolean);
 }
 
@@ -374,6 +472,7 @@ export function rapportMensuel(entite: EntiteSlug, mois: string): Rapport {
     ).n,
     campagnes: { releves: camp.n, depense: camp.dep, impressions: camp.imp, clics: camp.cl, conversations: camp.conv },
     seo: { articles: seo.t, top10: seo.top ?? 0, citesIa: seo.ia ?? 0, liensObtenus: liens.n },
+    evolutionSeo: evolutionSeo(entite, mois),
   };
 }
 

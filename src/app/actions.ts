@@ -9,6 +9,7 @@ import { publier, type ReseauConnectable } from '@/lib/connecteurs';
 import { format } from '@/lib/formats';
 import { declarerPost, reference } from '@/lib/suite-veolt';
 import type { EntiteSlug } from '@/lib/marques';
+import { heureValide } from '@/lib/suivi';
 
 /**
  * L'adresse de base du site, telle qu'elle est vue depuis l'extérieur.
@@ -59,11 +60,18 @@ export async function enregistrerPublication(fd: FormData) {
       String(fd.get('sous_forum') ?? '') || null,
       id,
     );
+  // L'heure prévue est facultative, et seulement touchée si le formulaire la
+  // porte : un autre formulaire qui appellerait cette action ne l'efface pas.
+  if (fd.has('heure_prevue')) {
+    db().prepare('UPDATE publications SET heure_prevue=? WHERE id=? AND entite=?').run(heureValide(String(fd.get('heure_prevue'))), id, entite);
+  }
   tracer('brouillon enregistré', `publication ${id}`, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/publications/${id}`);
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/aujourdhui`);
 }
 
 export async function changerStatut(fd: FormData) {
@@ -933,35 +941,59 @@ export async function releverMetrique(fd: FormData) {
   revalidatePath(`/${entite}/indicateurs`);
 }
 
+/** La date du relevé SEO saisie (AAAA-MM-JJ, pas dans le futur), sinon aujourd'hui. */
+function dateReleve(fd: FormData): string {
+  const auj = new Date().toISOString().slice(0, 10);
+  const v = String(fd.get('releve_le') ?? '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) && v <= auj ? v : auj;
+}
+
 export async function majArticle(fd: FormData) {
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
-  db()
-    .prepare("UPDATE articles SET statut=?, url=?, mots=?, top10=?, cite_par_ia=?, maj_le=date('now') WHERE id=?")
+  const top10 = fd.get('top10') ? 1 : 0;
+  const citeIa = fd.get('cite_par_ia') ? 1 : 0;
+  const maj = db()
+    .prepare("UPDATE articles SET statut=?, url=?, mots=?, top10=?, cite_par_ia=?, maj_le=date('now') WHERE id=? AND entite=?")
     .run(
       String(fd.get('statut') ?? 'a-ecrire'),
       String(fd.get('url') ?? '') || null,
       String(fd.get('mots') ?? '') ? Number(fd.get('mots')) : null,
-      fd.get('top10') ? 1 : 0,
-      fd.get('cite_par_ia') ? 1 : 0,
+      top10,
+      citeIa,
       id,
+      entite,
     );
+  // Le relevé daté : ce qui a été constaté, à la date du constat. C'est lui
+  // que le rapport mensuel lit pour l'évolution SEO — pas l'état courant.
+  if (maj.changes) {
+    const position = Number(String(fd.get('position') ?? '').trim());
+    db()
+      .prepare('INSERT INTO seo_releves (entite, article_id, position, top10, cite_par_ia, releve_le) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(entite, id, Number.isInteger(position) && position > 0 ? position : null, top10, citeIa, dateReleve(fd));
+  }
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/seo`);
+  revalidatePath(`/${entite}/rapport`);
 }
 
 export async function majBacklink(fd: FormData) {
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
-  db()
-    .prepare('UPDATE backlinks SET statut=?, contact=?, url=? WHERE id=?')
-    .run(String(fd.get('statut') ?? 'a-contacter'), String(fd.get('contact') ?? '') || null, String(fd.get('url') ?? '') || null, id);
+  const statut = String(fd.get('statut') ?? 'a-contacter');
+  const maj = db()
+    .prepare('UPDATE backlinks SET statut=?, contact=?, url=? WHERE id=? AND entite=?')
+    .run(statut, String(fd.get('contact') ?? '') || null, String(fd.get('url') ?? '') || null, id, entite);
+  if (maj.changes) {
+    db().prepare('INSERT INTO seo_releves (entite, backlink_id, statut, releve_le) VALUES (?, ?, ?, ?)').run(entite, id, statut, dateReleve(fd));
+  }
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/seo`);
+  revalidatePath(`/${entite}/rapport`);
 }
 
 export async function majCampagne(fd: FormData) {

@@ -61,7 +61,8 @@ export default async function Composeur({
       <main className="corps">
         <header className="entete">
           <div className="sur">
-            {f.nom} · {formaterDate(p.date_prevue)} · {p.phase ?? (p.semaine ? `semaine ${p.semaine}` : 'hors calendrier')}
+            {f.nom} · {formaterDate(p.date_prevue)}
+            {p.heure_prevue ? ` à ${p.heure_prevue.replace(':', 'h')}` : ''} · {p.phase ?? (p.semaine ? `semaine ${p.semaine}` : 'hors calendrier')}
           </div>
           <h1>{p.titre}</h1>
           <p className="sous">
@@ -87,6 +88,15 @@ export default async function Composeur({
             <form action={enregistrerPublication}>
               <input type="hidden" name="id" value={p.id} />
               <input type="hidden" name="entite" value={e} />
+
+              <div className="champ">
+                <label htmlFor="heure_prevue">Heure de publication prévue — facultative</label>
+                <input id="heure_prevue" name="heure_prevue" type="time" defaultValue={p.heure_prevue ?? ''} style={{ maxWidth: 140 }} />
+                <div className="aide">
+                  Affichée dans le calendrier et dans « Aujourd&apos;hui », et utilisée par les rappels .ics. Vide : le
+                  rappel garde l&apos;heure par défaut (9 h).
+                </div>
+              </div>
 
               <div className="champ">
                 <label htmlFor="titre">{f.reseau === 'reddit' ? 'Titre du post' : 'Titre interne'}</label>

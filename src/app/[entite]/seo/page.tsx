@@ -58,6 +58,30 @@ export default async function Seo({ params }: { params: Promise<{ entite: string
     url: string | null;
   }>;
 
+  // Le dernier relevé daté de chaque article et de chaque lien (`seo_releves`).
+  const dernierArticle = new Map(
+    (
+      d
+        .prepare(
+          `SELECT article_id, position, releve_le FROM seo_releves
+            WHERE entite=? AND article_id IS NOT NULL
+              AND id IN (SELECT MAX(id) FROM seo_releves WHERE entite=? AND article_id IS NOT NULL GROUP BY article_id)`,
+        )
+        .all(e, e) as Array<{ article_id: number; position: number | null; releve_le: string }>
+    ).map((x) => [x.article_id, x]),
+  );
+  const dernierLien = new Map(
+    (
+      d
+        .prepare(
+          `SELECT backlink_id, releve_le FROM seo_releves
+            WHERE entite=? AND backlink_id IS NOT NULL
+              AND id IN (SELECT MAX(id) FROM seo_releves WHERE entite=? AND backlink_id IS NOT NULL GROUP BY backlink_id)`,
+        )
+        .all(e, e) as Array<{ backlink_id: number; releve_le: string }>
+    ).map((x) => [x.backlink_id, x]),
+  );
+  const aujourdhui = new Date().toISOString().slice(0, 10);
   const f = FORMATS['blog-article'];
   const publies = articles.filter((a) => a.statut === 'publie').length;
   const top10 = articles.filter((a) => a.top10).length;
@@ -104,6 +128,13 @@ export default async function Seo({ params }: { params: Promise<{ entite: string
           <strong>Rythme.</strong> {f.cadence}. La mise à jour d&apos;un article existant rapporte souvent plus que la
           création d&apos;un nouveau : les URL citées par les moteurs de réponse sont en moyenne ~26 % plus récentes que
           celles citées par la recherche classique.
+        </div>
+
+        <div className="encart" style={{ marginTop: 10 }}>
+          <strong>Relevés datés.</strong> Chaque « ok » enregistre un relevé à la date indiquée (aujourd&apos;hui par
+          défaut) : position constatée, top 10, citation IA, état du lien. Le{' '}
+          <a className="lien-accent" href={`/${e}/rapport`}>rapport mensuel</a> en tire l&apos;évolution mois par mois ;
+          un mois sans relevé y reste « non disponible ».
         </div>
 
         <div className="sep" />
@@ -155,6 +186,15 @@ export default async function Seo({ params }: { params: Promise<{ entite: string
                             </select>
                             <input name="url" defaultValue={a.url ?? ''} placeholder="adresse" style={{ width: 130 }} />
                             <input name="mots" defaultValue={a.mots ?? ''} placeholder="mots" style={{ width: 70 }} />
+                            <input
+                              name="position"
+                              type="number"
+                              min={1}
+                              placeholder="position"
+                              title="Position constatée ce jour sur la requête visée (facultatif, laissée vide si non vérifiée)"
+                              style={{ width: 80 }}
+                            />
+                            <input name="releve_le" type="date" defaultValue={aujourdhui} max={aujourdhui} title="Date du relevé" style={{ width: 140 }} />
                             <label style={{ display: 'flex', alignItems: 'center', gap: 4, margin: 0, textTransform: 'none', letterSpacing: 0 }}>
                               <input type="checkbox" name="top10" defaultChecked={!!a.top10} style={{ width: 'auto' }} /> top 10
                             </label>
@@ -163,6 +203,12 @@ export default async function Seo({ params }: { params: Promise<{ entite: string
                             </label>
                             <button type="submit" className="fantome">ok</button>
                           </form>
+                          {dernierArticle.get(a.id) ? (
+                            <div className="aide" style={{ fontSize: 11.5 }}>
+                              dernier relevé le {dernierArticle.get(a.id)!.releve_le}
+                              {dernierArticle.get(a.id)!.position != null ? ` · position ${dernierArticle.get(a.id)!.position}` : ''}
+                            </div>
+                          ) : null}
                         </td>
                       </tr>
                     ))}
@@ -224,7 +270,11 @@ export default async function Seo({ params }: { params: Promise<{ entite: string
                         </select>
                         <input name="contact" defaultValue={l.contact ?? ''} placeholder="contact" style={{ width: 120 }} />
                         <input name="url" defaultValue={l.url ?? ''} placeholder="lien obtenu" style={{ width: 120 }} />
+                        <input name="releve_le" type="date" defaultValue={aujourdhui} max={aujourdhui} title="Date du relevé" style={{ width: 140 }} />
                         <button type="submit" className="fantome">ok</button>
+                        {dernierLien.get(l.id) ? (
+                          <span className="aide" style={{ fontSize: 11.5 }}>relevé le {dernierLien.get(l.id)!.releve_le}</span>
+                        ) : null}
                       </form>
                     )}
                   </td>

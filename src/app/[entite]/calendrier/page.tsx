@@ -17,6 +17,10 @@ import { depotDirect, plafondDepotVideo, TAILLE_MAX_DOCUMENT, TAILLE_MAX_IMAGE, 
 import { ARTICLES, articlesDe } from '@/lib/sujets';
 import { iaDisponible } from '@/lib/ia';
 import { echeancesVideo, imagesMemoire, montagePret } from '@/lib/production';
+import { reseauxPresents, prefixeHeure, moisValide } from '@/lib/suivi';
+import { RESEAUX } from '@/lib/formats';
+import type { LignePublication } from '@/lib/requetes';
+import type { ReseauSlug } from '@/lib/marques';
 
 // La rédaction d'un article par l'IA prend une à deux minutes : l'action
 // serveur appelée depuis cette page doit pouvoir durer jusque-là sur Vercel.
@@ -26,6 +30,24 @@ const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dim
 
 const COURT = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
 const court = (d: string) => COURT.format(new Date(`${d}T12:00:00`));
+const MOIS_LONG = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
+
+/** Les couleurs d'état du thème (celles des pastilles), pour la légende. */
+const LEGENDE: Array<[string, string]> = [
+  ['brouillon', 'var(--ligne-forte)'],
+  ['a-relire', 'var(--attention)'],
+  ['valide', 'var(--accent-texte)'],
+  ['publie', 'var(--bon)'],
+  ['abandonne', 'var(--grave)'],
+];
+
+function decalerMois(mois: string, n: number): string {
+  const [a, m] = mois.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1 + n, 1)).toISOString().slice(0, 7);
+}
+
+const icone = (slug: string) =>
+  attendu(slug) === 'video' ? '🎬 ' : /carrousel/.test(slug) ? '🗂️ ' : attendu(slug) === 'image' ? '🖼️ ' : '✍️ ';
 
 export default async function Calendrier({
   params,
@@ -42,17 +64,44 @@ export default async function Calendrier({
     deja?: string;
     importe?: string;
     erreurArticle?: string;
+    vue?: string;
+    reseau?: string;
+    mois?: string;
   }>;
 }) {
   const { entite } = await params;
-  const { recale, apercu, reglages, refait, memorises, cree, deja, erreurArticle, importe } = await searchParams;
+  const { recale, apercu, reglages, refait, memorises, cree, deja, erreurArticle, importe, vue: vueQ, reseau: reseauQ, mois: moisQ } =
+    await searchParams;
   const ouvert = apercu ? publication(Number(apercu)) : undefined;
   const e = entite as EntiteSlug;
   const m = marque(e);
   const tout = publications(e);
 
+  // Vue (semaine ou mois) et filtre par réseau — seulement les réseaux qui ont
+  // réellement des posts dans la base de cette entité.
+  const vue: 'semaine' | 'mois' = vueQ === 'mois' ? 'mois' : 'semaine';
+  const reseaux = reseauxPresents(e);
+  const filtre = reseaux.includes(reseauQ as ReseauSlug) ? (reseauQ as ReseauSlug) : undefined;
+  const affiches = filtre ? tout.filter((p) => format(p.format_slug).reseau === filtre) : tout;
+  const moisCourant = new Date().toISOString().slice(0, 7);
+  const moisAvecPosts = [...new Set(affiches.map((p) => p.date_prevue.slice(0, 7)))].sort();
+  const moisVu =
+    moisQ && moisValide(moisQ) === moisQ
+      ? moisQ
+      : moisAvecPosts.includes(moisCourant)
+        ? moisCourant
+        : (moisAvecPosts.find((x) => x > moisCourant) ?? moisAvecPosts[moisAvecPosts.length - 1] ?? moisCourant);
+  /** L'adresse de la page avec la vue, le filtre et le mois en cours, plus `extra`. */
+  const lien = (extra: Record<string, string | number | undefined> = {}) => {
+    const q = new URLSearchParams();
+    const tous = { vue: vue === 'mois' ? 'mois' : undefined, reseau: filtre, mois: vue === 'mois' ? moisVu : undefined, ...extra };
+    for (const [k, v] of Object.entries(tous)) if (v != null && v !== '') q.set(k, String(v));
+    const t = q.toString();
+    return `/${e}/calendrier${t ? `?${t}` : ''}`;
+  };
+
   const parSemaine = new Map<number, typeof tout>();
-  for (const p of tout) {
+  for (const p of affiches) {
     const s = p.semaine ?? 0;
     if (!parSemaine.has(s)) parSemaine.set(s, []);
     parSemaine.get(s)!.push(p);
@@ -196,7 +245,48 @@ export default async function Calendrier({
 
         <ReglagesProduction entite={e} retour={`/${e}/calendrier`} enregistre={reglages === '1'} />
 
-        {[...parSemaine.entries()].map(([s, pubs]) => {
+        <div className="encart" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+          <div className="rang" style={{ gap: 6 }}>
+            <Link className="pastille" data-t={vue === 'semaine' ? 'accent' : undefined} href={lien({ vue: undefined, mois: undefined })}>
+              Semaine
+            </Link>
+            <Link className="pastille" data-t={vue === 'mois' ? 'accent' : undefined} href={lien({ vue: 'mois', mois: moisVu })}>
+              Mois
+            </Link>
+          </div>
+          <div className="rang" style={{ gap: 6 }}>
+            <Link className="pastille" data-t={!filtre ? 'accent' : undefined} href={lien({ reseau: undefined })}>
+              Tous les réseaux
+            </Link>
+            {reseaux.map((r) => (
+              <Link key={r} className="pastille" data-t={filtre === r ? 'accent' : undefined} href={lien({ reseau: r })}>
+                {RESEAUX[r].nom}
+              </Link>
+            ))}
+          </div>
+          <div className="legende-statuts" style={{ marginLeft: 'auto' }}>
+            {LEGENDE.map(([st, c]) => (
+              <span key={st} style={{ '--c': c } as React.CSSProperties}>{LIBELLE_STATUT[st]}</span>
+            ))}
+          </div>
+        </div>
+
+        {vue === 'mois' ? (
+          <VueMois
+            mois={moisVu}
+            posts={affiches}
+            lien={lien}
+            ouvertId={ouvert?.id}
+            precedent={lien({ mois: decalerMois(moisVu, -1) })}
+            suivant={lien({ mois: decalerMois(moisVu, 1) })}
+          />
+        ) : null}
+
+        {vue === 'semaine' && affiches.length === 0 ? (
+          <div className="encart">Aucun post sur ce réseau dans le calendrier.</div>
+        ) : null}
+
+        {vue === 'semaine' && [...parSemaine.entries()].map(([s, pubs]) => {
           const phase = SEQUENCE_LANCEMENT.find((x) => x.semaine === s);
           const parJour = new Map<number, typeof pubs>();
           for (const p of pubs) {
@@ -266,15 +356,17 @@ export default async function Calendrier({
                           <div key={p.id}>
                             <Link
                               className="vignette"
-                              href={`/${e}/calendrier?apercu=${p.id}`}
+                              data-statut={p.statut}
+                              href={lien({ apercu: p.id })}
                               scroll={false}
                               title={p.raison ?? ''}
                               style={ouvert?.id === p.id ? { outline: '2px solid var(--accent-texte)' } : undefined}
                             >
                               <div className="r">
-                                {attendu(p.format_slug) === 'video' ? '🎬 ' : /carrousel/.test(p.format_slug) ? '🗂️ ' : attendu(p.format_slug) === 'image' ? '🖼️ ' : '✍️ '}
+                                {icone(p.format_slug)}
                                 {f.nom.replace(/^.*— /, '')}
                               </div>
+                              {p.heure_prevue ? <div className="h">{prefixeHeure(p).replace(/ · $/, '')}</div> : null}
                               <div>{p.titre}</div>
                               <div className="st">
                                 {LIBELLE_STATUT[p.statut]}
@@ -307,7 +399,7 @@ export default async function Calendrier({
       {ouvert && ouvert.entite === e ? (
         <ApercuPost
           p={ouvert}
-          fermer={`/${e}/calendrier`}
+          fermer={lien()}
           notice={
             importe === '1'
               ? '✅ Post importé en brouillon. Vérifie le texte découpé (accroche, appel), la preuve et les fichiers, puis valide.'
@@ -326,5 +418,85 @@ export default async function Calendrier({
         />
       ) : null}
     </>
+  );
+}
+
+/**
+ * La vue Mois : le mois du lundi au dimanche, chaque post à son jour, avec
+ * son heure prévue s'il en a une et la couleur de son état. Un clic ouvre le
+ * même aperçu que la vue Semaine.
+ */
+function VueMois({
+  mois,
+  posts,
+  lien,
+  ouvertId,
+  precedent,
+  suivant,
+}: {
+  mois: string;
+  posts: LignePublication[];
+  lien: (extra?: Record<string, string | number | undefined>) => string;
+  ouvertId?: number;
+  precedent: string;
+  suivant: string;
+}) {
+  const premier = new Date(`${mois}-01T12:00:00`);
+  const debut = lundiDe(premier);
+  const fin = new Date(premier);
+  fin.setMonth(fin.getMonth() + 1, 0);
+  const jours: Date[] = [];
+  for (const d = new Date(debut); d <= fin || jours.length % 7 !== 0; d.setDate(d.getDate() + 1)) jours.push(new Date(d));
+  const parDate = new Map<string, LignePublication[]>();
+  for (const p of posts) {
+    if (!parDate.has(p.date_prevue)) parDate.set(p.date_prevue, []);
+    parDate.get(p.date_prevue)!.push(p);
+  }
+  const aujourdhui = iso(new Date());
+  const dansLeMois = posts.filter((p) => p.date_prevue.startsWith(mois)).length;
+  return (
+    <section style={{ marginBottom: 24 }}>
+      <div className="ban-semaine">
+        <Link className="pastille" href={precedent} scroll={false}>←</Link>
+        <h2 style={{ textTransform: 'capitalize' }}>{MOIS_LONG.format(premier)}</h2>
+        <Link className="pastille" href={suivant} scroll={false}>→</Link>
+        <span className="int" style={{ marginLeft: 'auto' }}>
+          {dansLeMois} publication{dansLeMois > 1 ? 's' : ''}
+        </span>
+      </div>
+      <div className="mois-grille">
+        {JOURS.map((j) => (
+          <div key={j} className="entete-jour">{j.slice(0, 3)}</div>
+        ))}
+        {jours.map((d) => {
+          const cle = iso(d);
+          const liste = parDate.get(cle) ?? [];
+          const hors = !cle.startsWith(mois);
+          return (
+            <div key={cle} className={`jour${liste.length ? '' : ' vide'}${hors ? ' hors' : ''}${cle === aujourdhui ? ' auj' : ''}`}>
+              <div className="d">
+                <span>{d.getDate()}</span>
+                {liste.length > 1 ? <span>{liste.length}</span> : null}
+              </div>
+              {liste.map((p) => (
+                <Link
+                  key={p.id}
+                  className="vignette"
+                  data-statut={p.statut}
+                  href={lien({ apercu: p.id })}
+                  scroll={false}
+                  title={`${format(p.format_slug).nom} — ${LIBELLE_STATUT[p.statut]}`}
+                  style={ouvertId === p.id ? { outline: '2px solid var(--accent-texte)' } : undefined}
+                >
+                  <span className="h">{prefixeHeure(p)}</span>
+                  {icone(p.format_slug)}
+                  {p.titre ?? format(p.format_slug).nom}
+                </Link>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }

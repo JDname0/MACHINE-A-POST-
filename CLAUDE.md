@@ -216,3 +216,15 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
 - **Rapport mensuel** (`/[entite]/rapport`, CSV `/[entite]/rapport/csv`,
   impression/PDF par le navigateur) : prévu / publié / mesuré par réseau, à
   partir du **dernier** relevé de chaque post. Non relevé = « non disponible ».
+
+**Ajouts du 18/11/2026 (suite)**, toujours additifs :
+
+- **Calendrier** : vue Mois (`?vue=mois&mois=AAAA-MM`) en plus de la vue Semaine,
+  filtre par réseau (`?reseau=`) limité aux réseaux présents en base
+  (`reseauxPresents`). L'état se lit au liseré, couleurs du thème (`data-statut`).
+- **Heure prévue** : colonne facultative `publications.heure_prevue` (« HH:MM »),
+  saisie sur la fiche, affichée au calendrier et dans « Aujourd'hui ». Les rappels
+  .ics l'utilisent ; sans heure, ils gardent 9 h.
+- **Relevés SEO datés** : table `seo_releves`, une ligne par « ok » sur la page SEO
+  (date saisissable, jamais future). Le rapport mensuel en tire l'évolution sur
+  6 mois (`evolutionSeo`) ; un mois sans relevé reste « non disponible ».

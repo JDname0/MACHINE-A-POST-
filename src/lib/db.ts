@@ -214,6 +214,23 @@ function schema(d: Database.Database) {
       le TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
+    -- Relevés SEO datés (ajout du 18/11/2026) : chaque saisie sur la page SEO
+    -- (position, top 10, citation IA d'un article ; état d'un lien) laisse une
+    -- ligne datée. C'est ce qui permet au rapport mensuel de montrer
+    -- l'évolution d'un mois sur l'autre. Un mois sans ligne = non disponible.
+    CREATE TABLE IF NOT EXISTS seo_releves (
+      id INTEGER PRIMARY KEY,
+      entite TEXT NOT NULL,
+      article_id INTEGER REFERENCES articles(id) ON DELETE CASCADE,
+      backlink_id INTEGER REFERENCES backlinks(id) ON DELETE CASCADE,
+      position INTEGER,
+      top10 INTEGER,
+      cite_par_ia INTEGER,
+      statut TEXT,
+      releve_le TEXT NOT NULL DEFAULT (date('now'))
+    );
+    CREATE INDEX IF NOT EXISTS seo_releves_mois ON seo_releves (entite, releve_le);
+
     CREATE TABLE IF NOT EXISTS journal (
       id INTEGER PRIMARY KEY,
       entite TEXT,
@@ -246,6 +263,9 @@ function migrer(d: Database.Database) {
     // Le lien a publier, celui qui porte la reference du post. Sans lui, un
     // post ne peut rien prouver : voir `suite-veolt.ts`.
     ['publications', 'lien_suivi', 'TEXT'],
+    // Heure de publication prévue (« 08:30 »), facultative. Sans elle, les
+    // rappels .ics gardent l'heure par défaut. Ajout du 18/11/2026.
+    ['publications', 'heure_prevue', 'TEXT'],
   ];
   for (const [table, colonne, type] of ajouts) {
     const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;

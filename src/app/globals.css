@@ -332,6 +332,32 @@ pre.bloc {
 .semaine-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 900px) { .semaine-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+/* L'état du post se lit à la couleur du liseré, avec les couleurs du thème
+   (celles des pastilles) : rien de nouveau, Veolt et MagistrIA gardent les leurs. */
+.vignette[data-statut='brouillon'] { border-left-color: var(--ligne-forte); }
+.vignette[data-statut='a-relire'] { border-left-color: var(--attention); }
+.vignette[data-statut='valide'] { border-left-color: var(--accent-texte); }
+.vignette[data-statut='publie'] { border-left-color: var(--bon); }
+.vignette[data-statut='abandonne'] { border-left-color: var(--grave); opacity: 0.6; }
+.vignette .h { font-variant-numeric: tabular-nums; font-weight: 650; color: var(--encre); }
+.legende-statuts { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--encre-dim); }
+.legende-statuts span::before {
+  content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+  margin-right: 5px; vertical-align: -1px; background: var(--c);
+}
+
+/* Vue mois : sept colonnes du lundi au dimanche, cellules compactes. */
+.mois-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.mois-grille .entete-jour { font-size: 11px; color: var(--encre-dim); text-transform: uppercase; letter-spacing: 0.05em; padding: 0 4px; }
+.mois-grille .jour { min-height: 92px; padding: 7px; }
+.mois-grille .jour.hors { opacity: 0.4; }
+.mois-grille .jour.auj { border-color: var(--accent-texte); }
+.mois-grille .vignette { padding: 4px 6px; margin-bottom: 4px; font-size: 11px; }
+@media (max-width: 900px) {
+  .mois-grille { grid-template-columns: 1fr; }
+  .mois-grille .entete-jour, .mois-grille .jour.vide { display: none; }
+}
+
 .ban-semaine {
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
   margin: 24px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--ligne);
