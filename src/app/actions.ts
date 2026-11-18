@@ -120,6 +120,10 @@ export async function trancher(fd: FormData) {
   } else if (decision === 'a-relire') {
     db().prepare("UPDATE publications SET statut='a-relire', maj_le=datetime('now') WHERE id=?").run(id);
     tracer('renvoyé en relecture', `publication ${id}`, entite);
+    // Le motif du renvoi, s'il est donné, devient un commentaire de validation :
+    // celui qui reprend le post sait quoi changer.
+    const motif = String(fd.get('commentaire') ?? '').trim().slice(0, 4000);
+    if (motif) poserCommentaire(id, entite, motif, String(fd.get('auteur') ?? '').trim().slice(0, 80) || null);
   } else {
     redirect(retour);
   }
@@ -1454,4 +1458,49 @@ export async function genererVoixOff(fd: FormData) {
   tracer('voix off générée (ElevenLabs)', `${voix.length} plan(s)`, entite);
   await sauvegarder();
   return { ok: true as const, voix };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Commentaires de validation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Pose un commentaire sur un post, sans le modifier. Interne à l'entité : la cloison tient. */
+function poserCommentaire(id: number, entite: string, texte: string, auteur: string | null) {
+  db()
+    .prepare('INSERT INTO commentaires (publication_id, entite, auteur, texte) VALUES (?, ?, ?, ?)')
+    .run(id, entite, auteur, texte);
+  tracer('commentaire de validation', `publication ${id} — ${texte.slice(0, 120)}`, entite);
+}
+
+export async function commenter(fd: FormData) {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const texte = String(fd.get('texte') ?? '').trim().slice(0, 4000);
+  const auteur = String(fd.get('auteur') ?? '').trim().slice(0, 80) || null;
+  const retour = retourSur(fd, entite, id);
+  const p = db().prepare('SELECT entite FROM publications WHERE id=?').get(id) as { entite: string } | undefined;
+  if (!p || p.entite !== entite || !texte) redirect(retour);
+  poserCommentaire(id, entite, texte, auteur);
+  await sauvegarder();
+  revalidatePath(`/${entite}/publications/${id}`);
+  revalidatePath(`/${entite}/valider`);
+  revalidatePath(`/${entite}/aujourdhui`);
+  redirect(retour);
+}
+
+export async function resoudreCommentaire(fd: FormData) {
+  const cid = Number(fd.get('commentaire_id'));
+  const entite = String(fd.get('entite'));
+  const resolu = String(fd.get('resolu') ?? '1') === '1' ? 1 : 0;
+  const c = db().prepare('SELECT publication_id, entite FROM commentaires WHERE id=?').get(cid) as
+    | { publication_id: number; entite: string }
+    | undefined;
+  if (!c || c.entite !== entite) redirect(`/${entite}`);
+  db().prepare('UPDATE commentaires SET resolu=? WHERE id=?').run(resolu, cid);
+  tracer(resolu ? 'commentaire résolu' : 'commentaire rouvert', `publication ${c.publication_id}`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/publications/${c.publication_id}`);
+  revalidatePath(`/${entite}/valider`);
+  revalidatePath(`/${entite}/aujourdhui`);
+  redirect(retourSur(fd, entite, c.publication_id));
 }

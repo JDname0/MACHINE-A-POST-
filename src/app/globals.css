@@ -321,3 +321,11 @@ details > summary { cursor: pointer; font-weight: 600; font-size: 14px; list-sty
 details > summary::-webkit-details-marker { display: none; }
 details > summary::before { content: '＋ '; color: var(--accent); font-weight: 700; }
 details[open] > summary::before { content: '－ '; }
+
+/* ── Impression (rapport mensuel) : la page seule, sans le menu ni les rappels ── */
+@media print {
+  .flanc, .bandeau-bas, .sans-impression { display: none !important; }
+  .cadre { display: block; background: #fff; }
+  .corps { padding: 0; max-width: none; }
+  .carte, .tbl-enveloppe { break-inside: avoid; box-shadow: none; }
+}

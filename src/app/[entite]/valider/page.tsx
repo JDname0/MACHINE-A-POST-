@@ -9,6 +9,8 @@ import { AssistantIA } from '@/components/AssistantIA';
 import { BoutonVideo } from '@/components/BoutonVideo';
 import { attendu } from '@/lib/conformite-media';
 import { aUneVideo, imagesMemoire, montagePret } from '@/lib/production';
+import { commentairesDe } from '@/lib/suivi';
+import { FilCommentaires } from '@/components/FilCommentaires';
 
 /**
  * La file de validation : une semaine à la fois, chaque post avec son visuel,
@@ -239,17 +241,37 @@ export default async function Valider({
                       {p.statut === 'valide' ? 'Validé ✓' : 'Valider'}
                     </button>
                   </form>
-                  <form action={trancher}>
+                  <form action={trancher} className="rang" style={{ gap: 8, flex: '1 1 320px' }}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="entite" value={e} />
                     <input type="hidden" name="retour" value={retour} />
                     <input type="hidden" name="decision" value="a-relire" />
+                    <input
+                      name="commentaire"
+                      placeholder="Motif du renvoi (facultatif) — devient un commentaire"
+                      style={{ flex: '1 1 220px', minWidth: 0 }}
+                    />
                     <button type="submit" className="fantome" disabled={p.statut === 'a-relire'}>
                       À retravailler
                     </button>
                   </form>
                 </div>
               ) : null}
+
+              {(() => {
+                const fil = commentairesDe(p.id);
+                const ouverts = fil.filter((c) => !c.resolu).length;
+                return (
+                  <details style={{ marginTop: 10 }} open={ouverts > 0}>
+                    <summary className="aide">
+                      💬 Commentaires de validation{fil.length ? ` · ${ouverts} ouvert${ouverts > 1 ? 's' : ''} sur ${fil.length}` : ''}
+                    </summary>
+                    <div style={{ marginTop: 6 }}>
+                      <FilCommentaires entite={e} publicationId={p.id} commentaires={fil} retour={`${retour}#p${p.id}`} compact />
+                    </div>
+                  </details>
+                );
+              })()}
 
               <AssistantIA
                 p={p}

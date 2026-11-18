@@ -11,6 +11,8 @@ import { controlerMedia, attendu } from '@/lib/conformite-media';
 import { poids, duree, estVideo } from '@/lib/medias';
 import { db } from '@/lib/db';
 import { AssistantIA } from '@/components/AssistantIA';
+import { FilCommentaires } from '@/components/FilCommentaires';
+import { commentairesDe } from '@/lib/suivi';
 import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique, memoriserVisuel, declarerAuTerrain } from '@/app/actions';
 
 export default async function Composeur({
@@ -243,6 +245,19 @@ export default async function Composeur({
                   </form>
                 ))}
               </div>
+            </div>
+
+            <div className="carte" id="commentaires">
+              <h3>Commentaires de validation</h3>
+              <p style={{ marginBottom: 9 }}>
+                Le fil entre celui qui écrit et celui qui valide. Un commentaire ne change pas le texte du post.
+              </p>
+              <FilCommentaires
+                entite={e}
+                publicationId={p.id}
+                commentaires={commentairesDe(p.id)}
+                retour={`/${e}/publications/${p.id}#commentaires`}
+              />
             </div>
 
             {lienVisuel && slugVisuel ? (

@@ -3,6 +3,7 @@ import { marque, type EntiteSlug } from '@/lib/marques';
 
 const PAGES = [
   ['', 'Tableau de bord'],
+  ['aujourdhui', 'Aujourd’hui'],
   ['valider', 'À valider'],
   ['calendrier', 'Calendrier éditorial'],
   ['publications', 'Publications'],
@@ -14,6 +15,7 @@ const PAGES = [
   ['comptes', 'Comptes et connexions'],
   ['indicateurs', 'Indicateurs'],
   ['terrain', 'Terrain'],
+  ['rapport', 'Rapport mensuel'],
 ] as const;
 
 export function Flanc({

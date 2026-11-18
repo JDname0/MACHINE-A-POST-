@@ -1,5 +1,6 @@
 import { db } from './db';
 import type { EntiteSlug } from './marques';
+import { nbAFaire } from './suivi';
 
 export interface LignePublication {
   id: number;
@@ -80,7 +81,7 @@ export function compteursMenu(entite: EntiteSlug): Record<string, number> {
           AND NOT EXISTS (SELECT 1 FROM medias m WHERE m.publication_id = p.id AND m.type_mime LIKE 'video/%')`,
     )
     .get(entite, Number.isFinite(delai) ? delai : 1) as { n: number };
-  return { videos: videos.n, valider: aValider.n, publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n, visuels: medias.n };
+  return { aujourdhui: nbAFaire(entite), videos: videos.n, valider: aValider.n, publications: aTraiter.n, seo: articles.n, campagnes: campagnes.n, visuels: medias.n };
 }
 
 export function statsEntite(entite: EntiteSlug) {

@@ -60,6 +60,7 @@ export function RappelVideos({
   return (
     <div
       role="status"
+      className="sans-impression"
       style={{
         position: 'fixed',
         right: 18,

@@ -201,6 +201,19 @@ function schema(d: Database.Database) {
       valeur TEXT NOT NULL
     );
 
+    -- Commentaires de validation (ajout du 18/11/2026) : le fil d'échange sur
+    -- un post entre celui qui l'écrit et celui qui le valide. Un commentaire
+    -- ne modifie jamais le post ; « résolu » le range sans l'effacer.
+    CREATE TABLE IF NOT EXISTS commentaires (
+      id INTEGER PRIMARY KEY,
+      publication_id INTEGER NOT NULL REFERENCES publications(id) ON DELETE CASCADE,
+      entite TEXT NOT NULL,
+      auteur TEXT,
+      texte TEXT NOT NULL,
+      resolu INTEGER NOT NULL DEFAULT 0,
+      le TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS journal (
       id INTEGER PRIMARY KEY,
       entite TEXT,

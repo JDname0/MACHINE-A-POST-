@@ -200,3 +200,19 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   (noyau de particules en vrai rendu), `src/lib/fournisseurs-media.ts`
   (ElevenLabs, Runway, Ollama — clés serveur uniquement, bouton pressé par
   Jonathan, jamais automatique).
+
+## Suivi du chargé de communication (18/11/2026)
+
+`src/lib/suivi.ts` porte trois ajouts, tous en lecture des vraies données :
+
+- **Aujourd'hui** (`/[entite]/aujourdhui`) : posts validés dus (voie « manuel »
+  si aucune API n'est prête), posts à trancher sous 3 jours, vidéos dues,
+  relevés manquants à J+7, commentaires ouverts. **Rappels .ics**
+  (`/[entite]/rappels`, session vérifiée par la route) : un événement avec
+  alarme par post à poster à la main. Le rappel ne publie rien.
+- **Commentaires de validation** : table `commentaires` (ajout additif). Fil sur
+  la fiche et dans la file « À valider » ; le motif de « À retravailler »
+  devient un commentaire. Un commentaire ne modifie jamais le post.
+- **Rapport mensuel** (`/[entite]/rapport`, CSV `/[entite]/rapport/csv`,
+  impression/PDF par le navigateur) : prévu / publié / mesuré par réseau, à
+  partir du **dernier** relevé de chaque post. Non relevé = « non disponible ».
