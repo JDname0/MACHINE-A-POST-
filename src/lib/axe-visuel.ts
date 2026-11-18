@@ -55,7 +55,7 @@ export const DECISIONS: DecisionVisuelle[] = [
   {
     nom: 'Pastille d’adresse avec flèche',
     reference: 'un bouton contourné portant l’URL',
-    veolt: 'veoltproduction.fr',
+    veolt: 'veolt.fr',
     magistria: 'magistrai.fr',
   },
   {

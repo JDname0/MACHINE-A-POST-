@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Reprend l'accent et l'encre de l'interface (globals.css : --accent #a4009a, --carte #ffffff). -->
+  <rect width="64" height="64" rx="14" fill="#a4009a"/>
+  <path d="M17 46V18l15 17 15-17v28" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

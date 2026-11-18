@@ -10,6 +10,8 @@
  * Relevé le 2026-10-06. Voir 00-CADRAGE-MACHINE-A-POST.md §2.
  */
 
+import { notFound } from 'next/navigation';
+
 export type EntiteSlug = 'veolt' | 'magistria';
 export type ReseauSlug = 'linkedin' | 'instagram' | 'reddit' | 'tiktok' | 'blog';
 
@@ -69,7 +71,7 @@ export const MARQUES: Record<EntiteSlug, Marque> = {
     promesseEditoriale:
       "Un studio qui réunit la 3D, le web et l'analyse financière, et qui le prouve en donnant son travail avant de le vendre.",
     principe: "On donne d'abord. L'analyse gratuite remplace la référence client comme preuve de compétence.",
-    site: 'veoltproduction.fr',
+    site: 'veolt.fr',
     theme: { fond: '#0C0C0C', accent: '#B600A8', accentDoux: '#C79BFF', encre: '#EDEBF2', serif: false },
     piliers: [
       {
@@ -300,7 +302,9 @@ export const ENTITES = Object.values(MARQUES);
 
 export function marque(slug: string): Marque {
   const m = MARQUES[slug as EntiteSlug];
-  if (!m) throw new Error(`Entité inconnue : ${slug}`);
+  // Une adresse qui n'est pas une entité (favicon.ico, .env, package.json…)
+  // répond 404 au lieu de lever une erreur dans les journaux.
+  if (!m) notFound();
   return m;
 }
 

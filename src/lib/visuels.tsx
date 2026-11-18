@@ -130,7 +130,7 @@ export type Variante = 'clair' | 'sombre';
 /**
  * Les deux chartes, relevées là où elles font foi.
  *
- * Veolt vient du site en ligne (`veoltproduction.fr`) : fond quasi noir,
+ * Veolt vient du site en ligne (`veolt.fr`) : fond quasi noir,
  * dégradé magenta → violet → orange, Bebas Neue et Kanit.
  *
  * MagistrIA vient du **site en ligne** (`magistrai.fr`, relevé le 2026-11-10) :
@@ -157,7 +157,7 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
       marque: 'Veolt',
       signature: 'Studio Créatif',
       services: 'Business plan  •  Sites & web 3D  •  Vidéo & 3D',
-      adresse: 'veoltproduction.fr',
+      adresse: 'veolt.fr',
       surface: 'rgba(237,235,242,0.06)',
       filet: 'rgba(237,235,242,0.16)',
       surAccent: '#FFFFFF',
