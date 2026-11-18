@@ -11,6 +11,13 @@ const ENTETES = [
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // CSP active minimale : ne restreint ni scripts, ni styles, ni images, ni
+  // connexions. La CSP complète reste en observation juste en dessous.
+  {
+    key: 'Content-Security-Policy',
+    value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; upgrade-insecure-requests",
+  },
   {
     key: 'Content-Security-Policy-Report-Only',
     value: [
