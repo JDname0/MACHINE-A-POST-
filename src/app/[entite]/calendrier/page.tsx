@@ -11,6 +11,7 @@ import { recalerCalendrier, memoriserSemaine } from '@/app/actions';
 import { BoutonVideo } from '@/components/BoutonVideo';
 import { ProductionLot } from '@/components/ProductionLot';
 import { GenerateurArticle } from '@/components/GenerateurArticle';
+import { GlisserMois } from '@/components/GlisserMois';
 import { ImporterPost } from '@/components/ImporterPost';
 import { TOUS_FORMATS } from '@/lib/formats';
 import { depotDirect, plafondDepotVideo, TAILLE_MAX_DOCUMENT, TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO } from '@/lib/medias';
@@ -273,6 +274,7 @@ export default async function Calendrier({
 
         {vue === 'mois' ? (
           <VueMois
+            entite={e}
             mois={moisVu}
             posts={affiches}
             lien={lien}
@@ -297,7 +299,7 @@ export default async function Calendrier({
           return (
             <section key={s}>
               <div className="ban-semaine">
-                <h2>Semaine {s}</h2>
+                <h2>{s ? `Semaine ${s}` : 'Hors calendrier'}</h2>
                 {pubs.length ? (
                   <span className="int">
                     {court(pubs[0].date_prevue)} → {court(pubs[pubs.length - 1].date_prevue)}
@@ -427,6 +429,7 @@ export default async function Calendrier({
  * même aperçu que la vue Semaine.
  */
 function VueMois({
+  entite,
   mois,
   posts,
   lien,
@@ -434,6 +437,7 @@ function VueMois({
   precedent,
   suivant,
 }: {
+  entite: EntiteSlug;
   mois: string;
   posts: LignePublication[];
   lien: (extra?: Record<string, string | number | undefined>) => string;
@@ -464,6 +468,11 @@ function VueMois({
           {dansLeMois} publication{dansLeMois > 1 ? 's' : ''}
         </span>
       </div>
+      <p className="aide" style={{ margin: '0 0 8px' }}>
+        Glisse un post sur un autre jour pour changer sa date prévue — le texte et le statut ne bougent pas, rien
+        n&apos;est publié. Un post publié garde sa date.
+      </p>
+      <GlisserMois entite={entite}>
       <div className="mois-grille">
         {JOURS.map((j) => (
           <div key={j} className="entete-jour">{j.slice(0, 3)}</div>
@@ -473,7 +482,7 @@ function VueMois({
           const liste = parDate.get(cle) ?? [];
           const hors = !cle.startsWith(mois);
           return (
-            <div key={cle} className={`jour${liste.length ? '' : ' vide'}${hors ? ' hors' : ''}${cle === aujourdhui ? ' auj' : ''}`}>
+            <div key={cle} data-jour={cle} className={`jour${liste.length ? '' : ' vide'}${hors ? ' hors' : ''}${cle === aujourdhui ? ' auj' : ''}`}>
               <div className="d">
                 <span>{d.getDate()}</span>
                 {liste.length > 1 ? <span>{liste.length}</span> : null}
@@ -483,6 +492,8 @@ function VueMois({
                   key={p.id}
                   className="vignette"
                   data-statut={p.statut}
+                  data-glisser={p.statut === 'publie' || p.statut === 'abandonne' ? undefined : p.id}
+                  draggable={p.statut !== 'publie' && p.statut !== 'abandonne'}
                   href={lien({ apercu: p.id })}
                   scroll={false}
                   title={`${format(p.format_slug).nom} — ${LIBELLE_STATUT[p.statut]}`}
@@ -497,6 +508,7 @@ function VueMois({
           );
         })}
       </div>
+      </GlisserMois>
     </section>
   );
 }

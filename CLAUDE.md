@@ -228,3 +228,11 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
 - **Relevés SEO datés** : table `seo_releves`, une ligne par « ok » sur la page SEO
   (date saisissable, jamais future). Le rapport mensuel en tire l'évolution sur
   6 mois (`evolutionSeo`) ; un mois sans relevé reste « non disponible ».
+- **Déplacer un post** (19/11) : glisser-déposer dans la vue Mois (`GlisserMois.tsx`
+  → action `deplacerPost`). Seule la date change (texte et statut intacts, tracé
+  au journal). Refusé : post publié ou abandonné, date passée, doublon
+  format × pilier le même jour. Le post prend la semaine et la phase des posts de
+  la semaine d'arrivée ; une semaine sans post le met « hors calendrier »
+  (`semaine` NULL), que « Recaler » ne bouge plus.
+- **CSV du rapport** : colonne « heure prévue », puis l'évolution SEO mois par mois
+  après une ligne vide.

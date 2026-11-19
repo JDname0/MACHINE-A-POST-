@@ -254,6 +254,7 @@ export interface LigneRapport {
   reseau: ReseauSlug;
   pilier: string;
   date_prevue: string;
+  heure_prevue: string | null;
   statut: string;
   publie_le: string | null;
   url_publiee: string | null;
@@ -400,7 +401,7 @@ export function rapportMensuel(entite: EntiteSlug, mois: string): Rapport {
   const lignes = (
     d
       .prepare(
-        `SELECT p.id, p.titre, p.format_slug, p.pilier, p.date_prevue, p.statut, p.publie_le, p.url_publiee,
+        `SELECT p.id, p.titre, p.format_slug, p.pilier, p.date_prevue, p.heure_prevue, p.statut, p.publie_le, p.url_publiee,
                 m.impressions, m.interactions, m.clics, m.duree_s, m.releve_le
            FROM publications p
            LEFT JOIN metriques m ON m.id = (SELECT MAX(id) FROM metriques WHERE publication_id = p.id)
@@ -476,7 +477,12 @@ export function rapportMensuel(entite: EntiteSlug, mois: string): Rapport {
   };
 }
 
-/** Le rapport en CSV (séparateur « ; », BOM UTF-8 : s'ouvre tel quel dans un tableur français). */
+/**
+ * Le rapport en CSV (séparateur « ; », BOM UTF-8 : s'ouvre tel quel dans un
+ * tableur français). Le détail des posts d'abord, puis, après une ligne vide,
+ * l'évolution SEO mois par mois — mêmes chiffres que la page, « non
+ * disponible » compris.
+ */
 export function rapportCsv(r: Rapport): string {
   const cell = (v: string | number | null) => {
     if (v == null) return 'non disponible';
@@ -484,18 +490,37 @@ export function rapportCsv(r: Rapport): string {
     return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const entete = [
-    'id', 'date prévue', 'réseau', 'format', 'pilier', 'titre', 'statut', 'publié le', 'adresse',
+    'id', 'date prévue', 'heure prévue', 'réseau', 'format', 'pilier', 'titre', 'statut', 'publié le', 'adresse',
     'impressions', 'interactions', 'clics', 'durée (s)', "taux d'engagement", 'relevé le',
   ];
   const lignes = r.lignes.map((l) => {
     const eng = l.impressions && l.interactions != null ? Math.round((l.interactions / l.impressions) * 10000) / 100 : null;
     return [
-      l.id, l.date_prevue, RESEAUX[l.reseau].nom, format(l.format_slug).nom, l.pilier, l.titre ?? '', l.statut,
+      l.id, l.date_prevue, heureValide(l.heure_prevue) ?? '', RESEAUX[l.reseau].nom, format(l.format_slug).nom, l.pilier, l.titre ?? '', l.statut,
       l.publie_le ?? '', l.url_publiee ?? '', l.impressions, l.interactions, l.clics, l.duree_s,
       eng != null ? `${String(eng).replace('.', ',')} %` : null, l.releve_le ? l.releve_le.slice(0, 10) : null,
     ]
       .map(cell)
       .join(';');
   });
-  return '\uFEFF' + [entete.join(';'), ...lignes].join('\r\n') + '\r\n';
+  const seo = [
+    ['référencement (relevés datés)', 'articles relevés', 'en top 10', 'position moyenne', 'positions notées', 'cités par une IA', 'liens relevés', 'liens obtenus']
+      .map(cell)
+      .join(';'),
+    ...r.evolutionSeo.map((x) =>
+      [
+        x.mois,
+        x.articlesReleves || null,
+        x.top10,
+        x.positionMoyenne,
+        x.positionMoyenne == null ? null : x.positionsNotees,
+        x.citesIa,
+        x.liensReleves || null,
+        x.liensObtenus,
+      ]
+        .map(cell)
+        .join(';'),
+    ),
+  ];
+  return '\uFEFF' + [entete.join(';'), ...lignes, '', ...seo].join('\r\n') + '\r\n';
 }

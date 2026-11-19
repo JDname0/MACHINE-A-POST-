@@ -353,6 +353,8 @@ pre.bloc {
 .mois-grille .jour.hors { opacity: 0.4; }
 .mois-grille .jour.auj { border-color: var(--accent-texte); }
 .mois-grille .vignette { padding: 4px 6px; margin-bottom: 4px; font-size: 11px; }
+.mois-grille .vignette[draggable='true'] { cursor: grab; }
+.mois-grille .jour.cible { border-color: var(--accent-texte); background: var(--accent-voile); border-style: solid; }
 @media (max-width: 900px) {
   .mois-grille { grid-template-columns: 1fr; }
   .mois-grille .entete-jour, .mois-grille .jour.vide { display: none; }

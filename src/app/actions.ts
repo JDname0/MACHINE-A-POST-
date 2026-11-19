@@ -1108,6 +1108,80 @@ export async function creerPublication(fd: FormData) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Calendrier — déplacer un post (glisser-déposer de la vue Mois)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Le lundi (AAAA-MM-JJ) de la semaine d'une date AAAA-MM-JJ. */
+function lundiIso(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Change la date prévue d'un post. Ne publie rien et ne touche pas au texte.
+ *
+ * - Un post publié ou abandonné ne bouge pas : sa date a eu lieu.
+ * - Le post prend la semaine (et la phase) des autres posts de la semaine
+ *   d'arrivée, pour que « Recaler les 12 semaines » le garde où il a été posé.
+ *   Une semaine sans autre post le met hors calendrier (sans semaine) :
+ *   le recalage ne le déplacera plus.
+ * - La contrainte « un format × pilier par jour » est vérifiée avant.
+ * - Un post validé reste validé (son texte n'a pas changé) ; le déplacement
+ *   est tracé au journal.
+ */
+export async function deplacerPost(fd: FormData): Promise<{ ok: true } | { ok: false; raison: string }> {
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const date = String(fd.get('date') ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) return { ok: false, raison: 'Date invalide.' };
+  const d = db();
+  const p = d
+    .prepare('SELECT id, date_prevue, statut, format_slug, pilier, semaine, phase FROM publications WHERE id=? AND entite=?')
+    .get(id, entite) as { id: number; date_prevue: string; statut: string; format_slug: string; pilier: string; semaine: number | null; phase: string | null } | undefined;
+  if (!p) return { ok: false, raison: 'Post introuvable dans cette entité.' };
+  if (p.statut === 'publie' || p.statut === 'abandonne') return { ok: false, raison: 'Un post publié ou abandonné garde sa date.' };
+  if (p.date_prevue === date) return { ok: true };
+  if (date < new Date().toISOString().slice(0, 10)) return { ok: false, raison: 'On ne planifie pas dans le passé : choisis aujourd’hui ou plus tard.' };
+  const conflit = d
+    .prepare('SELECT id FROM publications WHERE entite=? AND date_prevue=? AND format_slug=? AND pilier=? AND id<>?')
+    .get(entite, date, p.format_slug, p.pilier, id);
+  if (conflit) return { ok: false, raison: 'Il y a déjà ce même format sur ce même pilier ce jour-là.' };
+
+  const lundi = lundiIso(date);
+  const voisin = d
+    .prepare(
+      `SELECT semaine, phase FROM publications
+        WHERE entite=? AND id<>? AND semaine IS NOT NULL AND date_prevue BETWEEN ? AND date(?, '+6 day')
+        ORDER BY id LIMIT 1`,
+    )
+    .get(entite, id, lundi, lundi) as { semaine: number; phase: string | null } | undefined;
+  const memeSemaine = lundiIso(p.date_prevue) === lundi;
+  const semaine = memeSemaine ? p.semaine : (voisin?.semaine ?? null);
+  const phase = memeSemaine ? p.phase : (voisin ? voisin.phase : null);
+
+  d.prepare("UPDATE publications SET date_prevue=?, semaine=?, phase=?, maj_le=datetime('now') WHERE id=? AND entite=?").run(
+    date,
+    semaine,
+    phase,
+    id,
+    entite,
+  );
+  tracer(
+    'post déplacé',
+    `publication ${id} : ${p.date_prevue} → ${date}${semaine !== p.semaine ? ` (semaine ${p.semaine ?? '—'} → ${semaine ?? 'hors calendrier'})` : ''}`,
+    entite,
+  );
+  // Une mutation non poussée vers le Blob est une mutation perdue
+  // au prochain démarrage d'instance. Elle ne coûte rien en local.
+  await sauvegarder();
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/aujourdhui`);
+  revalidatePath(`/${entite}/publications/${id}`);
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Calendrier — recaler les 12 semaines
 // ─────────────────────────────────────────────────────────────────────────────
 
