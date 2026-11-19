@@ -216,13 +216,24 @@ export default async function Calendrier({
           <div style={{ flex: '1 1 260px' }}>
             <strong>Recaler les 12 semaines</strong>
             <div className="aide">
-              {debutActuel ? <>Aujourd&apos;hui la semaine 1 commence le {court(debutActuel)}. </> : null}
+              {debutActuel ? (
+                <>
+                  Aujourd&apos;hui la semaine 1 commence le lundi {court(debutActuel)}
+                  {s1 && s1 !== debutActuel ? <>, premier post le {court(s1)}</> : null}.{' '}
+                </>
+              ) : null}
               S&apos;applique aux deux entités. Les textes ne changent pas, les publications déjà parties non plus.
+              Pour démarrer un autre jour que le lundi (la semaine type publie dès le lundi), indique le premier jour
+              de publication : les posts de la semaine 1 datés avant y sont reportés.
             </div>
           </div>
           <label>
             <div className="aide">Premier lundi</div>
             <input type="date" name="depart" defaultValue={iso(prochain)} required />
+          </label>
+          <label>
+            <div className="aide">Premier jour de publication (facultatif)</div>
+            <input type="date" name="premier_jour" title="Par exemple le mardi : les posts du lundi de la semaine 1 y sont reportés" />
           </label>
           <label>
             <div className="aide">Pause après la semaine</div>

@@ -1220,7 +1220,32 @@ export async function recalerCalendrier(fd: FormData) {
     for (const [id, date] of cibles) finale.run(date, id);
   })();
 
-  const detail = `premier lundi ${depart}${pause.semaines ? `, pause de ${pause.semaines} sem. après S${pause.apres}` : ''} — ${lignes.length} publications`;
+  // Premier jour de publication (facultatif) : la semaine type a des posts le
+  // lundi. Pour démarrer un mardi, les posts de la première semaine datés
+  // avant ce jour y sont reportés (ou au jour suivant libre si le même format
+  // sur le même pilier y est déjà). Leur semaine ne change pas : un recalage
+  // ultérieur les garde au jour où ils ont été reportés.
+  const premierJour = String(fd.get('premier_jour') ?? '').trim();
+  const finSemaine1 = new Date(`${depart}T12:00:00Z`);
+  finSemaine1.setUTCDate(finSemaine1.getUTCDate() - ((finSemaine1.getUTCDay() + 6) % 7) + 6);
+  let reportes = 0;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(premierJour) && premierJour > depart && premierJour <= finSemaine1.toISOString().slice(0, 10)) {
+    const avant = d
+      .prepare("SELECT id, entite, format_slug, pilier, date_prevue FROM publications WHERE semaine = 1 AND statut != 'publie' AND date_prevue < ? ORDER BY date_prevue, id")
+      .all(premierJour) as Array<{ id: number; entite: string; format_slug: string; pilier: string; date_prevue: string }>;
+    const pris = d.prepare('SELECT 1 FROM publications WHERE entite=? AND date_prevue=? AND format_slug=? AND pilier=? AND id<>?');
+    const poser = d.prepare("UPDATE publications SET date_prevue=?, maj_le=datetime('now') WHERE id=?");
+    for (const p of avant) {
+      const jour = new Date(`${premierJour}T12:00:00Z`);
+      for (let i = 0; i < 7 && pris.get(p.entite, jour.toISOString().slice(0, 10), p.format_slug, p.pilier, p.id); i++) jour.setUTCDate(jour.getUTCDate() + 1);
+      const cible = jour.toISOString().slice(0, 10);
+      poser.run(cible, p.id);
+      tracer('post reporté au premier jour', `publication ${p.id} : ${p.date_prevue} → ${cible}`, p.entite);
+      reportes++;
+    }
+  }
+
+  const detail = `premier lundi ${depart}${pause.semaines ? `, pause de ${pause.semaines} sem. après S${pause.apres}` : ''}${reportes ? `, premier jour ${premierJour} (${reportes} post(s) reporté(s))` : ''} — ${lignes.length} publications`;
   tracer('calendrier recalé', detail);
   await sauvegarder();
   for (const e of ['veolt', 'magistria']) {

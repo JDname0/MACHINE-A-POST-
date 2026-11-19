@@ -236,3 +236,7 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   (`semaine` NULL), que « Recaler » ne bouge plus.
 - **CSV du rapport** : colonne « heure prévue », puis l'évolution SEO mois par mois
   après une ligne vide.
+- **Recaler : premier jour de publication** (19/11) : la semaine type publie dès
+  le lundi ; pour démarrer un autre jour (ex. mardi), le champ facultatif reporte
+  les posts de la semaine 1 datés avant ce jour (jour libre suivant si doublon
+  format × pilier), tracé au journal.
