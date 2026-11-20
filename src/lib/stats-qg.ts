@@ -23,7 +23,7 @@ import type { ReseauSlug } from './marques';
  * rien à poser sur Vercel. Vide = la route /api/qg/stats répond 404.
  * Pour changer de jeton : remplacer cette valeur par sha256(nouveau jeton).
  */
-export const EMPREINTE_JETON_QG = '';
+export const EMPREINTE_JETON_QG = 'bcaf4e1176f54eee3c8d4067b556577e3c81e38529e84c5c0a2d575f8d7c6364';
 
 export interface StatsQG {
   version: 1;
