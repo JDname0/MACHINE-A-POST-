@@ -1176,14 +1176,9 @@ export async function enregistrerVideo(m: Montage, fichier: File, progres: (pour
   fd.set('origine', 'video');
   let res: { ok: boolean; raison?: string };
   if (m.direct) {
-    const { uploadPresigned } = await import('@vercel/blob/client');
+    const { deposerDirect } = await import('./depot-direct');
     const ext = fichier.type === 'video/mp4' ? 'mp4' : 'webm';
-    const blob = await uploadPresigned(`machine-a-post/medias/${crypto.randomUUID()}.${ext}`, fichier, {
-      access: 'private',
-      contentType: fichier.type,
-      handleUploadUrl: `/${m.entite}/medias/televerser`,
-      onUploadProgress: ({ percentage }) => progres(Math.round(percentage)),
-    });
+    const blob = await deposerDirect(m.entite, `machine-a-post/medias/${crypto.randomUUID()}.${ext}`, fichier, progres);
     fd.set('chemin', blob.pathname);
     res = await enregistrerTeleversement(fd);
   } else {

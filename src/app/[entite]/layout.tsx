@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { estEntite } from '@/lib/marques';
 import { connecte, protegee } from '@/lib/auth';
-import { etatStockage } from '@/lib/persistance';
+import { etatStockage, MODE_FICHIERS } from '@/lib/persistance';
 import { RappelVideos } from '@/components/RappelVideos';
 import { echeancesVideo, imagesMemoire, montagePret, reglagesVideo, visuelsDus, DELAIS } from '@/lib/production';
 import type { EntiteSlug } from '@/lib/marques';
@@ -38,7 +38,7 @@ export default async function EntiteLayout({
   const nbVisuels = reglages.mode === 'boutons' ? 0 : visuelsDus(e).length;
 
   return (
-    <div className="cadre" data-entite={entite}>
+    <div className="cadre" data-entite={entite} data-depot={MODE_FICHIERS ? 'morceaux' : undefined}>
       {children}
       <RappelVideos entite={entite} elements={rappel} visuels={nbVisuels} auto={reglages.mode === 'auto'} quand={quand} />
       {avertissements.length > 0 ? (

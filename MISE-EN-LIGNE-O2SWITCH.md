@@ -12,7 +12,7 @@ dépôt : tout se pose dans cPanel.
 |---|---|
 | Application (code) | `~/machine-a-post-app/` |
 | Données : `machine.db`, `medias/`, `sauvegardes/` | `~/machine-a-post-donnees/` |
-| Adresse | **https://post.veolt-magistrai.fr** |
+| Adresse | **https://post.veolt.fr** (exemple retenu ; un autre domaine pourra s'ajouter) |
 
 Dans les commandes, remplace `<compte>` par ton identifiant cPanel et
 `<serveur>` par le serveur o2switch (ceux de Prospection).
@@ -23,29 +23,27 @@ demande aucune modification du code (voir « Changer ou ajouter un domaine »).
 
 ---
 
-## 1. Domaine, sous-domaine et HTTPS
+## 1. Sous-domaine et HTTPS
 
-1. **Achat** de `veolt-magistrai.fr`, de préférence chez o2switch (espace
-   client → Domaines). Libre le 24/11/2026 ; à vérifier au moment d'acheter.
-2. **Ajout dans cPanel**, s'il n'y apparaît pas tout seul : cPanel →
-   **Domaines** → **Créer un domaine** → `veolt-magistrai.fr`. Acheté
-   ailleurs : pointer d'abord ses serveurs DNS vers ceux d'o2switch, puis
-   l'ajouter ici (la propagation peut prendre quelques heures).
-3. **Sous-domaine `post`** : cPanel → **Domaines** → **Créer un domaine** →
-   `post.veolt-magistrai.fr`. Racine du document : laisse celle proposée
-   (`/home/<compte>/post.veolt-magistrai.fr`). L'application Node.js prendra
-   ce sous-domaine à l'étape 3 ; ni le code ni les données n'iront dans ce
+On démarre sur **`post.veolt.fr`** : `veolt.fr` est déjà dans ton cPanel, rien
+à acheter. (Pour `veolt-magistrai.fr` plus tard, voir « Changer ou ajouter un
+domaine ».)
+
+1. **Sous-domaine `post`** : cPanel → **Domaines** → **Créer un domaine** →
+   `post.veolt.fr`. Racine du document : laisse celle proposée
+   (`/home/<compte>/post.veolt.fr`). L'application Node.js prendra ce
+   sous-domaine à l'étape 3 ; ni le code ni les données n'iront dans ce
    dossier.
-4. **Certificat** : cPanel → **SSL/TLS Status** → coche `post.veolt-magistrai.fr`
-   (et `veolt-magistrai.fr`, `www.veolt-magistrai.fr`) → **Run AutoSSL**.
-   Vérifie ensuite `https://post.veolt-magistrai.fr` : cadenas valide, sans
-   avertissement. Ne passe pas à l'étape 7 avant.
-5. **La racine `veolt-magistrai.fr`** : au choix.
-   - Rien (page par défaut d'o2switch, ou vide) : le plus simple.
-   - Une redirection : cPanel → **Domaines** → **Redirections** → permanente
-     (301) de `veolt-magistrai.fr` (avec et sans `www`) vers
-     `https://post.veolt-magistrai.fr/`. Inutile tant que personne ne tape la
-     racine ; à faire si tu veux une adresse courte qui mène à l'outil.
+2. **DNS** : si la zone DNS de `veolt.fr` est gérée par o2switch, cPanel crée
+   l'enregistrement tout seul. Si elle est gérée ailleurs (par exemple là où
+   pointe le site `veolt.fr`), ajoute chez ce gestionnaire un enregistrement
+   `A` pour `post` vers l'adresse IP du serveur o2switch (cPanel, colonne de
+   droite « Adresse IP partagée »). **Ne touche pas** aux enregistrements de
+   `veolt.fr` et `www` : le site vitrine ne doit pas bouger.
+3. **Certificat** : cPanel → **SSL/TLS Status** → coche `post.veolt.fr` →
+   **Run AutoSSL** (il faut que le DNS de l'étape 2 réponde déjà). Vérifie
+   ensuite `https://post.veolt.fr` : cadenas valide, sans avertissement. Ne
+   passe pas à l'étape 7 avant.
 
 ## 2. Dossier des données
 
@@ -66,7 +64,7 @@ cPanel → **Setup Node.js App** → **Create Application** :
 | Node.js version | **22** (sinon 20). Next 15.5 exige Node ≥ 18.18 ; garde la même majeure que `NODE_MAJEUR` à l'étape 6. |
 | Application mode | Production |
 | Application root | `machine-a-post-app` |
-| Application URL | `post.veolt-magistrai.fr` |
+| Application URL | `post.veolt.fr` |
 | Application startup file | `app.js` |
 
 **Ne clique pas sur « Run NPM Install »** : le build envoyé contient déjà ses
@@ -78,7 +76,7 @@ Même écran → **Environment variables** → **Add variable** :
 
 | Nom | Valeur |
 |---|---|
-| `MAP_URL_PUBLIQUE` | `https://post.veolt-magistrai.fr` (sans `/` final) |
+| `MAP_URL_PUBLIQUE` | `https://post.veolt.fr` (sans `/` final) |
 | `MAP_STOCKAGE` | `fichiers` |
 | `MAP_DOSSIER_DONNEES` | `/home/<compte>/machine-a-post-donnees` (chemin **absolu**) |
 | `MACHINE_MOT_DE_PASSE` | ton mot de passe de l'outil |
@@ -155,7 +153,7 @@ ultérieure du code, c'est la seule commande à relancer.
 ## 7. Redémarrer et vérifier
 
 cPanel → Setup Node.js App → **Start App** (ou **Restart**). Puis, dans le
-navigateur, sur `https://post.veolt-magistrai.fr` :
+navigateur, sur `https://post.veolt.fr` :
 
 1. La page de **connexion** s'affiche. Le mot de passe fonctionne.
 2. **Calendrier Veolt** et **calendrier MagistrIA** : les posts sont là, aux
@@ -163,14 +161,14 @@ navigateur, sur `https://post.veolt-magistrai.fr` :
 3. Ouvre un post avec une **image** : elle s'affiche.
 4. Ouvre un post avec une **vidéo** : elle se lit et on peut avancer dedans.
 5. Change l'heure d'un post, recharge : elle est restée.
-6. `https://post.veolt-magistrai.fr/api/qg/stats` sans jeton répond **401**.
+6. `https://post.veolt.fr/api/qg/stats` sans jeton répond **401**.
 7. Le bandeau « Aucun mot de passe posé » **n'apparaît pas**.
 
 Par SSH, `ls ~/machine-a-post-donnees/sauvegardes` montre une sauvegarde datée
 du démarrage.
 
 **Dans QG** : remplace l'adresse `https://machine-a-post.vercel.app` par
-`https://post.veolt-magistrai.fr` (même jeton, même route), et espace l'appel à une
+`https://post.veolt.fr` (même jeton, même route), et espace l'appel à une
 fois par heure au plus.
 
 ### Si ça ne va pas : retour arrière
@@ -194,10 +192,16 @@ ils marchent sur n'importe quelle adresse.
 
 ## Changer ou ajouter un domaine plus tard
 
-Rien à modifier dans le code.
+Rien à modifier dans le code. Exemple : passer à `post.veolt-magistrai.fr`.
 
-1. Ajouter le nouveau domaine ou sous-domaine dans cPanel, puis AutoSSL
-   (comme à l'étape 1).
+1. Si le domaine est neuf : l'acheter (de préférence chez o2switch, espace
+   client → Domaines ; `veolt-magistrai.fr` était libre le 24/11/2026), puis
+   l'ajouter dans cPanel → **Domaines** → **Créer un domaine** s'il n'y
+   apparaît pas tout seul (acheté ailleurs : pointer d'abord ses DNS vers
+   o2switch). Créer le sous-domaine (`post.veolt-magistrai.fr`), puis AutoSSL
+   et vérifier le cadenas, comme à l'étape 1. La racine du domaine : rien, ou
+   une redirection permanente (cPanel → Domaines → Redirections, 301) vers
+   l'adresse de l'outil.
 2. Setup Node.js App → **Application URL** : le nouveau nom.
    `MAP_URL_PUBLIQUE` : la nouvelle adresse. Puis **Restart**.
 3. L'ancienne adresse : redirection permanente (301) vers la nouvelle, pour
@@ -238,12 +242,14 @@ réglages du projet (Git → Disconnect) plutôt que de supprimer le projet.
 
 ## Ce qui change par rapport à Vercel
 
-- **Dépôt de vidéos** : sans store Blob, un dépôt passe par l'outil lui-même,
-  plafonné à **40 Mo** par fichier. Pour une vidéo plus lourde, la compresser
-  avant, ou la déposer directement dans `~/machine-a-post-donnees/medias/` puis
-  l'inscrire (à faire avec Claude).
+- **Dépôt de fichiers** : sans store Blob, un gros fichier part **en
+  morceaux de 5 Mo** vers l'outil (route `morceaux`), écrits à la suite sur le
+  disque. Mêmes plafonds que sur Vercel (300 Mo par vidéo, 50 Mo par PDF,
+  10 Mo par image), même barre de progression. Testé le 24/11 avec une vidéo
+  de 300 Mo : fichier identique à l'octet, mémoire du serveur sous 250 Mo. Un
+  envoi abandonné est effacé au bout de 24 h (`~/machine-a-post-donnees/envois/`).
 - **Liens temporaires** (Instagram, TikTok vont chercher le fichier) : ils
-  pointent vers `https://post.veolt-magistrai.fr/…`, signés et datés, au lieu du store.
+  pointent vers `https://post.veolt.fr/…`, signés et datés, au lieu du store.
 - **Mémoire** : ~125 Mo au démarrage, ~210 Mo en navigation (mesuré en local
   le 24/11). La génération des vidéos se fait dans le navigateur, pas sur le
   serveur.

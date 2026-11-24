@@ -95,7 +95,7 @@ export function DepotMedias({
     // `uploadPresigned` et non `upload` : le store est connecté par OIDC, et
     // la variante « client token » exige un jeton statique que le projet n'a
     // pas. Voir la route qui signe.
-    const { uploadPresigned } = await import('@vercel/blob/client');
+    const { deposerDirect } = await import('@/lib/depot-direct');
     const refus: string[] = [];
     let posees = 0;
 
@@ -118,13 +118,9 @@ export function DepotMedias({
       const chemin = `machine-a-post/medias/${crypto.randomUUID()}.${extension}`;
 
       try {
-        const blob = await uploadPresigned(chemin, f, {
-          access: 'private',
-          contentType: f.type,
-          handleUploadUrl: `/${entite}/medias/televerser`,
-          onUploadProgress: ({ percentage }) =>
-            setEtat({ phase: 'envoi', fichier: f.name, rang: i + 1, total: fichiers.length, pourcent: Math.round(percentage) }),
-        });
+        const blob = await deposerDirect(entite, chemin, f, (pourcent) =>
+          setEtat({ phase: 'envoi', fichier: f.name, rang: i + 1, total: fichiers.length, pourcent }),
+        );
 
         const fd = new FormData();
         fd.set('entite', entite);

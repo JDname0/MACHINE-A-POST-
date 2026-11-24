@@ -107,7 +107,55 @@ export function plafond(typeMime: string, directVersBlob: boolean): number {
  * qui reçoit les octets. En local, le chemin reste l'action serveur et son
  * plafond de 4 Mo — assez pour essayer, pas pour un rush de tournage.
  */
-export const depotDirect = () => blobActif();
+export const depotDirect = () => blobActif() || MODE_FICHIERS;
+
+/**
+ * Le chemin qu'un dépôt direct peut viser : la médiathèque, puis un
+ * identifiant tiré au hasard. Partagé par la signature Blob (`televerser`)
+ * et par le dépôt par morceaux (`morceaux`, mode fichiers).
+ */
+export const CHEMIN_DEPOT =
+  /^machine-a-post\/medias\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(png|jpg|webp|gif|mp4|mov|webm|pdf)$/;
+export const PREFIXE_DEPOT = 'machine-a-post/medias/';
+
+/** Types et plafond admis pour un chemin de dépôt, d'après son extension. */
+export function contraintesDepot(chemin: string): { types: string[]; max: number } {
+  const video = /\.(mp4|mov|webm)$/.test(chemin);
+  const document = /\.pdf$/.test(chemin);
+  return {
+    types: Object.keys(video ? TYPES_VIDEO : document ? TYPES_DOCUMENT : TYPES_IMAGE),
+    max: video ? TAILLE_MAX_VIDEO : document ? TAILLE_MAX_DOCUMENT : TAILLE_MAX_IMAGE,
+  };
+}
+
+/**
+ * Les premiers octets correspondent-ils au type annoncé ? Un contrôle de
+ * signature, pas une analyse : il refuse un fichier renommé, pas un fichier
+ * forgé. Suffisant pour un outil à un seul opérateur derrière mot de passe.
+ */
+export function signatureConforme(debut: Buffer, typeMime: string): boolean {
+  const a = (i: number, ...o: number[]) => o.every((v, k) => debut[i + k] === v);
+  const txt = (i: number, t: string) => debut.subarray(i, i + t.length).toString('latin1') === t;
+  switch (typeMime) {
+    case 'image/png':
+      return a(0, 0x89, 0x50, 0x4e, 0x47);
+    case 'image/jpeg':
+      return a(0, 0xff, 0xd8, 0xff);
+    case 'image/gif':
+      return txt(0, 'GIF8');
+    case 'image/webp':
+      return txt(0, 'RIFF') && txt(8, 'WEBP');
+    case 'video/mp4':
+    case 'video/quicktime':
+      return txt(4, 'ftyp') || txt(4, 'moov') || txt(4, 'wide') || txt(4, 'mdat');
+    case 'video/webm':
+      return a(0, 0x1a, 0x45, 0xdf, 0xa3);
+    case 'application/pdf':
+      return txt(0, '%PDF');
+    default:
+      return false;
+  }
+}
 
 /**
  * Le plus gros fichier vidéo qu'on peut déposer par le chemin disponible :

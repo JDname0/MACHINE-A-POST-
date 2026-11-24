@@ -105,19 +105,16 @@ export async function envoyerLivrables(
     return { posees: r.posees, refus: [...refus, ...r.refus] };
   }
 
-  const { uploadPresigned } = await import('@vercel/blob/client');
+  const { deposerDirect } = await import('./depot-direct');
   let posees = 0;
   for (let i = 0; i < valides.length; i++) {
     const f = valides[i];
     progres(f.name, i + 1, valides.length, 0);
     const mesures = await mesurer(f);
     try {
-      const blob = await uploadPresigned(`machine-a-post/medias/${crypto.randomUUID()}.${extension(f.type)}`, f, {
-        access: 'private',
-        contentType: f.type,
-        handleUploadUrl: `/${entite}/medias/televerser`,
-        onUploadProgress: ({ percentage }) => progres(f.name, i + 1, valides.length, Math.round(percentage)),
-      });
+      const blob = await deposerDirect(entite, `machine-a-post/medias/${crypto.randomUUID()}.${extension(f.type)}`, f, (pourcent) =>
+        progres(f.name, i + 1, valides.length, pourcent),
+      );
       const fd = new FormData();
       fd.set('entite', entite);
       fd.set('chemin', blob.pathname);

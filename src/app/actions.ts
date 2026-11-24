@@ -1420,16 +1420,35 @@ export async function enregistrerTeleversement(fd: FormData) {
   const cle = chemin.slice(prefixe.length);
 
   const { TYPES_ACCEPTES, TYPES_LIVRABLE } = await import('@/lib/medias');
-  const { head } = await import('@vercel/blob');
   const livrable = fd.get('origine') === 'livrable';
   let taille: number;
   let typeMime: string;
-  try {
-    const h = await head(chemin);
-    taille = h.size;
-    typeMime = h.contentType;
-  } catch {
-    return { ok: false as const, raison: 'Fichier introuvable dans le stockage — dépôt interrompu ?' };
+  const { MODE_FICHIERS, DOSSIER_DONNEES } = await import('@/lib/persistance');
+  if (MODE_FICHIERS) {
+    // Dépôt par morceaux (route `morceaux`) : la route a vérifié la taille et
+    // la signature du fichier et laissé une fiche à côté. On la lit, on
+    // contrôle l'entité et la présence du fichier, puis on l'efface.
+    const { existsSync, readFileSync, rmSync, statSync } = await import('node:fs');
+    const path = await import('node:path');
+    const fiche = path.join(DOSSIER_DONNEES, 'envois', `${cle}.depot.json`);
+    const fichier = path.join(DOSSIER_DONNEES, 'medias', cle);
+    if (!/^[0-9a-f-]{36}\.[a-z0-9]{2,4}$/.test(cle) || !existsSync(fiche) || !existsSync(fichier)) {
+      return { ok: false as const, raison: 'Fichier introuvable dans le stockage — dépôt interrompu ?' };
+    }
+    const depot = JSON.parse(readFileSync(fiche, 'utf8')) as { entite: string; type: string; taille: number };
+    if (depot.entite !== entite) return { ok: false as const, raison: 'Ce fichier a été déposé pour une autre entité.' };
+    taille = statSync(fichier).size;
+    typeMime = depot.type;
+    rmSync(fiche, { force: true });
+  } else {
+    const { head } = await import('@vercel/blob');
+    try {
+      const h = await head(chemin);
+      taille = h.size;
+      typeMime = h.contentType;
+    } catch {
+      return { ok: false as const, raison: 'Fichier introuvable dans le stockage — dépôt interrompu ?' };
+    }
   }
   if (!(typeMime in (livrable ? TYPES_LIVRABLE : TYPES_ACCEPTES))) return { ok: false as const, raison: `Type refusé : ${typeMime}.` };
 

@@ -260,8 +260,17 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
   `sauvegarder-base.mjs` (cron quotidien). Export : `scripts/exporter-depuis-blob.mjs`.
 - `/connexion` est `force-dynamic` : un build fait sans mot de passe la figeait
   en redirection.
-- **Aucun domaine en dur.** `MAP_URL_PUBLIQUE` (ex. `https://post.veolt-magistrai.fr`)
+- **Aucun domaine en dur.** `MAP_URL_PUBLIQUE` (ex. `https://post.veolt.fr`)
   sert aux liens absolus (`src/lib/adresse.ts` : rappels .ics, liens
   temporaires de médias) et rend le cookie de session `Secure`. Sans elle,
   l'adresse se déduit des en-têtes, comme avant. Redirections relatives,
   cookie sans domaine : changer de domaine = changer la variable.
+- **Dépôt par morceaux** (mode fichiers) : `src/lib/depot-direct.ts` est le
+  seul point d'entrée navigateur (médiathèque, posts faits ailleurs, studio).
+  Sur Vercel → `uploadPresigned` vers le Blob, inchangé ; si la page porte
+  `data-depot="morceaux"` (layout, mode fichiers) → route
+  `[entite]/medias/morceaux` : morceaux de 5 Mo écrits en flux dans
+  `<données>/envois/`, taille exacte + signature vérifiées, rename atomique,
+  fiche `<cle>.depot.json` lue par `enregistrerTeleversement` à la place du
+  `head()` Blob. Mêmes plafonds que Vercel (300 Mo vidéo). Envois abandonnés
+  effacés après 24 h. La route répond 404 hors mode fichiers.
