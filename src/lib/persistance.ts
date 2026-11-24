@@ -20,16 +20,35 @@
  *   ses dernières écritures.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const OBJET = 'machine-a-post/machine.db';
 
 /** `/tmp` est le seul emplacement inscriptible sur Vercel. */
 export const EN_SERVERLESS = Boolean(process.env.VERCEL);
-export const CHEMIN_BASE = EN_SERVERLESS
-  ? '/tmp/machine.db'
-  : path.join(process.cwd(), 'data', 'machine.db');
+
+/**
+ * Hébergement sur un serveur à disque durable (o2switch, 2026-11-24) :
+ * `MAP_STOCKAGE=fichiers` et `MAP_DOSSIER_DONNEES=/chemin/absolu`, hors de la
+ * racine web. La base et les médias vivent alors dans ce dossier, sans Blob.
+ * Sans ces variables, rien ne change : Blob sur Vercel, `data/` en local.
+ */
+export const MODE_FICHIERS = process.env.MAP_STOCKAGE === 'fichiers';
+const DOSSIER_DONNEES_BRUT = process.env.MAP_DOSSIER_DONNEES?.trim() ?? '';
+if (MODE_FICHIERS && !path.isAbsolute(DOSSIER_DONNEES_BRUT)) {
+  // Refuser de démarrer plutôt que d'écrire la base dans un dossier deviné.
+  throw new Error('MAP_STOCKAGE=fichiers exige MAP_DOSSIER_DONNEES, un chemin absolu (dossier des données, hors racine web).');
+}
+
+/** Le dossier qui porte `machine.db`, `medias/` et `sauvegardes/`. */
+export const DOSSIER_DONNEES = MODE_FICHIERS
+  ? DOSSIER_DONNEES_BRUT
+  : EN_SERVERLESS
+    ? '/tmp'
+    : path.join(process.cwd(), 'data');
+
+export const CHEMIN_BASE = path.join(DOSSIER_DONNEES, 'machine.db');
 
 /**
  * Deux modes d'authentification possibles selon la façon dont le store a été
@@ -43,7 +62,7 @@ export function blobActif(): boolean {
   // durable, et partager le store avec la production ferait qu'un essai local
   // écraserait la vraie base — ce qui arriverait tout seul au premier
   // `vercel env pull`, puisqu'il dépose `BLOB_STORE_ID` dans `.env.local`.
-  if (!EN_SERVERLESS) return false;
+  if (!EN_SERVERLESS || MODE_FICHIERS) return false;
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID);
 }
 
@@ -81,6 +100,10 @@ export async function hydrater(): Promise<Niveau> {
  * une mutation non sauvegardée est une mutation perdue au prochain démarrage.
  */
 export async function sauvegarder(): Promise<void> {
+  if (MODE_FICHIERS) {
+    await sauvegardeDatee();
+    return;
+  }
   if (!blobActif() || !existsSync(CHEMIN_BASE)) return;
   const { put } = await import('@vercel/blob');
   await put(OBJET, readFileSync(CHEMIN_BASE), {
@@ -91,8 +114,71 @@ export async function sauvegarder(): Promise<void> {
   });
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Mode fichiers : sauvegardes datées de la base
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Nombre de sauvegardes datées gardées (les plus récentes). */
+const A_GARDER = Math.max(3, Number(process.env.MAP_SAUVEGARDES_A_GARDER) || 30);
+/** Au plus une sauvegarde par intervalle : `sauvegarder()` suit chaque enregistrement. */
+const INTERVALLE_MS = 10 * 60 * 1000;
+const DOSSIER_SAUVEGARDES = path.join(DOSSIER_DONNEES, 'sauvegardes');
+let derniere = 0;
+
+function horodatage(d = new Date()): string {
+  return d.toISOString().replace(/[-:]/g, '').replace(/\..+$/, '').replace('T', '-');
+}
+
+/**
+ * En mode fichiers, SQLite écrit déjà la base sur disque, transaction par
+ * transaction : il n'y a rien à « pousser ». Ce qu'on ajoute, c'est un
+ * instantané daté, cohérent (API de sauvegarde de SQLite, pas une copie de
+ * fichier en cours d'écriture), écrit à côté puis renommé — un instantané
+ * n'existe jamais à moitié. Les plus anciens au-delà de `A_GARDER` partent.
+ */
+export async function sauvegardeDatee(force = false): Promise<string | null> {
+  if (!existsSync(CHEMIN_BASE)) return null;
+  if (!force && Date.now() - derniere < INTERVALLE_MS) return null;
+  derniere = Date.now();
+  mkdirSync(DOSSIER_SAUVEGARDES, { recursive: true });
+  const cible = path.join(DOSSIER_SAUVEGARDES, `machine-${horodatage()}.db`);
+  const temporaire = `${cible}.tmp`;
+  const { default: Database } = await import('better-sqlite3');
+  const source = new Database(CHEMIN_BASE, { readonly: true, fileMustExist: true });
+  try {
+    await source.backup(temporaire);
+  } finally {
+    source.close();
+  }
+  renameSync(temporaire, cible);
+  const instantanes = readdirSync(DOSSIER_SAUVEGARDES)
+    .filter((f) => /^machine-\d{8}-\d{6}\.db$/.test(f))
+    .sort();
+  for (const f of instantanes.slice(0, Math.max(0, instantanes.length - A_GARDER))) {
+    rmSync(path.join(DOSSIER_SAUVEGARDES, f), { force: true });
+  }
+  return cible;
+}
+
+/** Écriture atomique d'un fichier : à côté, puis renommage. */
+export function ecrireAtomique(chemin: string, octets: Buffer): void {
+  mkdirSync(path.dirname(chemin), { recursive: true });
+  const temporaire = `${chemin}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(temporaire, octets);
+  renameSync(temporaire, chemin);
+}
+
+export function tailleFichier(chemin: string): number | null {
+  try {
+    return statSync(chemin).size;
+  } catch {
+    return null;
+  }
+}
+
 /** Ce que l'interface affiche pour ne pas laisser croire à une durabilité absente. */
 export function etatStockage(): { durable: boolean; libelle: string } {
+  if (MODE_FICHIERS) return { durable: true, libelle: `fichiers sur le serveur — ${DOSSIER_DONNEES}, sauvegarde datée au plus toutes les 10 min (${A_GARDER} gardées)` };
   if (!EN_SERVERLESS) return { durable: true, libelle: 'base locale — fichier data/machine.db' };
   if (blobActif()) return { durable: true, libelle: 'store Blob privé — instantané poussé à chaque enregistrement' };
   return {

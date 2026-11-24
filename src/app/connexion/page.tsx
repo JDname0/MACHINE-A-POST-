@@ -2,6 +2,12 @@ import { protegee } from '@/lib/auth';
 import { seConnecter } from '../actions';
 import { redirect } from 'next/navigation';
 
+// Lue à chaque requête : la présence du mot de passe se décide sur le
+// serveur qui tourne, pas sur la machine qui a fait le build. Un build fait
+// sans MACHINE_MOT_DE_PASSE (sur le Mac, pour o2switch) figeait sinon cette
+// page en redirection, et la connexion devenait impossible.
+export const dynamic = 'force-dynamic';
+
 export default async function Connexion({ searchParams }: { searchParams: Promise<{ erreur?: string }> }) {
   if (!protegee()) redirect('/veolt');
   const { erreur } = await searchParams;

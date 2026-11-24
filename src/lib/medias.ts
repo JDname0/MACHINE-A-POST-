@@ -16,10 +16,11 @@
  * garde donc que la fiche ; le fichier vit à côté, désigné par sa clé.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { Readable } from 'node:stream';
 import path from 'node:path';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import { EN_SERVERLESS, blobActif } from './persistance';
+import { DOSSIER_DONNEES, EN_SERVERLESS, MODE_FICHIERS, blobActif, ecrireAtomique } from './persistance';
 
 /**
  * Liste blanche, et non liste noire : ce qui n'est pas une image connue des
@@ -120,7 +121,7 @@ export function plafondDepotVideo(): number {
 }
 
 const PREFIXE = 'machine-a-post/medias/';
-const DOSSIER = EN_SERVERLESS ? '/tmp/medias' : path.join(process.cwd(), 'data', 'medias');
+const DOSSIER = path.join(DOSSIER_DONNEES, 'medias');
 
 export function nouvelleCle(typeMime: string): string {
   return `${randomUUID()}.${TYPES_ACCEPTES[typeMime] ?? TYPES_AUDIO[typeMime] ?? TYPES_DOCUMENT[typeMime] ?? 'bin'}`;
@@ -137,8 +138,7 @@ export async function ecrire(cle: string, octets: Buffer, typeMime: string): Pro
     });
     return;
   }
-  mkdirSync(DOSSIER, { recursive: true });
-  writeFileSync(path.join(DOSSIER, cle), octets);
+  ecrireAtomique(path.join(DOSSIER, cle), octets);
 }
 
 export async function lire(cle: string): Promise<Buffer | null> {
@@ -261,6 +261,7 @@ export function poids(octets: number): string {
 
 /** Ce que l'interface affiche pour ne pas laisser croire à une durabilité absente. */
 export function etatMedias(): { durable: boolean; libelle: string } {
+  if (MODE_FICHIERS) return { durable: true, libelle: `fichiers sur le serveur — ${DOSSIER}` };
   if (!EN_SERVERLESS) return { durable: true, libelle: 'dossier local data/medias/' };
   if (blobActif()) return { durable: true, libelle: 'store Blob privé' };
   return { durable: false, libelle: 'stockage éphémère — les fichiers déposés seront perdus au redémarrage' };
@@ -320,19 +321,22 @@ export async function lireFlux(cle: string, plage: string | null): Promise<Flux 
     }
   }
 
+  // Disque (local, ou serveur en mode fichiers) : lecture en flux, tranche
+  // par tranche. Une vidéo de 300 Mo n'est jamais chargée en mémoire — sur un
+  // hébergement mutualisé, c'est ce qui ferait tomber le processus.
   const p = path.join(DOSSIER, cle);
   if (!existsSync(p)) return null;
-  const octets = readFileSync(p);
-  const t = tranche(plage, octets.byteLength);
-  const flux = (b: Buffer) => new Blob([new Uint8Array(b)]).stream() as ReadableStream<Uint8Array>;
-  if (!t) return { corps: flux(octets), statut: 200, taille: octets.byteLength, total: octets.byteLength };
-  const bout = octets.subarray(t.de, t.a + 1);
+  const total = statSync(p).size;
+  const t = tranche(plage, total);
+  const flux = (de: number, a: number) =>
+    Readable.toWeb(createReadStream(p, { start: de, end: a })) as unknown as ReadableStream<Uint8Array>;
+  if (!t) return { corps: total ? flux(0, total - 1) : new Blob([]).stream(), statut: 200, taille: total, total };
   return {
-    corps: flux(bout),
+    corps: flux(t.de, t.a),
     statut: 206,
-    taille: bout.byteLength,
-    total: octets.byteLength,
-    intervalle: `bytes ${t.de}-${t.a}/${octets.byteLength}`,
+    taille: t.a - t.de + 1,
+    total,
+    intervalle: `bytes ${t.de}-${t.a}/${total}`,
   };
 }
 

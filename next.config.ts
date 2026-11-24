@@ -34,7 +34,19 @@ const ENTETES = [
   },
 ];
 
+/**
+ * Build pour un serveur Node classique (o2switch, Passenger) : `MAP_BUILD_STANDALONE=1`.
+ * Sur Vercel la variable est absente et rien ne change. Hors de Vercel, c'est
+ * à l'application de poser le HSTS que Vercel ajoutait lui-même sur ses
+ * domaines (même valeur que celle relevée en production le 2026-11-20).
+ */
+const STANDALONE = process.env.MAP_BUILD_STANDALONE === '1';
+const ENTETES_SERVEUR = STANDALONE
+  ? [...ENTETES, { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' }]
+  : ENTETES;
+
 const config: NextConfig = {
+  ...(STANDALONE ? { output: 'standalone' as const } : {}),
   serverExternalPackages: ['better-sqlite3'],
   experimental: {
     // Le dépôt d'images passe par une action serveur, dont le corps est limité
@@ -47,7 +59,7 @@ const config: NextConfig = {
     serverActions: { bodySizeLimit: '40mb' },
   },
   async headers() {
-    return [{ source: '/:path*', headers: ENTETES }];
+    return [{ source: '/:path*', headers: ENTETES_SERVEUR }];
   },
   // Les polices des visuels sont lues au runtime par `readFileSync`. Aucun
   // `import` ne les mentionne, donc le traçage de Next ne les embarquerait pas

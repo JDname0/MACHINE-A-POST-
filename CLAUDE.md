@@ -240,3 +240,23 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   le lundi ; pour démarrer un autre jour (ex. mardi), le champ facultatif reporte
   les posts de la semaine 1 datés avant ce jour (jour libre suivant si doublon
   format × pilier), tracé au journal.
+
+## Hébergement o2switch (préparé le 24/11/2026, branche `hebergement/o2switch`)
+
+Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITCH.md`.
+
+- **Deux modes de stockage**, choisis par l'environnement. Défaut : Blob sur
+  Vercel, `data/` en local — rien ne change. `MAP_STOCKAGE=fichiers` +
+  `MAP_DOSSIER_DONNEES` (absolu, hors racine web) : base, médias et
+  `sauvegardes/` sur le disque ; `blobActif()` répond faux, donc toutes les
+  branches Blob existantes sont court-circuitées. Sans dossier, refus de démarrer.
+- En mode fichiers, `sauvegarder()` fait un **instantané daté** (API backup de
+  SQLite, puis rename) au démarrage et au plus toutes les 10 min ; 30 gardés.
+  Médias écrits de façon atomique, servis en flux avec Range (jamais chargés
+  en mémoire).
+- **Build `standalone`** seulement avec `MAP_BUILD_STANDALONE=1` ; il ajoute
+  le HSTS que Vercel posait lui-même. `deploy/o2switch/` : `app.js`
+  (Passenger), `deployer.sh` (build Mac → binaire better-sqlite3 Linux → rsync),
+  `sauvegarder-base.mjs` (cron quotidien). Export : `scripts/exporter-depuis-blob.mjs`.
+- `/connexion` est `force-dynamic` : un build fait sans mot de passe la figeait
+  en redirection.

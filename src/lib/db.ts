@@ -10,7 +10,7 @@
 
 import Database from 'better-sqlite3';
 import { ENTITES, type EntiteSlug } from './marques';
-import { CHEMIN_BASE, EN_SERVERLESS, hydrater, sauvegarder } from './persistance';
+import { CHEMIN_BASE, EN_SERVERLESS, MODE_FICHIERS, hydrater, sauvegardeDatee, sauvegarder } from './persistance';
 import { deroule } from './calendrier';
 import { ARTICLES, articlesDe, sujet, sujetsDe } from './sujets';
 import { fabriquer } from './gabarits';
@@ -27,7 +27,14 @@ import { fabriquer } from './gabarits';
  */
 async function initialiser() {
   const niveau = await hydrater();
+  // Mode fichiers (serveur à disque durable) : un instantané daté de la base
+  // telle qu'elle est trouvée, avant que le démarrage (migrations, semis) ne
+  // la touche.
+  if (MODE_FICHIERS) await sauvegardeDatee(true);
   const d = new Database(CHEMIN_BASE);
+  // Plusieurs processus Node peuvent servir l'application (Passenger) : on
+  // attend un verrou au lieu d'échouer aussitôt sur « database is locked ».
+  if (MODE_FICHIERS) d.pragma('busy_timeout = 5000');
   // WAL en local (plus rapide), DELETE en serverless : un instantané Blob doit
   // tenir dans un seul fichier, sinon on sauvegarde une base amputée.
   d.pragma(EN_SERVERLESS ? 'journal_mode = DELETE' : 'journal_mode = WAL');

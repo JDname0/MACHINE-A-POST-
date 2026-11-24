@@ -8,3 +8,7 @@ data/medias/
 tsconfig.tsbuildinfo
 captures/
 .next-build/
+
+# Hébergement o2switch : build assemblé et exports du Blob (données réelles)
+.deploiement-o2switch/
+export-blob-*/
