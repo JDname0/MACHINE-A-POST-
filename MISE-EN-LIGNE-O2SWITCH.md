@@ -140,15 +140,42 @@ rm -rf "$EXPORT" .env.local
 
 ## 6. Build et envoi du code (sur le Mac)
 
+**o2switch (sun) : glibc 2.28, pas de compilateur.** Le module SQLite
+précompilé officiel pour Node 22 exige glibc 2.29 : il planterait à chaque
+requête (« GLIBC_2.29 not found »). On réutilise donc le binaire de
+MagistrAI, qui tourne déjà sur ce serveur avec la même version
+(better-sqlite3 12.10.0) et le même Node :
+
 ```bash
 O2_HOTE=<compte>@<serveur> O2_APP=machine-a-post-app NODE_MAJEUR=22 \
+O2_BINAIRE_SERVEUR=magistria/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
   bash deploy/o2switch/deployer.sh
 ```
 
-Le script fait le build `standalone`, récupère le module SQLite **pour Linux**
-(celui du Mac ne tourne pas sur le serveur), envoie le code par rsync, sans
-aucune donnée ni variable, et redémarre Passenger. Pour une mise à jour
-ultérieure du code, c'est la seule commande à relancer.
+Ce que fait le script, dans l'ordre :
+
+1. build `standalone` sur le Mac ;
+2. envoi du code dans `~/machine-a-post-app.nouveau`, **sans toucher** à
+   l'application en place, ni aux données, ni aux variables ;
+3. copie du binaire SQLite de MagistrAI (vérifié : même version) — le fichier
+   de MagistrAI est seulement **lu** ;
+4. **essai de chargement** du module avec le Node du serveur ; s'il échoue,
+   arrêt, rien n'est basculé ;
+5. bascule : `machine-a-post-app.nouveau` devient `machine-a-post-app`,
+   l'ancienne version est gardée en `machine-a-post-app.precedent` ;
+6. redémarrage de Passenger.
+
+**Rien d'autre n'est touché** : le script refuse un `O2_APP` qui ne contient
+pas « machine-a-post », et n'écrit que dans `~/machine-a-post-app*`.
+MagistrAI, MagistrAI Prospection, DCR et le site `veolt.fr` restent intacts.
+
+Sans `O2_BINAIRE_SERVEUR`, le script prend le binaire précompilé et
+**refuse de l'envoyer** s'il exige une glibc plus récente que 2.28
+(`O2_GLIBC_MAX` pour un autre serveur). Si le Node du serveur n'est pas à
+l'endroit habituel de cPanel (`~/nodevenv/machine-a-post-app/22/bin/node`),
+le préciser avec `O2_NODE`.
+
+Pour une mise à jour ultérieure du code, c'est la seule commande à relancer.
 
 ## 7. Redémarrer et vérifier
 
@@ -173,7 +200,10 @@ fois par heure au plus.
 
 ### Si ça ne va pas : retour arrière
 
-- **Le code** : relance l'étape 6 depuis le commit précédent
+- **Le code, tout de suite** : la version précédente est gardée en
+  `~/machine-a-post-app.precedent`. Par SSH :
+  `mv ~/machine-a-post-app ~/machine-a-post-app.casse && mv ~/machine-a-post-app.precedent ~/machine-a-post-app && touch ~/machine-a-post-app/tmp/restart.txt`.
+- **Le code, plus tard** : relance l'étape 6 depuis le commit précédent
   (`git checkout <commit> && bash deploy/o2switch/deployer.sh`).
 - **La base** : application arrêtée,
   `cp ~/machine-a-post-donnees/sauvegardes/<la-bonne>.db ~/machine-a-post-donnees/machine.db`

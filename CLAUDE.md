@@ -274,3 +274,12 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
   fiche `<cle>.depot.json` lue par `enregistrerTeleversement` à la place du
   `head()` Blob. Mêmes plafonds que Vercel (300 Mo vidéo). Envois abandonnés
   effacés après 24 h. La route répond 404 hors mode fichiers.
+- **o2switch (sun) : glibc 2.28, pas de compilateur** (relevé le 24/11). Le
+  binaire précompilé de better-sqlite3 pour Node 22 exige glibc 2.29 (`log`,
+  `pow`, `exp`), en 11 comme en 12. better-sqlite3 est en **12.10.0**, comme
+  MagistrAI, pour réutiliser son binaire qui marche sur le serveur
+  (`O2_BINAIRE_SERVEUR` dans `deployer.sh`). Le script envoie dans
+  `<app>.nouveau`, teste le chargement avec le Node du serveur, puis bascule
+  (ancienne version en `<app>.precedent`) ; il refuse un précompilé trop
+  exigeant (`O2_GLIBC_MAX`, 2.28) et tout `O2_APP` sans « machine-a-post ».
+  Essai sans serveur : `O2_HOTE=local` (joue tout sous `$HOME`).
