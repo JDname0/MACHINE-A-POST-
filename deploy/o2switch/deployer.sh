@@ -126,6 +126,8 @@ if [ -n "$O2_BINAIRE_SERVEUR" ]; then
   distant "$O2_APP" "$O2_BINAIRE_SERVEUR" "$O2_NODE" "$VERSION_BSQ" "$BINAIRE_REL" <<'EOS'
 set -e
 APP="$1"; BIN="$2"; NODE="$3"; ATTENDUE="$4"; REL="$5"
+case "$NODE" in /*) ;; *) NODE="$HOME/$NODE" ;; esac
+case "$BIN" in /*) ;; *) BIN="$HOME/$BIN" ;; esac
 [ -f "$BIN" ] || { echo "✖ Binaire introuvable sur le serveur : $BIN" >&2; exit 1; }
 PAQUET="$(cd "$(dirname "$(dirname "$(dirname "$BIN")")")" && pwd)"
 V="$("$NODE" -p "require('$PAQUET/package.json').version" 2>/dev/null || echo '?')"
@@ -138,8 +140,11 @@ fi
 echo "▸ Le module SQLite se charge-t-il avec le Node du serveur ?"
 if ! distant "$O2_APP" "$O2_NODE" <<'EOS'
 set -e
+# Chemin du Node relatif = relatif au dossier personnel, pas à l'app.
+case "$2" in /*) NODE="$2" ;; *) NODE="$HOME/$2" ;; esac
+[ -x "$NODE" ] || { echo "  ✖ Node introuvable sur le serveur : $NODE" >&2; exit 1; }
 cd "$1.nouveau"
-"$2" -e "const D=require('better-sqlite3');const d=new D(':memory:');d.prepare('select 1').get();d.close();console.log('  ✓ better-sqlite3 chargé, Node '+process.version)"
+"$NODE" -e "const D=require('better-sqlite3');const d=new D(':memory:');d.prepare('select 1').get();d.close();console.log('  ✓ better-sqlite3 chargé, Node '+process.version)"
 EOS
 then
   echo "✖ better-sqlite3 ne se charge pas sur le serveur : rien n'a été basculé, l'application en place tourne toujours." >&2
