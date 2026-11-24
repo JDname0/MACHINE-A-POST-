@@ -145,8 +145,13 @@ export async function lire(cle: string): Promise<Buffer | null> {
   if (blobActif()) {
     try {
       const { get } = await import('@vercel/blob');
-      const res = await get(PREFIXE + cle, { access: 'private', useCache: false });
-      if (!res) return null;
+      // Un média ne change jamais sous sa clé (UUID tiré à l'écriture) : la
+      // lecture peut passer par le cache CDN. `useCache: false` faisait de
+      // chaque lecture un « cache MISS » facturé (opération simple + Fast
+      // Origin Transfer + transfert Blob), sur l'allocation Hobby du compte.
+      // La base, elle, reste lue sans cache (persistance.ts) : elle change.
+      const res = await get(PREFIXE + cle, { access: 'private', useCache: true });
+      if (!res || res.statusCode !== 200 || !res.stream) return null;
       return Buffer.from(await new Response(res.stream).arrayBuffer());
     } catch {
       return null;
