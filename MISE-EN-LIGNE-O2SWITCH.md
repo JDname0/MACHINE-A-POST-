@@ -12,20 +12,40 @@ dépôt : tout se pose dans cPanel.
 |---|---|
 | Application (code) | `~/machine-a-post-app/` |
 | Données : `machine.db`, `medias/`, `sauvegardes/` | `~/machine-a-post-donnees/` |
-| Adresse | un sous-domaine de ton choix, noté `<sous-domaine>` ci-dessous |
+| Adresse | **https://post.veolt-magistrai.fr** |
 
 Dans les commandes, remplace `<compte>` par ton identifiant cPanel et
 `<serveur>` par le serveur o2switch (ceux de Prospection).
 
+Le nom de domaine n'est écrit **nulle part dans le code** : il ne vit que dans
+la variable `MAP_URL_PUBLIQUE` (étape 4). Changer de domaine plus tard ne
+demande aucune modification du code (voir « Changer ou ajouter un domaine »).
+
 ---
 
-## 1. Sous-domaine et HTTPS
+## 1. Domaine, sous-domaine et HTTPS
 
-1. cPanel → **Domaines** → **Créer un domaine** : `<sous-domaine>`.
-   Racine du document : laisse celle proposée (l'application ne s'y sert pas ;
-   les données n'y seront jamais).
-2. cPanel → **SSL/TLS Status** → coche le sous-domaine → **Run AutoSSL**.
-   Attends le cadenas vert avant l'étape 7.
+1. **Achat** de `veolt-magistrai.fr`, de préférence chez o2switch (espace
+   client → Domaines). Libre le 24/11/2026 ; à vérifier au moment d'acheter.
+2. **Ajout dans cPanel**, s'il n'y apparaît pas tout seul : cPanel →
+   **Domaines** → **Créer un domaine** → `veolt-magistrai.fr`. Acheté
+   ailleurs : pointer d'abord ses serveurs DNS vers ceux d'o2switch, puis
+   l'ajouter ici (la propagation peut prendre quelques heures).
+3. **Sous-domaine `post`** : cPanel → **Domaines** → **Créer un domaine** →
+   `post.veolt-magistrai.fr`. Racine du document : laisse celle proposée
+   (`/home/<compte>/post.veolt-magistrai.fr`). L'application Node.js prendra
+   ce sous-domaine à l'étape 3 ; ni le code ni les données n'iront dans ce
+   dossier.
+4. **Certificat** : cPanel → **SSL/TLS Status** → coche `post.veolt-magistrai.fr`
+   (et `veolt-magistrai.fr`, `www.veolt-magistrai.fr`) → **Run AutoSSL**.
+   Vérifie ensuite `https://post.veolt-magistrai.fr` : cadenas valide, sans
+   avertissement. Ne passe pas à l'étape 7 avant.
+5. **La racine `veolt-magistrai.fr`** : au choix.
+   - Rien (page par défaut d'o2switch, ou vide) : le plus simple.
+   - Une redirection : cPanel → **Domaines** → **Redirections** → permanente
+     (301) de `veolt-magistrai.fr` (avec et sans `www`) vers
+     `https://post.veolt-magistrai.fr/`. Inutile tant que personne ne tape la
+     racine ; à faire si tu veux une adresse courte qui mène à l'outil.
 
 ## 2. Dossier des données
 
@@ -46,7 +66,7 @@ cPanel → **Setup Node.js App** → **Create Application** :
 | Node.js version | **22** (sinon 20). Next 15.5 exige Node ≥ 18.18 ; garde la même majeure que `NODE_MAJEUR` à l'étape 6. |
 | Application mode | Production |
 | Application root | `machine-a-post-app` |
-| Application URL | `<sous-domaine>` |
+| Application URL | `post.veolt-magistrai.fr` |
 | Application startup file | `app.js` |
 
 **Ne clique pas sur « Run NPM Install »** : le build envoyé contient déjà ses
@@ -58,6 +78,7 @@ Même écran → **Environment variables** → **Add variable** :
 
 | Nom | Valeur |
 |---|---|
+| `MAP_URL_PUBLIQUE` | `https://post.veolt-magistrai.fr` (sans `/` final) |
 | `MAP_STOCKAGE` | `fichiers` |
 | `MAP_DOSSIER_DONNEES` | `/home/<compte>/machine-a-post-donnees` (chemin **absolu**) |
 | `MACHINE_MOT_DE_PASSE` | ton mot de passe de l'outil |
@@ -134,7 +155,7 @@ ultérieure du code, c'est la seule commande à relancer.
 ## 7. Redémarrer et vérifier
 
 cPanel → Setup Node.js App → **Start App** (ou **Restart**). Puis, dans le
-navigateur, sur `https://<sous-domaine>` :
+navigateur, sur `https://post.veolt-magistrai.fr` :
 
 1. La page de **connexion** s'affiche. Le mot de passe fonctionne.
 2. **Calendrier Veolt** et **calendrier MagistrIA** : les posts sont là, aux
@@ -142,14 +163,14 @@ navigateur, sur `https://<sous-domaine>` :
 3. Ouvre un post avec une **image** : elle s'affiche.
 4. Ouvre un post avec une **vidéo** : elle se lit et on peut avancer dedans.
 5. Change l'heure d'un post, recharge : elle est restée.
-6. `https://<sous-domaine>/api/qg/stats` sans jeton répond **401**.
+6. `https://post.veolt-magistrai.fr/api/qg/stats` sans jeton répond **401**.
 7. Le bandeau « Aucun mot de passe posé » **n'apparaît pas**.
 
 Par SSH, `ls ~/machine-a-post-donnees/sauvegardes` montre une sauvegarde datée
 du démarrage.
 
 **Dans QG** : remplace l'adresse `https://machine-a-post.vercel.app` par
-`https://<sous-domaine>` (même jeton, même route), et espace l'appel à une
+`https://post.veolt-magistrai.fr` (même jeton, même route), et espace l'appel à une
 fois par heure au plus.
 
 ### Si ça ne va pas : retour arrière
@@ -162,6 +183,27 @@ fois par heure au plus.
   puis redémarrage.
 - Journal des erreurs de l'application : `~/machine-a-post-app/stderr.log`
   (ou le lien « Logs » dans Setup Node.js App).
+
+### À quoi sert `MAP_URL_PUBLIQUE`
+
+Aux liens **absolus** que l'outil fabrique : rappels `.ics` (lien vers la
+fiche du post) et liens temporaires vers un média (Instagram, TikTok vont le
+chercher). Elle rend aussi le cookie de session réservé au HTTPS. Les
+redirections internes sont relatives et le cookie n'est lié à aucun domaine :
+ils marchent sur n'importe quelle adresse.
+
+## Changer ou ajouter un domaine plus tard
+
+Rien à modifier dans le code.
+
+1. Ajouter le nouveau domaine ou sous-domaine dans cPanel, puis AutoSSL
+   (comme à l'étape 1).
+2. Setup Node.js App → **Application URL** : le nouveau nom.
+   `MAP_URL_PUBLIQUE` : la nouvelle adresse. Puis **Restart**.
+3. L'ancienne adresse : redirection permanente (301) vers la nouvelle, pour
+   ne casser ni les favoris ni les liens des anciens rappels `.ics`.
+4. Se reconnecter une fois (le cookie suit le nom de domaine), réimporter le
+   fichier de rappels `.ics` dans l'agenda, et changer l'adresse dans QG.
 
 ## 8. Sauvegarde quotidienne (tâche planifiée cPanel)
 
@@ -201,7 +243,7 @@ réglages du projet (Git → Disconnect) plutôt que de supprimer le projet.
   avant, ou la déposer directement dans `~/machine-a-post-donnees/medias/` puis
   l'inscrire (à faire avec Claude).
 - **Liens temporaires** (Instagram, TikTok vont chercher le fichier) : ils
-  pointent vers `https://<sous-domaine>/…`, signés et datés, au lieu du store.
+  pointent vers `https://post.veolt-magistrai.fr/…`, signés et datés, au lieu du store.
 - **Mémoire** : ~125 Mo au démarrage, ~210 Mo en navigation (mesuré en local
   le 24/11). La génération des vidéos se fait dans le navigateur, pas sur le
   serveur.

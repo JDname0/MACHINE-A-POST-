@@ -260,3 +260,8 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
   `sauvegarder-base.mjs` (cron quotidien). Export : `scripts/exporter-depuis-blob.mjs`.
 - `/connexion` est `force-dynamic` : un build fait sans mot de passe la figeait
   en redirection.
+- **Aucun domaine en dur.** `MAP_URL_PUBLIQUE` (ex. `https://post.veolt-magistrai.fr`)
+  sert aux liens absolus (`src/lib/adresse.ts` : rappels .ics, liens
+  temporaires de médias) et rend le cookie de session `Secure`. Sans elle,
+  l'adresse se déduit des en-têtes, comme avant. Redirections relatives,
+  cookie sans domaine : changer de domaine = changer la variable.

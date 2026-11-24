@@ -9,6 +9,7 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
+import { cookieSecurise } from './adresse';
 
 const NOM = 'machine_session';
 
@@ -44,7 +45,10 @@ export function verifier(motDePasse: string): boolean {
 
 export async function ouvrirSession() {
   const c = await cookies();
-  c.set(NOM, jeton(), { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30 });
+  // Sans domaine : le cookie suit l'adresse où l'on s'est connecté, quel que
+  // soit le nom de domaine. `secure` seulement si l'adresse publique déclarée
+  // est en HTTPS (MAP_URL_PUBLIQUE) : rien ne change sur Vercel ni en local.
+  c.set(NOM, jeton(), { httpOnly: true, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30, secure: cookieSecurise() });
 }
 
 export async function fermerSession() {

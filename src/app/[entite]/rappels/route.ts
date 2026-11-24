@@ -1,6 +1,7 @@
 import { connecte } from '@/lib/auth';
 import { estEntite, marque } from '@/lib/marques';
 import { rappelsIcs } from '@/lib/suivi';
+import { adresseDepuisEntetes } from '@/lib/adresse';
 
 /**
  * Les rappels de publication manuelle, en fichier .ics à importer dans un
@@ -14,10 +15,8 @@ export async function GET(requete: Request, { params }: { params: Promise<{ enti
   if (!estEntite(entite)) return new Response('Entité inconnue', { status: 404 });
 
   const url = new URL(requete.url);
-  const hote = requete.headers.get('x-forwarded-host') ?? requete.headers.get('host') ?? url.host;
-  const proto = requete.headers.get('x-forwarded-proto') ?? url.protocol.replace(':', '');
   const heure = url.searchParams.get('heure') ?? '09:00';
-  const { ics } = rappelsIcs(entite, `${proto}://${hote}`, marque(entite).nom, heure);
+  const { ics } = rappelsIcs(entite, adresseDepuisEntetes(requete.headers, url.host), marque(entite).nom, heure);
   return new Response(ics, {
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',

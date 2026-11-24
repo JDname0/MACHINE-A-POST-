@@ -20,10 +20,8 @@ import { heureValide } from '@/lib/suivi';
  */
 async function adresseDeBase(): Promise<string> {
   const { headers } = await import('next/headers');
-  const h = await headers();
-  const hote = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
-  const protocole = h.get('x-forwarded-proto') ?? (hote.startsWith('localhost') || hote.startsWith('127.') ? 'http' : 'https');
-  return `${protocole}://${hote}`;
+  const { adresseDepuisEntetes } = await import('@/lib/adresse');
+  return adresseDepuisEntetes(await headers());
 }
 
 export async function seConnecter(fd: FormData) {
