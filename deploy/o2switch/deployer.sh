@@ -25,6 +25,17 @@ echo "▸ Build standalone"
 rm -rf .next "$DIST"
 MAP_BUILD_STANDALONE=1 npm run build
 
+# Le build doit avoir server.js à la racine du standalone. Sinon Next a pris
+# un dossier parent pour racine (un package-lock.json qui traîne plus haut) :
+# s'arrêter ici plutôt que d'envoyer un paquet inutilisable.
+if [ ! -f .next/standalone/server.js ] || [ ! -d .next/standalone/node_modules/better-sqlite3 ]; then
+  echo "✖ Build standalone imbriqué : .next/standalone/server.js absent à la racine." >&2
+  echo "  Trouvé :" >&2
+  find .next/standalone -maxdepth 6 -name server.js -not -path '*/node_modules/*' 2>/dev/null | head -3 >&2
+  echo "  Cause probable : un package-lock.json dans un dossier parent (ex. ~/package-lock.json)." >&2
+  exit 1
+fi
+
 echo "▸ Assemblage"
 cp -R .next/standalone "$DIST"
 mkdir -p "$DIST/.next"

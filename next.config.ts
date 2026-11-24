@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { NextConfig } from 'next';
 
 /**
@@ -46,7 +47,11 @@ const ENTETES_SERVEUR = STANDALONE
   : ENTETES;
 
 const config: NextConfig = {
-  ...(STANDALONE ? { output: 'standalone' as const } : {}),
+  // La racine du traçage = ce dossier, pas un dossier parent : un
+  // `package-lock.json` qui traîne plus haut (relevé le 24/11 dans le dossier
+  // personnel du Mac) faisait imbriquer le build standalone sous
+  // `Desktop/machine-a-post/…`, sans `server.js` à la racine.
+  ...(STANDALONE ? { output: 'standalone' as const, outputFileTracingRoot: path.resolve(__dirname) } : {}),
   serverExternalPackages: ['better-sqlite3'],
   experimental: {
     // Le dépôt d'images passe par une action serveur, dont le corps est limité
