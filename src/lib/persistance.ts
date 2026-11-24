@@ -143,13 +143,9 @@ export async function sauvegardeDatee(force = false): Promise<string | null> {
   mkdirSync(DOSSIER_SAUVEGARDES, { recursive: true });
   const cible = path.join(DOSSIER_SAUVEGARDES, `machine-${horodatage()}.db`);
   const temporaire = `${cible}.tmp`;
-  const { default: Database } = await import('better-sqlite3');
-  const source = new Database(CHEMIN_BASE, { readonly: true, fileMustExist: true });
-  try {
-    await source.backup(temporaire);
-  } finally {
-    source.close();
-  }
+  // Moteur du mode fichiers (node:sqlite) : voir sqlite.ts.
+  const { copierBase } = await import('./sqlite');
+  await copierBase(CHEMIN_BASE, temporaire);
   renameSync(temporaire, cible);
   const instantanes = readdirSync(DOSSIER_SAUVEGARDES)
     .filter((f) => /^machine-\d{8}-\d{6}\.db$/.test(f))

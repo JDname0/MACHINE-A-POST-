@@ -8,7 +8,7 @@
  * étendre le calendrier sans écraser ce qui a été écrit à la main.
  */
 
-import Database from 'better-sqlite3';
+import { ouvrirBase, type Base } from './sqlite';
 import { ENTITES, type EntiteSlug } from './marques';
 import { CHEMIN_BASE, EN_SERVERLESS, MODE_FICHIERS, hydrater, sauvegardeDatee, sauvegarder } from './persistance';
 import { deroule } from './calendrier';
@@ -31,7 +31,7 @@ async function initialiser() {
   // telle qu'elle est trouvée, avant que le démarrage (migrations, semis) ne
   // la touche.
   if (MODE_FICHIERS) await sauvegardeDatee(true);
-  const d = new Database(CHEMIN_BASE);
+  const d = ouvrirBase(CHEMIN_BASE);
   // Plusieurs processus Node peuvent servir l'application (Passenger) : on
   // attend un verrou au lieu d'échouer aussitôt sur « database is locked ».
   if (MODE_FICHIERS) d.pragma('busy_timeout = 5000');
@@ -48,7 +48,7 @@ async function initialiser() {
 }
 
 
-function schema(d: Database.Database) {
+function schema(d: Base) {
   d.exec(`
     CREATE TABLE IF NOT EXISTS publications (
       id INTEGER PRIMARY KEY,
@@ -256,7 +256,7 @@ function schema(d: Database.Database) {
  * manquerait, et chaque lecture tomberait. D'où cette reprise, qui coûte une
  * lecture de `table_info` au démarrage.
  */
-function migrer(d: Database.Database) {
+function migrer(d: Base) {
   const ajouts: Array<[string, string, string]> = [
     ['medias', 'duree_s', 'REAL'],
     // D'où vient le fichier : 'apporte' (déposé), 'genere' (visuel de l'outil),
@@ -301,7 +301,7 @@ function migrer(d: Database.Database) {
  * déjà un article est ignoré : la migration ne joue qu'une fois par post.
  * Chaque remplacement est tracé au journal avec la référence d'origine.
  */
-function poserArticles(d: Database.Database): number {
+function poserArticles(d: Base): number {
   const refsArticles = new Set([...ARTICLES.veolt, ...ARTICLES.magistria].map((a) => a.ref));
   let poses = 0;
   for (const ent of ENTITES) {
@@ -471,7 +471,7 @@ const CAMPAGNES: Record<EntiteSlug, Array<[string, string, string, string, numbe
 };
 
 /** Renvoie `true` si le calendrier vient d'être créé — donc s'il faut pousser. */
-function semer(d: Database.Database): boolean {
+function semer(d: Base): boolean {
   const dejaFait = d.prepare('SELECT COUNT(*) AS n FROM publications').get() as { n: number };
 
   // ── Référentiels (idempotents) ─────────────────────────────────────────
@@ -622,6 +622,6 @@ export function niveauStockage() {
   return NIVEAU;
 }
 
-export function db(): Database.Database {
+export function db(): Base {
   return _db;
 }

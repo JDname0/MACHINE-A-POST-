@@ -274,12 +274,15 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
   fiche `<cle>.depot.json` lue par `enregistrerTeleversement` à la place du
   `head()` Blob. Mêmes plafonds que Vercel (300 Mo vidéo). Envois abandonnés
   effacés après 24 h. La route répond 404 hors mode fichiers.
-- **o2switch (sun) : glibc 2.28, pas de compilateur** (relevé le 24/11). Le
-  binaire précompilé de better-sqlite3 pour Node 22 exige glibc 2.29 (`log`,
-  `pow`, `exp`), en 11 comme en 12. better-sqlite3 est en **12.10.0**, comme
-  MagistrAI, pour réutiliser son binaire qui marche sur le serveur
-  (`O2_BINAIRE_SERVEUR` dans `deployer.sh`). Le script envoie dans
-  `<app>.nouveau`, teste le chargement avec le Node du serveur, puis bascule
-  (ancienne version en `<app>.precedent`) ; il refuse un précompilé trop
-  exigeant (`O2_GLIBC_MAX`, 2.28) et tout `O2_APP` sans « machine-a-post ».
-  Essai sans serveur : `O2_HOTE=local` (joue tout sous `$HOME`).
+- **o2switch (sun) : glibc 2.28, pas de compilateur** (relevé le 24/11). Aucun
+  binaire de better-sqlite3 n'y tourne : le précompilé Node 22 exige glibc 2.29
+  (`log`, `pow`, `exp`), en 11 comme en 12, **et celui de MagistrAI aussi**
+  (essayé). En mode fichiers, la base passe donc par **`node:sqlite`** (SQLite
+  intégré à Node 22, sans binaire) via `src/lib/sqlite.ts` : `ouvrirBase()`,
+  `copierBase()`, sous-ensemble de l'API better-sqlite3 utilisé ici (prepare
+  run/get/all, exec, pragma, transaction imbriquable, close), lignes rendues
+  en objets ordinaires (React refuse les objets sans prototype). Hors mode
+  fichiers : better-sqlite3, inchangé. `deployer.sh` n'envoie pas le binaire,
+  teste `node:sqlite` avec le Node du serveur dans `<app>.nouveau`, puis
+  bascule (ancienne version en `<app>.precedent`) ; il refuse tout `O2_APP`
+  sans « machine-a-post ». Essai sans serveur : `O2_HOTE=local` (tout sous `$HOME`).

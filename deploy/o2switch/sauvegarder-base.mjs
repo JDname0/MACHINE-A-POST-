@@ -4,17 +4,16 @@
  *
  *   MAP_DOSSIER_DONNEES=/home/<compte>/machine-a-post-donnees node /home/<compte>/machine-a-post-app/sauvegarder-base.mjs
  *
- * Instantané cohérent par l'API de sauvegarde de SQLite (pas une copie de
+ * Instantané cohérent par l'API de sauvegarde de SQLite (node:sqlite) (pas une copie de
  * fichier en cours d'écriture), écrit à côté puis renommé. Garde les
  * MAP_SAUVEGARDES_QUOTIDIENNES dernières (14 par défaut) dans
  * <données>/sauvegardes/quotidiennes/.
  */
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const Database = require('better-sqlite3');
+// SQLite intégré à Node (node:sqlite) : le serveur o2switch ne peut pas
+// charger le binaire de better-sqlite3 (glibc 2.28). Voir src/lib/sqlite.ts.
+const { DatabaseSync, backup } = process.getBuiltinModule('node:sqlite');
 
 const dossier = process.env.MAP_DOSSIER_DONNEES?.trim();
 if (!dossier || !path.isAbsolute(dossier)) {
@@ -32,9 +31,10 @@ mkdirSync(cibleDossier, { recursive: true });
 const jour = new Date().toISOString().slice(0, 10);
 const cible = path.join(cibleDossier, `machine-${jour}.db`);
 const tmp = `${cible}.tmp`;
-const db = new Database(base, { readonly: true, fileMustExist: true });
+const db = new DatabaseSync(base, { readOnly: true });
 try {
-  await db.backup(tmp);
+  if (backup) await backup(db, tmp);
+  else db.exec(`VACUUM INTO '${tmp.replace(/'/g, "''")}'`);
 } finally {
   db.close();
 }

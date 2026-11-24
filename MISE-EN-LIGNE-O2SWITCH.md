@@ -140,40 +140,39 @@ rm -rf "$EXPORT" .env.local
 
 ## 6. Build et envoi du code (sur le Mac)
 
-**o2switch (sun) : glibc 2.28, pas de compilateur.** Le module SQLite
-précompilé officiel pour Node 22 exige glibc 2.29 : il planterait à chaque
-requête (« GLIBC_2.29 not found »). On réutilise donc le binaire de
-MagistrAI, qui tourne déjà sur ce serveur avec la même version
-(better-sqlite3 12.10.0) et le même Node :
+**o2switch (sun) : glibc 2.28, pas de compilateur.** Aucun binaire de
+better-sqlite3 n'y tourne (le précompilé comme celui de MagistrAI exigent
+glibc 2.29 : « GLIBC_2.29 not found »). En mode fichiers, l'application
+utilise donc le **SQLite intégré à Node 22** (`node:sqlite`) : rien à
+compiler, rien à fournir. Sur Vercel et en local, rien ne change.
 
 ```bash
-O2_HOTE=<compte>@<serveur> O2_APP=machine-a-post-app NODE_MAJEUR=22 \
-O2_BINAIRE_SERVEUR=magistria/node_modules/better-sqlite3/build/Release/better_sqlite3.node \
+cd ~/Desktop/machine-a-post && git pull
+O2_HOTE=o2switch O2_APP=machine-a-post-app NODE_MAJEUR=22 \
   bash deploy/o2switch/deployer.sh
 ```
+
+(`O2_HOTE` : le nom de ta connexion SSH, ici `o2switch`.)
 
 Ce que fait le script, dans l'ordre :
 
 1. build `standalone` sur le Mac ;
 2. envoi du code dans `~/machine-a-post-app.nouveau`, **sans toucher** à
    l'application en place, ni aux données, ni aux variables ;
-3. copie du binaire SQLite de MagistrAI (vérifié : même version) — le fichier
-   de MagistrAI est seulement **lu** ;
-4. **essai de chargement** du module avec le Node du serveur ; s'il échoue,
+3. **essai de SQLite** (`node:sqlite`) avec le Node du serveur ; s'il échoue,
    arrêt, rien n'est basculé ;
-5. bascule : `machine-a-post-app.nouveau` devient `machine-a-post-app`,
+4. bascule : `machine-a-post-app.nouveau` devient `machine-a-post-app`,
    l'ancienne version est gardée en `machine-a-post-app.precedent` ;
-6. redémarrage de Passenger.
+5. redémarrage de Passenger.
 
 **Rien d'autre n'est touché** : le script refuse un `O2_APP` qui ne contient
 pas « machine-a-post », et n'écrit que dans `~/machine-a-post-app*`.
 MagistrAI, MagistrAI Prospection, DCR et le site `veolt.fr` restent intacts.
 
-Sans `O2_BINAIRE_SERVEUR`, le script prend le binaire précompilé et
-**refuse de l'envoyer** s'il exige une glibc plus récente que 2.28
-(`O2_GLIBC_MAX` pour un autre serveur). Si le Node du serveur n'est pas à
-l'endroit habituel de cPanel (`~/nodevenv/machine-a-post-app/22/bin/node`),
-le préciser avec `O2_NODE`.
+Si le Node du serveur n'est pas à l'endroit habituel de cPanel
+(`~/nodevenv/machine-a-post-app/22/bin/node`), le préciser avec `O2_NODE`.
+Dans les journaux, l'avertissement « SQLite is an experimental feature » est
+normal (`node:sqlite` est marqué expérimental dans Node 22) et sans effet.
 
 Pour une mise à jour ultérieure du code, c'est la seule commande à relancer.
 
