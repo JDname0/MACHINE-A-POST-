@@ -286,3 +286,21 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
   teste `node:sqlite` avec le Node du serveur dans `<app>.nouveau`, puis
   bascule (ancienne version en `<app>.precedent`) ; il refuse tout `O2_APP`
   sans « machine-a-post ». Essai sans serveur : `O2_HOTE=local` (tout sous `$HOME`).
+- **Enregistrer un post sur le serveur (corrigé le 25/11/2026).** Sous
+  Passenger, plusieurs processus naissent souvent dans la même seconde ; leur
+  instantané de démarrage visait le même `machine-<seconde>.db.tmp`, l'un
+  sortait en `ERR_SQLITE_ERROR` (« not an error ») et, comme `db.ts` attend
+  cet instantané avant d'ouvrir la base, **ce processus restait cassé** :
+  500 à chaque requête qui tombait sur lui, dont « Enregistrer le brouillon ».
+  Reproduit en local (4 processus sur la même base). Désormais
+  `sauvegardeDatee()` prend un nom temporaire propre au processus, saute la
+  seconde déjà prise et **ne lève jamais** : l'erreur est journalisée, la base
+  elle-même est déjà sur disque. Ne pas remettre de `throw` dans ce chemin.
+- **Chaque action serveur vérifie la session** (`exigerSession()` en tête de
+  `actions.ts`), sauf `seConnecter` / `seDeconnecter`. Le `layout` protège les
+  pages, pas les actions, et les identifiants des actions des composants
+  navigateur sont dans le JavaScript public. Toute nouvelle action commence
+  par `await exigerSession();`.
+- « Enregistrer le brouillon » renvoie sur la fiche avec `?enregistre=HH:MM`
+  et affiche « ✓ Brouillon enregistré à … » ; l'`UPDATE` porte `AND entite=?`
+  (cloison), et un post introuvable le dit au lieu de faire semblant.

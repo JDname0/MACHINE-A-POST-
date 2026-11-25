@@ -20,10 +20,10 @@ export default async function Composeur({
   searchParams,
 }: {
   params: Promise<{ entite: string; id: string }>;
-  searchParams: Promise<{ erreurIA?: string }>;
+  searchParams: Promise<{ erreurIA?: string; enregistre?: string }>;
 }) {
   const { entite, id } = await params;
-  const { erreurIA } = await searchParams;
+  const { erreurIA, enregistre } = await searchParams;
   const e = entite as EntiteSlug;
   const p = publication(Number(id));
   if (!p || p.entite !== e) notFound();
@@ -204,7 +204,18 @@ export default async function Composeur({
                 <input type="hidden" name="sous_forum" value={p.sous_forum ?? ''} />
               )}
 
-              <button type="submit">Enregistrer le brouillon</button>
+              <div className="rang" style={{ alignItems: 'center', gap: 12 }}>
+                <button type="submit">Enregistrer le brouillon</button>
+                {enregistre === 'introuvable' ? (
+                  <span role="alert" style={{ color: 'var(--grave)' }}>
+                    ✖ Rien n&apos;a été enregistré : ce post n&apos;existe pas (ou plus) dans cette entité.
+                  </span>
+                ) : enregistre ? (
+                  <span role="status" style={{ color: 'var(--bon)' }}>
+                    ✓ Brouillon enregistré à {enregistre.slice(0, 5)}
+                  </span>
+                ) : null}
+              </div>
             </form>
           </section>
 

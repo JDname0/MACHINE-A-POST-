@@ -20,6 +20,7 @@
  *   ses dernières écritures.
  */
 
+import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -135,25 +136,51 @@ function horodatage(d = new Date()): string {
  * instantané daté, cohérent (API de sauvegarde de SQLite, pas une copie de
  * fichier en cours d'écriture), écrit à côté puis renommé — un instantané
  * n'existe jamais à moitié. Les plus anciens au-delà de `A_GARDER` partent.
+ *
+ * **Ne lève jamais d'erreur** (corrigé le 25/11/2026). L'instantané est un
+ * filet en plus : la base est déjà écrite sur disque quand il part. Avant, un
+ * échec ici faisait échouer l'enregistrement qui l'appelait — et, au démarrage,
+ * cassait le processus pour toute sa durée de vie, puisque `db.ts` l'attend
+ * avant d'ouvrir la base. C'est arrivé sous Passenger : deux processus nés dans
+ * la même seconde visaient le même `machine-<seconde>.db.tmp`, l'un des deux
+ * sortait en `ERR_SQLITE_ERROR` (« not an error »), et toutes les requêtes qui
+ * tombaient sur lui répondaient 500 — dont l'enregistrement d'un post. D'où le
+ * nom temporaire propre au processus, et l'erreur seulement journalisée.
  */
 export async function sauvegardeDatee(force = false): Promise<string | null> {
   if (!existsSync(CHEMIN_BASE)) return null;
   if (!force && Date.now() - derniere < INTERVALLE_MS) return null;
   derniere = Date.now();
-  mkdirSync(DOSSIER_SAUVEGARDES, { recursive: true });
   const cible = path.join(DOSSIER_SAUVEGARDES, `machine-${horodatage()}.db`);
-  const temporaire = `${cible}.tmp`;
-  // Moteur du mode fichiers (node:sqlite) : voir sqlite.ts.
-  const { copierBase } = await import('./sqlite');
-  await copierBase(CHEMIN_BASE, temporaire);
-  renameSync(temporaire, cible);
-  const instantanes = readdirSync(DOSSIER_SAUVEGARDES)
-    .filter((f) => /^machine-\d{8}-\d{6}\.db$/.test(f))
-    .sort();
-  for (const f of instantanes.slice(0, Math.max(0, instantanes.length - A_GARDER))) {
-    rmSync(path.join(DOSSIER_SAUVEGARDES, f), { force: true });
+  const temporaire = `${cible}.${process.pid}.${randomUUID().slice(0, 8)}.tmp`;
+  try {
+    mkdirSync(DOSSIER_SAUVEGARDES, { recursive: true });
+    // Un autre processus vient de prendre l'instantané de cette seconde : il suffit.
+    if (existsSync(cible)) return cible;
+    // Moteur du mode fichiers (node:sqlite) : voir sqlite.ts.
+    const { copierBase } = await import('./sqlite');
+    await copierBase(CHEMIN_BASE, temporaire);
+    renameSync(temporaire, cible);
+    const fichiers = readdirSync(DOSSIER_SAUVEGARDES);
+    const instantanes = fichiers.filter((f) => /^machine-\d{8}-\d{6}\.db$/.test(f)).sort();
+    for (const f of instantanes.slice(0, Math.max(0, instantanes.length - A_GARDER))) {
+      rmSync(path.join(DOSSIER_SAUVEGARDES, f), { force: true });
+    }
+    // Les restes d'un essai interrompu (processus tué en pleine copie), après une heure.
+    for (const f of fichiers.filter((x) => /^machine-.*\.tmp$/.test(x))) {
+      const p = path.join(DOSSIER_SAUVEGARDES, f);
+      try {
+        if (Date.now() - statSync(p).mtimeMs > 60 * 60 * 1000) rmSync(p, { force: true });
+      } catch {
+        // déjà parti
+      }
+    }
+    return cible;
+  } catch (e) {
+    rmSync(temporaire, { force: true });
+    console.error('[sauvegarde datée] instantané non pris, la base elle-même est intacte :', e);
+    return null;
   }
-  return cible;
 }
 
 /** Écriture atomique d'un fichier : à côté, puis renommage. */

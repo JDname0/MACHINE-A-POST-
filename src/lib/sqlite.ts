@@ -159,6 +159,8 @@ export async function copierBase(source: string, destination: string): Promise<v
   const { DatabaseSync, backup } = moduleSqlite();
   const d = new DatabaseSync(source, { readOnly: true });
   try {
+    // Un autre processus peut écrire au même moment : attendre plutôt qu'échouer.
+    d.exec('PRAGMA busy_timeout = 5000');
     if (backup) await backup(d, destination);
     else d.exec(`VACUUM INTO '${destination.replace(/'/g, "''")}'`);
   } finally {

@@ -24,6 +24,23 @@ async function adresseDeBase(): Promise<string> {
   return adresseDepuisEntetes(await headers());
 }
 
+/**
+ * Chaque action vérifie la session **elle-même** (ajout du 25/11/2026).
+ *
+ * Le `layout` protège les pages, pas les actions : une action serveur
+ * s'appelle par son identifiant, en POST, sans rendre aucune page — et les
+ * identifiants des actions utilisées par les composants navigateur sont dans
+ * les fichiers JavaScript publics. Sans ce contrôle, n'importe qui pouvait
+ * modifier un post, en supprimer les médias ou appeler `publierParApi`, ce qui
+ * contredirait la règle 1 (rien ne part sans un « oui » de Jonathan).
+ * Sans mot de passe posé (`protegee()` faux), rien ne change : l'outil est
+ * ouvert, et le dit.
+ */
+async function exigerSession(): Promise<void> {
+  const { protegee, connecte } = await import('@/lib/auth');
+  if (protegee() && !(await connecte())) redirect('/connexion');
+}
+
 export async function seConnecter(fd: FormData) {
   const mdp = String(fd.get('motDePasse') ?? '');
   if (!verifier(mdp)) redirect('/connexion?erreur=1');
@@ -37,12 +54,15 @@ export async function seDeconnecter() {
 }
 
 export async function enregistrerPublication(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
-  db()
+  // `AND entite=?` : la cloison tient aussi ici, un formulaire d'une entité ne
+  // réécrit jamais un post de l'autre.
+  const r = db()
     .prepare(
       `UPDATE publications SET titre=?, accroche=?, corps=?, appel=?, hashtags=?, consignes_visuel=?,
-        persona=?, pilier=?, preuve=?, indicateur=?, sous_forum=?, maj_le=datetime('now') WHERE id=?`,
+        persona=?, pilier=?, preuve=?, indicateur=?, sous_forum=?, maj_le=datetime('now') WHERE id=? AND entite=?`,
     )
     .run(
       String(fd.get('titre') ?? ''),
@@ -57,7 +77,9 @@ export async function enregistrerPublication(fd: FormData) {
       String(fd.get('indicateur') ?? '') || null,
       String(fd.get('sous_forum') ?? '') || null,
       id,
+      entite,
     );
+  if (Number(r.changes) === 0) redirect(`/${entite}/publications/${id}?enregistre=introuvable`);
   // L'heure prévue est facultative, et seulement touchée si le formulaire la
   // porte : un autre formulaire qui appellerait cette action ne l'efface pas.
   if (fd.has('heure_prevue')) {
@@ -70,9 +92,14 @@ export async function enregistrerPublication(fd: FormData) {
   revalidatePath(`/${entite}/publications/${id}`);
   revalidatePath(`/${entite}/calendrier`);
   revalidatePath(`/${entite}/aujourdhui`);
+  // Dire que c'est enregistré, et à quelle heure : sans ce retour, rien ne
+  // distinguait un enregistrement réussi d'un clic perdu (25/11/2026).
+  const heure = new Date().toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
+  redirect(`/${entite}/publications/${id}?enregistre=${encodeURIComponent(heure)}`);
 }
 
 export async function changerStatut(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const statut = String(fd.get('statut'));
@@ -109,6 +136,7 @@ export async function changerStatut(fd: FormData) {
  * jamais en « validé », quelle que soit la page d'où vient la demande.
  */
 export async function trancher(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const decision = String(fd.get('decision'));
@@ -158,6 +186,7 @@ async function memoriserSansBloquer(p: import('@/lib/requetes').LignePublication
 }
 
 export async function memoriserVisuel(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const retour = String(fd.get('retour') ?? '') || `/${entite}/publications/${id}`;
@@ -175,6 +204,7 @@ export async function memoriserVisuel(fd: FormData) {
 
 /** Génère et range les visuels dus aujourd'hui (selon le réglage de l'entité). Appelé par le rappel, ou seul en mode auto. */
 export async function memoriserVisuelsDus(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite')) as 'veolt' | 'magistria';
   const { visuelsDus } = await import('@/lib/production');
   const { memoriserVisuelDe } = await import('@/lib/memoire');
@@ -196,6 +226,7 @@ export async function memoriserVisuelsDus(fd: FormData) {
 
 /** Mémorise d'un coup les visuels de toute une semaine — la matière du studio vidéo. */
 export async function memoriserSemaine(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const semaine = Number(fd.get('semaine'));
   const retour = String(fd.get('retour') ?? '') || `/${entite}/valider?s=${semaine}`;
@@ -219,6 +250,7 @@ export async function memoriserSemaine(fd: FormData) {
  * Seuls les réseaux que la marque n'exclut pas sont proposés.
  */
 export async function creerVideoDepuisPost(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const source = Number(fd.get('source'));
   const formatSlug = String(fd.get('format_slug'));
@@ -262,6 +294,7 @@ export async function creerVideoDepuisPost(fd: FormData) {
 
 /** Plans d'une vidéo proposés par l'IA. Rien n'est enregistré : le studio les affiche, Jonathan retouche. */
 export async function proposerPlansIA(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const { publication } = await import('@/lib/requetes');
   const { dureeConseillee } = await import('@/lib/conformite-media');
@@ -283,6 +316,7 @@ export async function proposerPlansIA(fd: FormData) {
  * du script ; le studio monte la vidéo à partir de ses scènes.
  */
 export async function creerVideoCasUsage(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const ref = String(fd.get('ref'));
   const { VIDEOS } = await import('@/lib/videos');
@@ -318,6 +352,7 @@ export async function creerVideoCasUsage(fd: FormData) {
 
 /** Quand et comment produire les vidéos — choisi dans le studio, par entité. */
 export async function majReglagesVideo(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite')) as 'veolt' | 'magistria';
   const { poserReglagesVideo, DELAIS, MODES } = await import('@/lib/production');
   const delai = Number(fd.get('delai'));
@@ -352,6 +387,7 @@ function avecParam(url: string, cle: string, val: string): string {
  * était validé (règle 1). Un post déjà publié n'est jamais touché.
  */
 export async function regenererTexte(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const retour = retourSur(fd, entite, id);
@@ -400,6 +436,7 @@ export async function regenererTexte(fd: FormData) {
  * garde-fous : rien ne part sans « Valider » (règle 1).
  */
 export async function genererArticle(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite')) as 'veolt' | 'magistria';
   const mode = String(fd.get('mode') ?? 'plan');
   const retour = `/${entite}/calendrier`;
@@ -566,6 +603,7 @@ function prochainRangLivrable(publicationId: number): number {
  * les autres — rien ne part sans « Valider ».
  */
 export async function creerPostImporte(fd: FormData): Promise<{ ok: true; id: number } | { ok: false; raison: string }> {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const { marque, estEntite } = await import('@/lib/marques');
   const { format, TOUS_FORMATS } = await import('@/lib/formats');
@@ -637,6 +675,7 @@ export async function creerPostImporte(fd: FormData): Promise<{ ok: true; id: nu
  * envoie directement au store, puis `enregistrerTeleversement` les inscrit.
  */
 export async function deposerLivrables(fd: FormData): Promise<{ posees: number; refus: string[] }> {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const publicationId = Number(fd.get('publication_id'));
   const { publication } = await import('@/lib/requetes');
@@ -687,6 +726,7 @@ export async function deposerLivrables(fd: FormData): Promise<{ posees: number; 
 
 /** Change l'ordre d'un fichier dans un post fourni (une page de carrousel monte ou descend). */
 export async function deplacerLivrable(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const id = Number(fd.get('id'));
   const sens = fd.get('sens') === 'haut' ? -1 : 1;
@@ -712,6 +752,7 @@ export async function deplacerLivrable(fd: FormData) {
 
 /** Demande une réécriture à l'IA. Le post n'est pas touché : la proposition attend une décision. */
 export async function demanderIA(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const consigne = String(fd.get('consigne') ?? '').slice(0, 600);
@@ -746,6 +787,7 @@ export async function demanderIA(fd: FormData) {
  * « à relire » même s'il était validé — un texte changé est un texte à relire.
  */
 export async function adopterIA(fd: FormData) {
+  await exigerSession();
   const pid = Number(fd.get('proposition'));
   const entite = String(fd.get('entite'));
   const d = db();
@@ -775,6 +817,7 @@ export async function adopterIA(fd: FormData) {
 }
 
 export async function rejeterIA(fd: FormData) {
+  await exigerSession();
   const pid = Number(fd.get('proposition'));
   const entite = String(fd.get('entite'));
   const d = db();
@@ -789,6 +832,7 @@ export async function rejeterIA(fd: FormData) {
 }
 
 export async function marquerPublie(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const url = String(fd.get('url_publiee') ?? '') || null;
@@ -815,6 +859,7 @@ export async function marquerPublie(fd: FormData) {
  * accepter de ne jamais savoir ce que ce post a produit.
  */
 export async function declarerAuTerrain(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite')) as EntiteSlug;
   const url = String(fd.get('url_cible') ?? '').trim();
@@ -854,6 +899,7 @@ export async function declarerAuTerrain(fd: FormData) {
 
 /** Le bouton qui appelle l'API. Il n'est proposé que sur une publication validée. */
 export async function publierParApi(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const row = db().prepare('SELECT * FROM publications WHERE id=?').get(id) as Record<string, string> | undefined;
@@ -922,6 +968,7 @@ export async function publierParApi(fd: FormData) {
 }
 
 export async function releverMetrique(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('publication_id'));
   const entite = String(fd.get('entite'));
   const n = (k: string) => {
@@ -947,6 +994,7 @@ function dateReleve(fd: FormData): string {
 }
 
 export async function majArticle(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const top10 = fd.get('top10') ? 1 : 0;
@@ -978,6 +1026,7 @@ export async function majArticle(fd: FormData) {
 }
 
 export async function majBacklink(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const statut = String(fd.get('statut') ?? 'a-contacter');
@@ -995,6 +1044,7 @@ export async function majBacklink(fd: FormData) {
 }
 
 export async function majCampagne(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   db()
@@ -1013,6 +1063,7 @@ export async function majCampagne(fd: FormData) {
 }
 
 export async function releverCampagne(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('campagne_id'));
   const entite = String(fd.get('entite'));
   const n = (k: string) => (String(fd.get(k) ?? '').trim() === '' ? null : Number(fd.get(k)));
@@ -1026,6 +1077,7 @@ export async function releverCampagne(fd: FormData) {
 }
 
 export async function majConnexion(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const reseau = String(fd.get('reseau'));
   db()
@@ -1039,6 +1091,7 @@ export async function majConnexion(fd: FormData) {
 }
 
 export async function majSousForum(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   db().prepare('UPDATE sous_forums SET dernier_post=? WHERE id=?').run(String(fd.get('dernier_post') ?? '') || null, id);
@@ -1057,6 +1110,7 @@ export async function majSousForum(fd: FormData) {
  * programme pas douze semaines à l'avance.
  */
 export async function creerPublication(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const formatSlug = String(fd.get('format_slug'));
   const date = String(fd.get('date_prevue'));
@@ -1129,6 +1183,7 @@ function lundiIso(date: string): string {
  *   est tracé au journal.
  */
 export async function deplacerPost(fd: FormData): Promise<{ ok: true } | { ok: false; raison: string }> {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const date = String(fd.get('date') ?? '');
@@ -1196,6 +1251,7 @@ export async function deplacerPost(fd: FormData): Promise<{ ok: true } | { ok: f
  * provisoirement une ligne pas encore déplacée.
  */
 export async function recalerCalendrier(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const depart = String(fd.get('depart') ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(depart)) redirect(`/${entite}/calendrier?recale=erreur`);
@@ -1269,6 +1325,7 @@ export async function recalerCalendrier(fd: FormData) {
  * survit au rechargement.
  */
 export async function importerMedia(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const legende = String(fd.get('legende') ?? '').trim() || null;
   const rattache = String(fd.get('publication_id') ?? '').trim();
@@ -1340,6 +1397,7 @@ export async function importerMedia(fd: FormData) {
 }
 
 export async function majMedia(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const rattache = String(fd.get('publication_id') ?? '').trim();
@@ -1377,6 +1435,7 @@ export async function majMedia(fd: FormData) {
 
 /** Le fichier part avec la fiche : une ligne qui désigne un objet absent ne sert personne. */
 export async function supprimerMedia(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const row = db().prepare('SELECT cle, nom, publication_id FROM medias WHERE id=? AND entite=?').get(id, entite) as
@@ -1413,6 +1472,7 @@ export async function supprimerMedia(fd: FormData) {
  * jamais un contrôle.
  */
 export async function enregistrerTeleversement(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const chemin = String(fd.get('chemin') ?? '');
   const prefixe = 'machine-a-post/medias/';
@@ -1511,6 +1571,7 @@ async function remplacerAnciennesVideos(publicationId: number, garder: string) {
  * store, comme tout fichier lourd, puis passe par `enregistrerTeleversement`.
  */
 export async function deposerVideoMontee(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const f = fd.get('fichier');
   if (!(f instanceof File) || f.size === 0) return { ok: false as const, raison: 'Fichier vide.' };
@@ -1545,6 +1606,7 @@ export async function deposerVideoMontee(fd: FormData) {
  * rendre le fichier public pour toujours.
  */
 export async function creerLienTemporaire(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const id = Number(fd.get('id'));
   const row = db().prepare('SELECT cle, nom FROM medias WHERE id=? AND entite=?').get(id, entite) as
@@ -1570,6 +1632,7 @@ export async function creerLienTemporaire(fd: FormData) {
  * vidéo reste à valider comme toutes les autres.
  */
 export async function genererVoixOff(fd: FormData) {
+  await exigerSession();
   const entite = String(fd.get('entite'));
   const publicationId = Number(fd.get('publication_id'));
   let textes: Array<{ plan: number; texte: string }> = [];
@@ -1621,6 +1684,7 @@ function poserCommentaire(id: number, entite: string, texte: string, auteur: str
 }
 
 export async function commenter(fd: FormData) {
+  await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const texte = String(fd.get('texte') ?? '').trim().slice(0, 4000);
@@ -1637,6 +1701,7 @@ export async function commenter(fd: FormData) {
 }
 
 export async function resoudreCommentaire(fd: FormData) {
+  await exigerSession();
   const cid = Number(fd.get('commentaire_id'));
   const entite = String(fd.get('entite'));
   const resolu = String(fd.get('resolu') ?? '1') === '1' ? 1 : 0;
