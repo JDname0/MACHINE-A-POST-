@@ -79,10 +79,10 @@ export const VIDEOS: ScriptVideo[] = [
     tournage:
       "Aucun tournage : les illustrations du pack (rendu 3D, studio et poste 3D, modèle décliné, courbes de coût) dans leur cadre de verre, puis le prix affiché. Une capture du logiciel pendant un rendu réel peut remplacer n'importe quel plan.",
     plans: [
-      { de: 0, a: 3, image: 'Le rendu 3D du flacon, seul dans le cadre.', texte: 'Ce produit n’a jamais été photographié.', illustration: 'illu-photo-ou-3d', cadrage: { x: 0.76, y: 0.5, zoom: 1.9 } },
-      { de: 3, a: 7, image: 'Le poste 3D, le même produit en quatre coloris à l’écran.', texte: 'Quatorze angles. Trois coloris. Zéro studio reloué.', illustration: 'illu-studio-et-poste-3d', cadrage: { x: 0.74, y: 0.62, zoom: 1.7 } },
-      { de: 7, a: 12, image: 'Un modèle au centre, dix rendus qui en partent.', texte: 'Le modèle est fait une fois. Les variantes ne coûtent presque plus rien.', illustration: 'illu-un-modele-dix-coloris' },
-      { de: 12, a: 16, image: 'Les deux courbes de coût qui se croisent.', texte: 'Au-delà de 5 visuels par référence, la photo coûte plus cher.', illustration: 'illu-courbes-cout' },
+      { de: 0, a: 3, image: 'Le rendu 3D du flacon, seul dans le cadre.', texte: 'Ce produit n’a jamais été photographié.', illustration: 'illu-photo-ou-3d-reel', cadrage: { x: 0.76, y: 0.5, zoom: 1.9 } },
+      { de: 3, a: 7, image: 'Le poste 3D, le même produit en quatre coloris à l’écran.', texte: 'Quatorze angles. Trois coloris. Zéro studio reloué.', illustration: 'illu-studio-et-poste-3d-reel', cadrage: { x: 0.74, y: 0.62, zoom: 1.7 } },
+      { de: 7, a: 12, image: 'Un modèle au centre, dix rendus qui en partent.', texte: 'Le modèle est fait une fois. Les variantes ne coûtent presque plus rien.', illustration: 'illu-un-modele-dix-coloris-reel' },
+      { de: 12, a: 16, image: 'Les deux courbes de coût qui se croisent.', texte: 'Au-delà de 5 visuels par référence, la photo coûte plus cher.', illustration: 'illu-courbes-cout-reel' },
       { de: 16, a: 18, image: 'Le prix, sur la carte de marque.', texte: 'À partir de 119 € HT.' },
     ],
     legende:

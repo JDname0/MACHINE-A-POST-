@@ -1032,15 +1032,106 @@ export const IMAGES_PACK: ImagePack[] = [
       "Three devices side by side on a dark desk, each showing a different website concept: a minimal dark showcase page on a laptop, an e-commerce product grid on a tablet, and an animated page with a sweeping curve of light on a phone",
     ),
   },
+
+  // ── Versions réalistes (25/11/2026, 23 h 20) : mêmes idées, photographie éditoriale ──
+  // Les versions d’origine restent au-dessus, en appoint ; placements, figures et scripts pointent ici.
+  {
+    ...G,
+    nom: 'illu-photo-ou-3d-reel',
+    montre: "Le même flacon : photographié sur le fond gris du studio, et en rendu 3D sur l’écran d’à côté.",
+    ratio: '4:3',
+    job: 'a825d789-e8dd-4034-9c5a-d1622fe9c095',
+    url: `${CDN}hf_20261125_222021_a825d789-e8dd-4034-9c5a-d1622fe9c095.png`,
+    prompt: promptDeclaratif(
+      "A real photo studio corner at night: on the left a black glass perfume bottle on a grey paper sweep under a softbox, a camera on a tripod pointed at it; on the right, on a desk, a monitor showing the identical bottle as a 3D render on a dark background. The same product, photographed and rendered side by side",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-un-modele-dix-coloris-reel',
+    montre: "Un seul modèle 3D à l’écran, et ses dix déclinaisons imprimées, alignées sur le bureau.",
+    ratio: '4:3',
+    job: 'c5b2d2fb-5a32-42b6-84fe-ffa64e8a3eeb',
+    url: `${CDN}hf_20261125_222020_c5b2d2fb-5a32-42b6-84fe-ffa64e8a3eeb.png`,
+    prompt: promptDeclaratif(
+      "A product designer's desk: a monitor shows one grey 3D model of a pair of headphones; in front of the monitor, ten printed renders of the same headphones in ten different colourways laid out in a neat row on the desk, a hand placing the last print. One model, ten variants",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-courbes-cout-reel',
+    montre: "Deux courbes tracées au feutre sur un tableau de verre : le coût photo qui monte, le coût 3D qui reste à plat, et le point où elles se croisent.",
+    ratio: '4:3',
+    job: '4c2ba518-6d31-4558-9329-35eeea8993fa',
+    url: `${CDN}hf_20261125_222021_4c2ba518-6d31-4558-9329-35eeea8993fa.png`,
+    prompt: promptDeclaratif(
+      "A hand drawing two crossing curves with a magenta marker on a glass whiteboard in a dark studio: one straight line rising steadily, and one line that starts higher then stays almost flat; a row of identical small product bottles stands on the shelf below the board. Where the two costs cross",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-bfr-reservoir-reel',
+    montre: "Une fontaine à eau qu’on remplit lentement par le haut et qui se vide vite par le robinet : le besoin en fonds de roulement.",
+    ratio: '4:3',
+    job: 'd291be4c-17ef-4282-ab3b-b8bb7fc0fcc8',
+    url: `${CDN}hf_20261125_222022_d291be4c-17ef-4282-ab3b-b8bb7fc0fcc8.png`,
+    prompt: promptDeclaratif(
+      "A real glass water dispenser with a metal tap on a dark kitchen counter: water is poured in slowly from a jug at the top while a glass fills quickly from the tap below, the water level inside visibly low; a small open notebook with grey bars beside it. Money comes in later than it goes out",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-porte-ouverte-reel',
+    montre: "Un couloir de bureaux, portes fermées ; une seule, au fond, est ouverte.",
+    ratio: '4:3',
+    job: 'a816b619-5fc2-4963-bc9b-39d1603828c3',
+    url: `${CDN}hf_20261125_222151_a816b619-5fc2-4963-bc9b-39d1603828c3.png`,
+    prompt: promptDeclaratif(
+      "A real office corridor at night with several closed wooden doors; one door at the far end stands ajar, warm light and a soft magenta glow spilling across the floor. Choosing the right project. No people",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-trois-metiers-reel',
+    montre: "Une seule table, trois métiers : le site, le montage vidéo, le prévisionnel, et une cafetière au milieu.",
+    ratio: '4:3',
+    job: 'bdc71f73-c9b2-44c8-89b3-da38a64343b6',
+    url: `${CDN}hf_20261125_222150_bdc71f73-c9b2-44c8-89b3-da38a64343b6.png`,
+    prompt: promptDeclaratif(
+      "One long shared studio table seen from above: three workspaces side by side on the same table — a laptop with website layout blocks, a laptop with a video editing timeline, and printed financial spreadsheets with a calculator — three people's forearms and hands working, sleeves visible, one shared coffee pot in the middle. Three trades, one team",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-studio-et-poste-3d-reel',
+    montre: "Le plateau photo au fond, le poste 3D devant : le même flacon en quatre coloris à l’écran.",
+    ratio: '4:3',
+    job: '37a4b719-e134-46d2-8547-10e5999508b1',
+    url: `${CDN}hf_20261125_222151_37a4b719-e134-46d2-8547-10e5999508b1.png`,
+    prompt: promptDeclaratif(
+      "A small creative studio: in the background a real photo set with a softbox and a perfume bottle on a white table; in the foreground a 3D artist's desk with a monitor showing the same bottle rendered in four colourways, a hand on a graphics tablet. Photo and 3D in the same room",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-matieres-photo-reel',
+    montre: "Trois tirages macro au mur — lin, chêne, goutte sur verre — au-dessus d’une table lumineuse, loupe et objectif posés.",
+    ratio: '4:3',
+    job: 'c7dbdb54-3463-4fda-a1e6-a7e3882d013f',
+    url: `${CDN}hf_20261125_222150_c7dbdb54-3463-4fda-a1e6-a7e3882d013f.png`,
+    prompt: promptDeclaratif(
+      "Three large macro photograph prints pinned side by side on a dark wall above a lit light table: woven linen fabric, oak wood grain, a single water droplet on glass; a photographer's loupe and a camera lens resting on the light table. Textures only real photography captures",
+    ),
+  },
 ];
 
 /** Où chaque image sert. L'ordre compte : il est repris dans les vidéos. */
 export const PLACEMENTS: Placement[] = [
   // Le même produit, en photo studio et en 3D
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-photo-ou-3d', role: 'couverture' },
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-matieres-photo', role: 'page', debut: 'Ce que la photo fait mieux' },
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-studio-et-poste-3d', role: 'page', debut: 'Ce que la 3D fait mieux' },
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'Au-delà de cinq visuels' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-photo-ou-3d-reel', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-matieres-photo-reel', role: 'page', debut: 'Ce que la photo fait mieux' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-studio-et-poste-3d-reel', role: 'page', debut: 'Ce que la 3D fait mieux' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris-reel', role: 'page', debut: 'Au-delà de cinq visuels' },
 
   // Avant / après sur une page d'accueil — la même image, recadrée sur chaque écran
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres', role: 'couverture' },
@@ -1070,23 +1161,23 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-dc-2', image: 'illu-previsionnel-banquier', role: 'couverture' },
 
   // Le coût réel d'un visuel produit
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-studio-et-poste-3d', role: 'couverture' },
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout', role: 'page', debut: 'Deux courbes qui se croisent', cadrage: { x: 0.55, y: 0.22, zoom: 1.35 } },
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-matieres-photo', role: 'page', debut: 'Ce qui déplace ce point' },
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-studio-et-poste-3d', role: 'page', debut: 'La 3D, un coût par produit' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-studio-et-poste-3d-reel', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout-reel', role: 'page', debut: 'Deux courbes qui se croisent', cadrage: { x: 0.55, y: 0.22, zoom: 1.35 } },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-matieres-photo-reel', role: 'page', debut: 'Ce qui déplace ce point' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-studio-et-poste-3d-reel', role: 'page', debut: 'La 3D, un coût par produit' },
   { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-canette-en-main', role: 'page', debut: 'Le visuel fini, en situation' },
 
   // Comment on cadre un business plan en quatre entretiens
   { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-quatre-entretiens', role: 'couverture' },
 
   // Ce qu'on refuse de faire, et pourquoi
-  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-porte-ouverte', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-porte-ouverte-reel', role: 'couverture' },
 
   // Trois métiers dans la même structure
-  { entite: 'veolt', sujet: 'v-cm-3', image: 'illu-trois-metiers', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-cm-3', image: 'illu-trois-metiers-reel', role: 'couverture' },
 
   // Le besoin en fonds de roulement, expliqué sans jargon
-  { entite: 'veolt', sujet: 'v-pd-1', image: 'illu-bfr-reservoir', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-pd-1', image: 'illu-bfr-reservoir-reel', role: 'couverture' },
 
   // Trois signes qu'il faut refaire son site
   { entite: 'veolt', sujet: 'v-pd-2', image: 'illu-site-a-refaire', role: 'couverture' },
@@ -1095,7 +1186,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-pd-3', image: 'illu-dossier-loupe', role: 'couverture' },
 
   // Nos prix sont bas. Voilà pourquoi
-  { entite: 'veolt', sujet: 'v-pp-1', image: 'illu-un-modele-dix-coloris', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-pp-1', image: 'illu-un-modele-dix-coloris-reel', role: 'couverture' },
 
   // Pourquoi nous donnons l'analyse avant de vendre
   { entite: 'veolt', sujet: 'v-pp-2', image: 'illu-analyse-remise', role: 'couverture' },
@@ -1163,10 +1254,10 @@ export const PLACEMENTS: Placement[] = [
   // Les débuts de page ci-dessous sont ceux de `carrousels-veolt.ts` (version
   // courte) ; ceux de la première version restent plus haut, pour les posts
   // retouchés qui l'ont gardée.
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-matieres-photo', role: 'page', debut: 'La photo capte la matière' },
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-studio-et-poste-3d', role: 'page', debut: 'La 3D, elle, se décline' },
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-courbes-cout', role: 'page', debut: 'Tout se joue sur le nombre' },
-  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'Un modèle, dix coloris' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-matieres-photo-reel', role: 'page', debut: 'La photo capte la matière' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-studio-et-poste-3d-reel', role: 'page', debut: 'La 3D, elle, se décline' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-courbes-cout-reel', role: 'page', debut: 'Tout se joue sur le nombre' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris-reel', role: 'page', debut: 'Un modèle, dix coloris' },
   { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-flacon-en-situation', role: 'page', debut: 'Et à la fin, la vraie scène' },
 
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-a-refaire', role: 'page', debut: 'Trois secondes pour comprendre' },
@@ -1186,9 +1277,9 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-devis-coche', role: 'page', debut: 'Ligne par ligne' },
 
   { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-seance-photo', role: 'page', debut: 'La photo se paie à la séance' },
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'La 3D se paie au produit' },
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout', role: 'page', debut: 'Les courbes se croisent' },
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-matieres-photo', role: 'page', debut: 'La matière déplace' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-un-modele-dix-coloris-reel', role: 'page', debut: 'La 3D se paie au produit' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout-reel', role: 'page', debut: 'Les courbes se croisent' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-matieres-photo-reel', role: 'page', debut: 'La matière déplace' },
 
   { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-deja-vendu', role: 'page', debut: 'Qu’est-ce qui est déjà vendu' },
   { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-capacite', role: 'page', debut: 'Combien de temps pour une unité' },
@@ -1196,7 +1287,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-decideur', role: 'page', debut: 'Qui décide, et qui paie' },
   { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-previsionnel-banquier', role: 'page', debut: 'Ensuite seulement, le tableur' },
 
-  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'On refuse la vidéo' },
+  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-un-modele-dix-coloris-reel', role: 'page', debut: 'On refuse la vidéo' },
   { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-textes-a-ecrire', role: 'page', debut: 'On refuse le site sans textes' },
   { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-previsionnel-banquier', role: 'page', debut: 'On refuse le prévisionnel' },
   { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-capacite-mois', role: 'page', debut: 'Pourquoi on peut choisir' },
@@ -1234,23 +1325,23 @@ export const PLACEMENTS: Placement[] = [
  * avant l'appel final. Rien qu'une image du registre, avec sa mention.
  */
 export const FIGURES_ARTICLES: Record<string, string[]> = {
-  'v-art-bp-1': ['illu-dossier-loupe', 'illu-previsionnel-banquier', 'illu-bfr-reservoir'],
-  'v-art-bp-2': ['illu-quatre-entretiens', 'illu-analyse-remise', 'illu-trois-metiers'],
-  'v-art-bp-3': ['illu-previsionnel-banquier', 'illu-bfr-reservoir', 'illu-dossier-loupe'],
-  'v-art-bp-4': ['illu-bfr-reservoir', 'illu-previsionnel-banquier', 'illu-quatre-entretiens'],
+  'v-art-bp-1': ['illu-dossier-loupe', 'illu-previsionnel-banquier', 'illu-bfr-reservoir-reel'],
+  'v-art-bp-2': ['illu-quatre-entretiens', 'illu-analyse-remise', 'illu-trois-metiers-reel'],
+  'v-art-bp-3': ['illu-previsionnel-banquier', 'illu-bfr-reservoir-reel', 'illu-dossier-loupe'],
+  'v-art-bp-4': ['illu-bfr-reservoir-reel', 'illu-previsionnel-banquier', 'illu-quatre-entretiens'],
   'v-art-bp-5': ['illu-previsionnel-banquier', 'illu-quatre-entretiens', 'illu-dossier-loupe'],
-  'v-art-bp-6': ['illu-dossier-loupe', 'illu-porte-ouverte', 'illu-analyse-remise'],
+  'v-art-bp-6': ['illu-dossier-loupe', 'illu-porte-ouverte-reel', 'illu-analyse-remise'],
   'v-art-site-1': ['illu-pages-gabarit', 'illu-deux-devis', 'illu-atelier-noir-en-boutique'],
   'v-art-site-2': ['illu-deux-devis', 'illu-pages-gabarit', 'illu-atelier-noir-en-boutique'],
   'v-art-site-3': ['illu-site-a-refaire', 'illu-accueil-avant-apres', 'illu-site-en-main'],
   'v-art-site-4': ['illu-atelier-noir-en-boutique', 'illu-pages-gabarit', 'illu-site-en-main'],
   'v-art-site-5': ['illu-pipeline-3d', 'illu-site-en-main', 'illu-atelier-noir-en-boutique'],
   'v-art-site-6': ['illu-accueil-avant-apres', 'illu-deux-devis', 'illu-site-en-main'],
-  'v-art-3d-1': ['illu-photo-ou-3d', 'illu-matieres-photo', 'illu-studio-et-poste-3d', 'illu-flacon-en-situation'],
+  'v-art-3d-1': ['illu-photo-ou-3d-reel', 'illu-matieres-photo-reel', 'illu-studio-et-poste-3d-reel', 'illu-flacon-en-situation'],
   'v-art-3d-2': ['illu-pipeline-3d', 'illu-3d-modelisation', 'illu-3d-eclairage', 'illu-3d-rendu', 'illu-flacon-en-situation'],
   'v-art-3d-3': ['illu-3d-modelisation', 'illu-3d-materiaux', 'illu-3d-eclairage', 'illu-3d-etalonnage', 'illu-flacon-en-situation'],
   'v-art-3d-4': ['illu-3d-animation', 'illu-site-en-main', 'illu-canette-en-main'],
-  'v-art-3d-5': ['illu-courbes-cout', 'illu-un-modele-dix-coloris', 'illu-canette-en-main'],
+  'v-art-3d-5': ['illu-courbes-cout-reel', 'illu-un-modele-dix-coloris-reel', 'illu-canette-en-main'],
 };
 
 export const imagePack = (nom: string) => IMAGES_PACK.find((x) => x.nom === nom);
