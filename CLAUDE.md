@@ -304,3 +304,8 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
 - « Enregistrer le brouillon » renvoie sur la fiche avec `?enregistre=HH:MM`
   et affiche « ✓ Brouillon enregistré à … » ; l'`UPDATE` porte `AND entite=?`
   (cloison), et un post introuvable le dit au lieu de faire semblant.
+- **Aperçu d'un PDF fourni** : `<iframe>`, pas `<object>` (`ApercuPost.tsx`).
+  La CSP active porte `object-src 'none'` : Chromium bloquait l'`<object>`
+  (« Loading plugin data … violates object-src 'none' ») et l'aperçu restait
+  vide. Vérifié le 25/11 avec la visionneuse du Chromium complet. Ne pas
+  revenir à `<object>`/`<embed>`, ni assouplir `object-src` pour ça.

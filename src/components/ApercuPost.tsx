@@ -191,9 +191,13 @@ export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer:
               .filter((m) => estDocument(m.type_mime))
               .map((m) => (
                 <div key={m.id} style={{ marginTop: 10 }}>
-                  <object data={`/${e}/medias/${m.id}`} type="application/pdf" style={{ width: '100%', height: 460, borderRadius: 8, border: '1px solid var(--ligne)' }}>
-                    <p className="aide">Aperçu indisponible dans ce navigateur.</p>
-                  </object>
+                  {/* Un <iframe>, pas un <object> : la CSP active porte `object-src 'none'`,
+                      qui bloquait l'aperçu (relevé le 25/11/2026). Le cadre, lui, est permis. */}
+                  <iframe
+                    src={`/${e}/medias/${m.id}`}
+                    title={`Aperçu du PDF fourni : ${m.nom}`}
+                    style={{ width: '100%', height: 460, borderRadius: 8, border: '1px solid var(--ligne)', background: 'var(--carte)' }}
+                  />
                   <div className="rang" style={{ gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
                     <a className="bouton" href={`/${e}/medias/${m.id}`} download={m.nom}>
                       Télécharger le PDF
