@@ -23,7 +23,7 @@ import type { Montage, ThemeStudio } from './fabrique-video';
 import { marque, type EntiteSlug } from './marques';
 import { sujet } from './sujets';
 import { illustrationParNom, illustrationsDuSujet } from './illustrations-serveur';
-import { mentionDe } from './illustrations';
+import { formeDe, mentionDe } from './illustrations';
 
 /** Horizon de l'anticipation : ce qui sera dû dans les sept jours. */
 export const HORIZON_LOT_JOURS = 7;
@@ -158,7 +158,9 @@ export function matiereStudio(entite: EntiteSlug, memoire: ImageMemoire[]) {
       nom: x.nom,
       origine: x.origine,
       type: 'image' as const,
-      ...(x.origine === 'illustration' ? { mention: mentionDe(x.nom.replace(/\.[a-z0-9]+$/i, '')) } : {}),
+      ...(x.origine === 'illustration'
+        ? { mention: mentionDe(x.nom.replace(/\.[a-z0-9]+$/i, '')), forme: formeDe(x.nom.replace(/\.[a-z0-9]+$/i, '')) }
+        : {}),
     })),
     ...clipsMemoire(entite).map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'video' as const })),
   ];

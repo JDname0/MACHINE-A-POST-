@@ -15,6 +15,7 @@ import { CHEMIN_BASE, EN_SERVERLESS, MODE_FICHIERS, hydrater, sauvegardeDatee, s
 import { deroule } from './calendrier';
 import { ARTICLES, articlesDe, sujet, sujetsDe } from './sujets';
 import { fabriquer } from './gabarits';
+import { REVISIONS_SUJETS } from './sujets-revisions';
 
 /**
  * Initialisation au chargement du module — une fois par instance, dans un
@@ -47,8 +48,9 @@ async function initialiser() {
   const carrouselsApprofondis = approfondirCarrousels(d);
   const pagesFinales = poserPagesFinales(d);
   const voix = poserVoixVeolt(d);
+  const series = poserSeriesVeolt(d) + appliquerRevisions(d);
   const recales = recalerMardiJeudiVeolt(d);
-  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales || voix || recales) await sauvegarder();
+  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales || voix || series || recales) await sauvegarder();
   return { d, niveau };
 }
 
@@ -465,6 +467,82 @@ function poserVoixVeolt(d: Base): number {
       'veolt',
       'texte : voix humaine',
       `publication ${p.id} (${p.format_slug}, ${p.date_prevue}) : phrase de ton et emojis mesurés`,
+    );
+    faits++;
+  }
+  return faits;
+}
+
+/**
+ * Un sujet réécrit (`sujets-revisions.ts` garde l'ancienne version) : les
+ * brouillons dont le texte est encore celui de l'ancienne version, avec ou
+ * sans la voix, prennent la nouvelle. Un post retouché garde son texte.
+ */
+function appliquerRevisions(d: Base): number {
+  let faits = 0;
+  for (const [ref, ancien] of Object.entries(REVISIONS_SUJETS)) {
+    const s = sujet(ref);
+    if (!s) continue;
+    const posts = d.prepare("SELECT * FROM publications WHERE sujet_ref=? AND statut='brouillon'").all(ref) as Array<Record<string, string | null> & { id: number }>;
+    for (const p of posts) {
+      const fmt = p.format_slug as Parameters<typeof fabriquer>[1];
+      const ent = p.entite as EntiteSlug;
+      const cle = (b: { accroche: string | null; corps: string | null; appel: string | null }) => [b.accroche, b.corps, b.appel].join('\u0000');
+      const anciens = [fabriquer(ancien, fmt, ent), fabriquer(ancien, fmt, ent, { sansVoix: true })].map(cle);
+      if (!anciens.includes(cle(p as never))) continue;
+      const b = fabriquer(s, fmt, ent);
+      if (cle(b) === cle(p as never)) continue;
+      d.prepare("UPDATE publications SET accroche=?, corps=?, appel=?, maj_le=datetime('now') WHERE id=?").run(b.accroche, b.corps, b.appel, p.id);
+      d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(p.entite, 'texte revu', `publication ${p.id} (${p.format_slug}) : nouvelle version du sujet ${ref}`);
+      faits++;
+    }
+  }
+  return faits;
+}
+
+/**
+ * Veolt (25/11/2026, suite) : les séries tirées de veolt.fr
+ * (`sujets-series-veolt.ts`) prennent les créneaux **en doublon** des
+ * semaines 4 à 10 — le carrousel LinkedIn, le Reel et le TikTok qui
+ * répétaient le même post qu'une semaine précédente. Seulement un brouillon
+ * non retouché (texte encore celui du moule) dont le même sujet, au même
+ * format, est déjà au calendrier plus tôt : la première occurrence reste.
+ * Les anciennes vidéos et visuels du post sont détachés (pas supprimés : ils
+ * restent dans la médiathèque). Tracé au journal ; relancer ne refait rien.
+ */
+function poserSeriesVeolt(d: Base): number {
+  const PAR_SEMAINE: Record<number, string> = { 4: 'v-vf-2', 5: 'v-vf-1', 6: 'v-vf-5', 7: 'v-vf-3', 8: 'v-vf-4', 9: 'v-vf-6', 10: 'v-vf-7' };
+  const posts = d
+    .prepare(
+      `SELECT * FROM publications WHERE entite='veolt' AND statut='brouillon' AND semaine BETWEEN 4 AND 10
+        AND format_slug IN ('li-carrousel','ig-reel','tiktok-video') ORDER BY date_prevue, id`,
+    )
+    .all() as Array<Record<string, string | null> & { id: number; semaine: number }>;
+  const avant = d.prepare("SELECT 1 FROM publications WHERE entite='veolt' AND sujet_ref=? AND format_slug=? AND date_prevue<? AND id<>?");
+  let faits = 0;
+  for (const p of posts) {
+    const nouveau = PAR_SEMAINE[p.semaine];
+    if (!nouveau || !p.sujet_ref || p.sujet_ref === nouveau) continue;
+    const ancien = sujet(p.sujet_ref);
+    const s = sujet(nouveau);
+    if (!ancien || !s) continue;
+    if (!avant.get(p.sujet_ref, p.format_slug, p.date_prevue, p.id)) continue; // pas un doublon : on garde
+    const fmt = p.format_slug as Parameters<typeof fabriquer>[1];
+    const moule = fabriquer(ancien, fmt, 'veolt');
+    const cle = (b: { accroche: string | null; corps: string | null; appel: string | null }) => [b.accroche, b.corps, b.appel].join('\u0000');
+    if (cle(p as never) !== cle(moule)) continue; // retouché : on garde
+    const b = fabriquer(s, fmt, 'veolt');
+    d.prepare(
+      `UPDATE publications SET sujet_ref=?, persona=?, titre=?, accroche=?, corps=?, appel=?, hashtags=?, consignes_visuel=?,
+         preuve=?, indicateur=?, maj_le=datetime('now') WHERE id=?`,
+    ).run(nouveau, s.persona, b.titre ?? s.titre, b.accroche, b.corps, b.appel, b.hashtags, b.consignesVisuel.join('\n'), s.preuve, s.indicateur, p.id);
+    d.prepare(
+      "UPDATE medias SET publication_id=NULL, legende=TRIM(COALESCE(legende,'') || ' (détaché le 25/11/2026 : sujet du post remplacé)') WHERE publication_id=? AND origine IN ('video','genere')",
+    ).run(p.id);
+    d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+      'veolt',
+      'série posée',
+      `publication ${p.id} (${p.format_slug}, ${p.date_prevue}) : doublon de « ${ancien.titre} » → « ${s.titre} »`,
     );
     faits++;
   }

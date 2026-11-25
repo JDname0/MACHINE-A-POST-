@@ -53,6 +53,8 @@ export interface ImageDispo {
   type?: 'image' | 'video';
   /** Illustration du pack : ce qu'elle est, dit dans le cadre (« Illustration IA »…). */
   mention?: string;
+  /** Capture mobile réelle : montrée dans un téléphone. */
+  forme?: 'telephone';
 }
 
 export interface ThemeStudio {
@@ -930,7 +932,17 @@ async function preparerRendu(m: Montage) {
     cx.fillStyle = voile;
     cx.fillRect(0, H * 0.45, L, H * 0.55);
 
-    const c = cadreIllustration();
+    const media = m.images.find((k) => plans[i].source.type === 'media' && k.id === (plans[i].source as { id: number }).id);
+    const telephone = media?.forme === 'telephone';
+    const cl = cadreIllustration();
+    // Une capture mobile se montre dans un téléphone, centré dans la zone du cadre.
+    const c = telephone
+      ? (() => {
+          const h = cl.h;
+          const w = Math.round(h * (img.naturalWidth / img.naturalHeight));
+          return { x: Math.round((L - w) / 2), y: cl.y, w, h };
+        })()
+      : cl;
     const e = 1 - Math.pow(1 - Math.min(1, tl / 0.7), 3);
     const dy = (1 - e) * 70;
     const s = 0.94 + 0.06 * e;
@@ -939,7 +951,7 @@ async function preparerRendu(m: Montage) {
     cx.translate(c.x + c.w / 2, c.y + c.h / 2 + dy);
     cx.scale(s, s);
     cx.translate(-(c.x + c.w / 2), -(c.y + c.h / 2));
-    const r = Math.round(Math.min(L, H) * 0.03);
+    const r = telephone ? Math.round(c.w * 0.11) : Math.round(Math.min(L, H) * 0.03);
     // Lueur et ombre portée sous le cadre.
     cx.save();
     cx.shadowColor = `${th.accent}70`;
@@ -957,7 +969,8 @@ async function preparerRendu(m: Montage) {
     cx.clip();
     const pl = plans[i];
     const base = pl.cadrage ?? { x: 0.5, y: 0.5, zoom: 1 };
-    const k = cadrer(c.w, c.h, img.naturalWidth, img.naturalHeight, { ...base, zoom: base.zoom * (1.02 + 0.07 * u) });
+    // Dans le téléphone, l'écran reste entier (pas de recadrage) : seule une avancée très légère.
+    const k = cadrer(c.w, c.h, img.naturalWidth, img.naturalHeight, telephone ? { x: 0.5, y: 0.3, zoom: 1 + 0.02 * u } : { ...base, zoom: base.zoom * (1.02 + 0.07 * u) });
     cx.drawImage(img, c.x + k.gauche, c.y + k.haut, k.w, k.h);
     // Fondu bas dans le cadre, et reflet qui traverse le verre une fois.
     const fb = cx.createLinearGradient(0, c.y + c.h * 0.6, 0, c.y + c.h);
@@ -977,7 +990,7 @@ async function preparerRendu(m: Montage) {
     }
     cx.restore();
     // Ce qu'est l'image, dit dans le cadre (règle 2 : rien ne passe pour un travail client).
-    const mention = m.images.find((k) => pl.source.type === 'media' && k.id === pl.source.id)?.mention;
+    const mention = media?.mention;
     if (mention) {
       const tm = Math.round(Math.min(L, H) * 0.016);
       cx.font = `${corps.poids} ${tm}px "${corps.famille}", sans-serif`;

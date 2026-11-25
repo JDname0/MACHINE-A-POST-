@@ -228,12 +228,12 @@ export async function importerPack(entite: 'veolt'): Promise<{ importees: string
 export async function illustrationDuContenu(
   entite: string,
   contenu: { illu?: string | null; cadrage?: string | null },
-): Promise<{ donnees: string; largeur: number; hauteur: number; cadrage?: Cadrage; mention?: string } | undefined> {
+): Promise<{ donnees: string; largeur: number; hauteur: number; cadrage?: Cadrage; mention?: string; forme?: 'telephone' } | undefined> {
   if (!contenu.illu) return undefined;
   const img = await imageEnDonnees(entite, contenu.illu);
   if (!img) return undefined;
   const nom = img.nom.replace(/\.[a-z0-9]+$/i, '');
-  return { donnees: img.donnees, largeur: img.largeur, hauteur: img.hauteur, cadrage: cadrageDepuisTexte(contenu.cadrage), mention: imagePack(nom) ? mentionDe(nom) : undefined };
+  return { donnees: img.donnees, largeur: img.largeur, hauteur: img.hauteur, cadrage: cadrageDepuisTexte(contenu.cadrage), mention: imagePack(nom) ? mentionDe(nom) : undefined, forme: imagePack(nom)?.forme };
 }
 
 export type { Cadrage };

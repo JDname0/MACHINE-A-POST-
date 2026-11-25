@@ -105,6 +105,80 @@ export const PAGES_CARROUSEL_VEOLT: Record<string, string[]> = {
     "Et la vidéo ? Elle arrive en dernier, quand on sait quoi montrer et à qui. Un visuel sans message ne vend rien.",
     "Ce que ce n'est pas. Un fait sur notre structure, pas une promesse de résultat.",
   ],
+
+  // ── Séries du 25/11/2026, tirées de veolt.fr (sujets-series-veolt.ts) ──
+
+  // De la demande au devis
+  'v-vf-1': [
+    "Étape 1, le questionnaire. Dix questions guidées, en quelques minutes : votre secteur, où en est le projet, ce dont vous avez besoin.",
+    "Étape 2, vos objectifs. Notoriété, ventes, levée de fonds ou refonte : on vous demande ce que le projet doit produire.",
+    "Étape 3, budget et délai. Une fourchette suffit. C'est elle qui permet une réponse précise plutôt qu'un tarif générique.",
+    "Étape 4, votre espace client. Il se crée à la fin du questionnaire. Vous y réservez directement un appel de cadrage.",
+    "Étape 5, le devis sous 24 h. Périmètre, délai et prix arrêtés par écrit, dans votre espace.",
+    "Étape 6, la commande. Un premier paiement à la commande, le solde à la livraison.",
+    "Ce qui ne change jamais. Rien ne démarre avant votre accord.",
+  ],
+
+  // Nos packs vidéo, ligne par ligne
+  'v-vf-2': [
+    "Starter, 499 € HT. Cinq vidéos de 15 secondes, soit 99,80 € la vidéo : script, génération IA et montage, musique, sous-titres en vertical.",
+    "Creator, 899 € HT. Dix vidéos de 15 secondes, des scripts variés, des accroches différentes et deux variations créatives.",
+    "Pro, 999 € HT. Cinq vidéos de 30 secondes : storytelling, voix off, deux variantes à tester.",
+    "Business, 1 799 € HT. Dix vidéos de 30 secondes, direction artistique et narration. C'est le pack qu'on recommande aux entreprises.",
+    "Premium, 2 499 € HT. Cinq vidéos de 60 secondes : storyboard, narration cinéma, effets et motion design.",
+    "À l'unité, dès 119 € HT. 15 secondes à 119 €, 30 secondes à 199 €, 60 secondes à 399 €. Les packs restent plus avantageux.",
+    "Sur mesure, dès 3 500 € HT. Pour une campagne complète, avec un chef de projet dédié.",
+  ],
+
+  // Une vidéo fabriquée avec l'IA
+  'v-vf-3': [
+    "Étape 1, le script. Le message, le public, le rythme : tout s'écrit avant de générer la moindre image.",
+    "Étape 2, le prompt. Chaque plan se décrit en une phrase précise : le sujet, la lumière, le cadre, les couleurs de la marque.",
+    "Étape 3, la génération. Plusieurs versions du même plan, en quelques minutes au lieu d'une journée de tournage.",
+    "Étape 4, le tri. On garde les meilleures, on jette le reste. L'IA propose, on choisit.",
+    "Étape 5, le montage. Le rythme, les coupes, l'ordre des plans : c'est là que la vidéo prend son sens.",
+    "Étape 6, le son. Musique et sound design, calés image par image.",
+    "Étape 7, les formats. Sous-titres incrustés et une déclinaison par réseau : vertical, carré, horizontal.",
+  ],
+
+  // Atelier Noir, décortiqué
+  'v-vf-4': [
+    "Le point de départ. Une promesse en une ligne, « Plus qu'un parfum, une présence ». Tout le site en découle.",
+    "Le zoning. Des blocs gris : la promesse en haut, le produit à droite, le bouton visible sans défiler.",
+    "La maquette. La typographie, le flacon en héros, le rythme des sections. Toujours sans le moindre effet.",
+    "La direction artistique. Le noir, la pierre, la lumière rasante : l'ambiance d'une boutique, sur un écran.",
+    "Le développement. La même page, rapide sur mobile, avec ses vraies interactions.",
+    "Le mobile. La promesse et le bouton tiennent sur un écran de téléphone, sans rien perdre.",
+  ],
+
+  // Une canette, de l'esquisse à la pub
+  'v-vf-5': [
+    "L'esquisse. La silhouette, l'esprit de la marque, les couleurs : tout se décide au crayon.",
+    "Le modèle 3D. Les proportions exactes d'une canette slim, faites une fois pour toutes.",
+    "L'étiquette. Elle se dessine à plat, puis s'enroule sur le modèle, au millimètre.",
+    "Les déclinaisons. Le même modèle, quatre coloris, sans refaire une seule photo.",
+    "Le rendu. L'aluminium, les gouttes, les reflets : la matière qui donne envie.",
+  ],
+
+  // L'analyse gratuite
+  'v-vf-6': [
+    "Étape 1, votre secteur. Une case à cocher, pour cadrer l'analyse dès le départ.",
+    "Étape 2, où en est le projet. Une idée, un projet en structuration, une activité lancée ou établie.",
+    "Étape 3, vos besoins. Branding, site web, vidéo 3D, stratégie, réseaux sociaux. Plusieurs réponses possibles.",
+    "Étapes 4 à 6, objectifs, situation, budget. Ce que le projet doit produire, où vous en êtes, ce que vous pouvez engager.",
+    "Étapes 7 à 10, l'entreprise et l'équipe. Surtout en cases à cocher : ça va plus vite qu'écrire.",
+    "Ce que vous recevez. Des recommandations concrètes et un plan d'action clair, sous 24 h, sans engagement.",
+  ],
+
+  // Trois concepts Veolt décortiqués
+  'v-vf-7': [
+    "Novo, la vitrine. Une page sombre et minimale : on comprend l'offre sans défiler.",
+    "Pourquoi une vitrine. Quand l'objectif est un appel ou une prise de contact, moins de pages, une seule action.",
+    "Elysia, l'e-commerce. Des catégories, des fiches produit qui se comparent, un parcours d'achat sans détour.",
+    "Pourquoi un e-commerce. Quand l'objectif est la vente en ligne, la structure suit le panier, pas l'inverse.",
+    "Wealth, le site animé. Le mouvement sert la lecture et guide l'œil de section en section.",
+    "Pourquoi un site animé. Quand l'objectif est de marquer les esprits, à condition que la première phrase tienne seule.",
+  ],
 };
 
 /**
@@ -123,4 +197,11 @@ export const PAGES_FINALES_VEOLT: Record<string, string> = {
     'À l’arrivée, un site en ligne. Exemple : Atelier Noir, concept de parfumerie conçu par Veolt, sur ordinateur et sur mobile. Le devis décrit ce chemin-là, ligne par ligne.',
   'v-dc-3':
     'Le visuel fini, en situation. Une fois le modèle fait, le même produit se pose dans une scène de vie sans nouvelle séance photo.',
+  'v-vf-1': 'De votre côté, en vrai. Le questionnaire sur votre téléphone, une réponse écrite, un espace pour suivre : c’est tout ce qu’on vous demande.',
+  'v-vf-2': 'Sur veolt.fr, en vrai. Les packs sont affichés tels quels, prix compris : rien à demander pour les voir.',
+  'v-vf-3': 'Le résultat, en situation. La vidéo telle qu’elle passe dans le fil, sur le téléphone de vos clients.',
+  'v-vf-4': 'Le site, en situation. Atelier Noir ouvert sur un portable et un téléphone, comme dans une vraie boutique.',
+  'v-vf-5': 'La canette, en situation. Le même modèle, posé dans une scène de vie, sans aucune séance photo.',
+  'v-vf-6': 'Sur veolt.fr, en vrai. Le questionnaire tel que vous le verrez, étape par étape.',
+  'v-vf-7': 'À l’arrivée, un site en ligne. Atelier Noir, un autre concept Veolt, ouvert sur ordinateur et sur mobile.',
 };

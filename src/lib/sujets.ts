@@ -14,6 +14,7 @@
 import type { EntiteSlug } from './marques';
 import { ARTICLES_VEOLT } from './articles-veolt';
 import { ARTICLES_MAGISTRIA } from './articles-magistria';
+import { SERIES_VEOLT } from './sujets-series-veolt';
 
 export interface Sujet {
   ref: string;
@@ -264,16 +265,19 @@ export const SUJETS: Record<EntiteSlug, Sujet[]> = {
       titre: 'Nos prix sont bas. Voilà pourquoi, et ce que ça implique',
       pilier: 'positionnement-prix',
       persona: 'dirigeant-site-bloque',
-      accroche: "Business plan à partir de 490 €, site à partir de 1 490 €, visuel 3D à partir de 119 €. Ces prix sont sous le marché, et ce n'est pas une promotion.",
+      // Revu le 25/11/2026 à la demande de Jonathan (le site dès 799 € HT est son ajout).
+      accroche: "Business plan dès 490 €, site dès 1 490 €, visuel 3D dès 119 €. Ce sont nos prix affichés, toute l'année. Ce n'est pas une promotion.",
       corps: [
-        "Nous démarrons. Un studio immatriculé il y a trois mois n'a pas d'historique à faire payer.",
-        "Nous prenons 6 à 8 dossiers par mois. À ce volume, nous n'avons pas de structure commerciale à financer.",
-        "Ce que ça implique pour vous : des prix bas, et pas de référence client à vous montrer. Nous l'assumons plutôt que de le contourner.",
-        "C'est aussi pourquoi l'analyse est gratuite : vous jugez sur pièce avant de payer quoi que ce soit.",
+        "Pourquoi des prix aussi bas ? Deux raisons, très concrètes.",
+        "D'abord, nous démarrons. Un jeune studio n'a pas d'historique à vous faire payer.",
+        "Ensuite, nous prenons 6 à 8 dossiers par mois. À ce volume, pas de structure commerciale à financer : vous payez le travail, pas la machine autour.",
+        "Et pour les plus petits budgets, un site dès 799 € HT.",
+        "Ce que ça implique pour vous, honnêtement : des prix bas… et pas encore de références clients à vous montrer. On l'assume plutôt que de le contourner.",
+        "C'est exactement pour ça que l'analyse est gratuite : vous jugez sur pièce, avant de payer quoi que ce soit. Réponse sous 24 h, sans engagement.",
       ],
       preuve: 'les prix affichés, et notre ancienneté réelle',
       enseignement: "Un prix bas se justifie par une structure, pas par une remise.",
-      appel: "Demandez l'analyse gratuite : réponse sous 24 h, sans engagement.",
+      appel: "Et vous, qu'est-ce qui compte le plus quand vous choisissez un prestataire : le prix, les références, ou la façon de travailler ?",
       indicateur: 'clics sortants',
     },
     {
@@ -293,6 +297,8 @@ export const SUJETS: Record<EntiteSlug, Sujet[]> = {
       appel: "Dites-nous sur quoi vous voulez être challengé : le prévisionnel, le site ou les visuels.",
       indicateur: 'clics sortants',
     },
+    // Séries du 25/11/2026, tirées du contenu réel de veolt.fr.
+    ...SERIES_VEOLT,
   ],
 
   magistria: [

@@ -514,3 +514,28 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
   `deposerIllustration`) : le serveur o2switch n'atteint pas le CDN de
   Higgsfield (constaté le 25/11), le navigateur si. L'import serveur reste en
   bouton secondaire, et s'arrête après deux échecs réseau.
+
+## Séries tirées de veolt.fr, captures réelles, révisions de sujets (25/11/2026, 22 h)
+
+- **7 séries** (`sujets-series-veolt.ts`, `v-vf-1` à `v-vf-7`) : parcours client
+  (questionnaire → espace client → devis sous 24 h), packs vidéo aux vrais prix,
+  une vidéo fabriquée avec l'IA, Atelier Noir décortiqué, une canette de
+  l'esquisse à la pub, l'analyse gratuite, trois concepts de sites. Chacune :
+  pages de carrousel, version finale en situation, placements d'images, script
+  vidéo (`vid-v-vf-*`, 9:16 : Reel et TikTok). `poserSeriesVeolt` (`db.ts`) les
+  a posées **seulement sur les créneaux en doublon** des semaines 4 à 10
+  (carrousel LinkedIn, Reel, TikTok qui répétaient un post plus ancien, non
+  retouchés) ; la première occurrence reste ; les anciennes vidéos et visuels
+  du post sont **détachés**, pas supprimés. Semaines 11-12 : rediffusions, à
+  remplir par les prochaines séries.
+- **Captures réelles** de veolt.fr (mobile 430 × 932) dans `public/pack/`,
+  inscrites au registre avec `forme: 'telephone'` et la mention « Capture
+  réelle · veolt.fr » : montrées dans un téléphone (visuel : téléphone à gauche,
+  texte à droite ; vidéo : téléphone centré). Aucune donnée personnelle : choix
+  cochés pour l'exemple, rien envoyé.
+- **Révisions de sujets** (`sujets-revisions.ts` garde l'ancienne version) :
+  `appliquerRevisions` met la nouvelle version sur les brouillons encore
+  identiques à l'ancienne. Premier cas : `v-pp-1` revu le 25/11 (le site dès
+  799 € HT est l'ajout de Jonathan ; veolt.fr affiche « sites dès 1 490 € HT »).
+- Les premières versions des étapes du pipeline (l'objet seul) restent au
+  registre sous `illu-3d-*-objet`, en appoint.

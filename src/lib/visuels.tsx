@@ -27,6 +27,8 @@ export interface ImageCadree {
   cadrage?: Cadrage;
   /** Ce qu'est l'image (« Illustration IA », « Concept Veolt · … »), dit dans le cadre. */
   mention?: string;
+  /** Capture mobile réelle : montrée dans un téléphone. */
+  forme?: 'telephone';
 }
 
 export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel' | 'couverture';
@@ -836,6 +838,34 @@ function CadreIllu({ t, illu, largeur, hauteur, rayon = 30 }: { t: ThemeVisuel; 
   );
 }
 
+/** Une capture mobile réelle dans un téléphone : coque sombre, écran arrondi, filet lavande, mention en dessous. */
+function Telephone({ t, illu, largeur }: { t: ThemeVisuel; illu: ImageCadree; largeur: number }) {
+  const bord = Math.round(largeur * 0.035);
+  const ecranL = largeur - bord * 2;
+  const ecranH = Math.round(ecranL * (illu.hauteur / illu.largeur));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+      <div
+        style={{
+          display: 'flex',
+          padding: bord,
+          borderRadius: Math.round(largeur * 0.14),
+          backgroundColor: '#07070a',
+          border: `2px solid ${t.accentDoux}66`,
+          boxShadow: `0 40px 90px rgba(0,0,0,0.6), 0 0 70px ${t.accent}40`,
+        }}
+      >
+        <div style={{ display: 'flex', width: ecranL, height: ecranH, borderRadius: Math.round(largeur * 0.11), overflow: 'hidden' }}>
+          <img src={illu.donnees} alt="" width={ecranL} height={ecranH} style={{ width: ecranL, height: ecranH }} />
+        </div>
+      </div>
+      {illu.mention ? (
+        <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 15, letterSpacing: 2, color: t.encreDouce }}>{illu.mention.toUpperCase()}</div>
+      ) : null}
+    </div>
+  );
+}
+
 /**
  * Les gabarits illustrés (Veolt) : l'image d'abord, puis le texte qui la
  * légende. `null` pour un gabarit qui n'a pas de version illustrée — le rendu
@@ -924,6 +954,40 @@ function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, va
           <CadreIllu t={t} illu={illu} largeur={colonne} hauteur={500} rayon={26} />
         </div>
         {c.question ? <QuestionCarte t={t} question={c.question} taille={0.8} /> : <Pastille t={t} />}
+      </div>
+    );
+  }
+
+  // Capture mobile réelle : le téléphone à gauche, le texte à droite.
+  if (illu.forme === 'telephone' && (gabarit === 'carrousel' || gabarit === 'affirmation')) {
+    const tel = 400;
+    const colonne = interieur - tel - 44;
+    const long = `${c.ligne1} ${c.ligne2}`.trim().length;
+    const taille = long > 60 ? 62 : long > 40 ? 70 : 80;
+    return (
+      <div style={base}>
+        {entete}
+        <div style={{ display: 'flex', gap: 44, alignItems: 'center' }}>
+          <Telephone t={t} illu={illu} largeur={tel} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, width: colonne }}>
+            {c.etiquette ? (
+              <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 18, letterSpacing: 4, color: t.accentDoux }}>{c.etiquette.toUpperCase()}</div>
+            ) : null}
+            <Titre t={t} c={c} taille={taille} />
+            {gabarit === 'carrousel' && c.sousTitre ? (
+              <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 27, color: t.encre, lineHeight: 1.42 }}>{c.sousTitre}</div>
+            ) : null}
+            {gabarit === 'affirmation' && c.question ? <QuestionCarte t={t} question={c.question} taille={0.7} /> : null}
+          </div>
+        </div>
+        {gabarit === 'carrousel' ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 22, color: t.encreDouce }}>Faites défiler →</div>
+            <Signature t={t} taille={0.9} />
+          </div>
+        ) : (
+          <Pastille t={t} />
+        )}
       </div>
     );
   }

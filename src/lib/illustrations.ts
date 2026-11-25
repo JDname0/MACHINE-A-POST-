@@ -40,7 +40,7 @@ export interface ImagePack {
   /** Ce que l'image montre, en une phrase : texte alternatif, fiche, contrôle. */
   montre: string;
   ratio: '4:5' | '4:3';
-  outil: 'Higgsfield';
+  outil: 'Higgsfield' | 'Capture veolt.fr';
   modele: string;
   /** Identifiant du job Higgsfield : la génération se retrouve et se refait. */
   job: string;
@@ -58,6 +58,8 @@ export interface ImagePack {
   mention?: string;
   /** Image d'origine (veolt.fr…) qui a servi de référence, quand il y en a une. */
   source?: string;
+  /** Capture d'écran mobile (veolt.fr) : montrée dans un téléphone, pas dans un cadre large. */
+  forme?: 'telephone';
 }
 
 export interface Placement {
@@ -267,6 +269,370 @@ export const IMAGES_PACK: ImagePack[] = [
       'A sleek slim aluminium drink can with an abstract label of magenta, violet and lavender geometric shapes (no letters at all), covered in fresh condensation droplets, held by a hand at a sunny rooftop terrace at golden hour, city blurred in the background. Photorealistic lifestyle advertising photograph, crisp detail on the droplets and the metal, shallow depth of field. Hand only, no face. No readable text, no letters, no numbers, no logo, no watermark.',
   },
 
+  // ── Contenu réel : captures de veolt.fr (mobile, 25/11/2026) ─────────────
+  {
+    nom: 'veolt-questionnaire-1',
+    montre: "Le questionnaire de veolt.fr sur mobile, étape 1 sur 10 : le secteur d’activité, « E-commerce » coché.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-questionnaire-1.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+  {
+    nom: 'veolt-questionnaire-2',
+    montre: "Le questionnaire de veolt.fr, étape 2 sur 10 : où en est votre projet, « Je structure mon projet » choisi.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-questionnaire-2.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+  {
+    nom: 'veolt-questionnaire-3',
+    montre: "Le questionnaire de veolt.fr, étape 3 sur 10 : vos besoins, « Site web » et « Vidéo 3D / motion design » cochés.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-questionnaire-3.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+  {
+    nom: 'veolt-packs-starter',
+    montre: "Les packs vidéo de veolt.fr sur mobile : Starter à 499 € HT et Creator à 899 € HT, avec leur contenu.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-packs-starter.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+  {
+    nom: 'veolt-packs-business',
+    montre: "Les packs vidéo de veolt.fr : Business à 1 799 € HT, recommandé, et Premium à 2 499 € HT.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-packs-business.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+  {
+    nom: 'veolt-demarrage',
+    montre: "« Comment ça démarre » sur veolt.fr : questionnaire, espace client créé, devis sous 24 h.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-demarrage.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+  {
+    nom: 'veolt-tarifs',
+    montre: "La page Tarifs de veolt.fr sur mobile : vidéo et 3D, sites web, business plan.",
+    ratio: '4:5',
+    outil: 'Capture veolt.fr',
+    modele: 'capture d’écran mobile (430 × 932), navigateur',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-tarifs.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr',
+    mention: 'Capture réelle · veolt.fr',
+    forme: 'telephone',
+    prompt: 'Aucun : capture d’écran réelle de veolt.fr, prise dans le navigateur le 25/11/2026 (choix cochés pour l’exemple, rien n’a été envoyé).',
+  },
+
+  // ── Une canette, de l’esquisse à la pub (même canette que la version finale) ─
+  {
+    ...G,
+    nom: 'illu-canette-esquisse',
+    montre: "L’esquisse : la canette dessinée au feutre, ses variantes en vignettes, les couleurs épinglées à côté.",
+    ratio: '4:3',
+    job: '633fa5ea-9726-4c6d-9b21-8ac53fd074ab',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205041_633fa5ea-9726-4c6d-9b21-8ac53fd074ab.png`,
+    prompt:
+      "Sketch stage of the same slim drink can as the reference: a designer's hand drawing the can silhouette and its geometric label idea with markers and a fineliner on white paper, several thumbnail sketches around, colour swatches in magenta, violet and lavender pinned beside, on a dark desk under a lamp. Real paper texture. Dark studio, magenta (#B600A8) and violet (#7621B0) accents, lavender (#C79BFF) highlights. Premium, cinematic, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-canette-modele',
+    montre: "Le modèle 3D : la canette en maillage filaire à l’écran, le manipulateur, le stylet sur la tablette.",
+    ratio: '4:3',
+    job: '200b6321-33ab-4f92-9215-e6da3a0ecadf',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205041_200b6321-33ab-4f92-9215-e6da3a0ecadf.png`,
+    prompt:
+      "Over-the-shoulder close-up of a 3D artist's dark monitor during modelling: the same slim drink can as the reference shown as a clean lavender wireframe cylinder mesh with edge loops at the rim and base, a transform gizmo with three coloured arrows, a fine grid; interface panels with abstract icons only; the artist's hand on a pen tablet in soft focus. Dark studio, magenta (#B600A8) and violet (#7621B0) light, lavender (#C79BFF) highlights. Premium, cinematic, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-canette-etiquette',
+    montre: "L’étiquette dessinée à plat, et la même qui s’enroule sur la canette 3D.",
+    ratio: '4:3',
+    job: 'b86194ce-122e-4058-8de9-a34efe292024',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205040_b86194ce-122e-4058-8de9-a34efe292024.png`,
+    prompt:
+      "Label design stage: on a dark monitor, the flat unwrapped rectangular label of the same can as the reference (the same magenta, violet and lavender geometric shapes laid out flat) with alignment guides, and next to it the 3D can with that label wrapping around it, arrows suggesting the wrap. Abstract interface icons only. Dark studio, magenta (#B600A8) and violet (#7621B0) light, lavender (#C79BFF) highlights. Premium, cinematic, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-canette-coloris',
+    montre: "Le même modèle en quatre coloris, côte à côte, gouttes et reflets compris.",
+    ratio: '4:3',
+    job: '0c474811-5cbd-4853-933c-0d361e37c416',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205040_0c474811-5cbd-4853-933c-0d361e37c416.png`,
+    prompt:
+      "Four identical slim drink cans in a row on a glossy black surface, same shape as the reference, each in a different colourway of the same geometric label design — magenta, violet, lavender and silver-black — with condensation droplets and crisp studio reflections, a product line-up render. Dark studio, magenta (#B600A8) and violet (#7621B0) rim light, lavender (#C79BFF) highlights. Photoreal, premium, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+
+  // ── Une vidéo fabriquée avec l’IA (même canette de référence) ─────────────
+  {
+    ...G,
+    nom: 'illu-ia-prompt',
+    montre: "Le prompt tapé au clavier, et les quatre versions générées juste en dessous.",
+    ratio: '4:3',
+    job: '3442f9ff-d51b-41b3-af81-df6f5f613c67',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205216_3442f9ff-d51b-41b3-af81-df6f5f613c67.png`,
+    prompt:
+      "Over-the-shoulder view of a creator at a dark desk typing a prompt into an AI image generation interface on a large monitor: a long text field with a blinking cursor and abstract grey lines instead of words, and below it a grid of four freshly generated thumbnails of the same slim drink can as the reference in different scenes. Hands on a backlit keyboard. Dark studio, magenta (#B600A8) and violet (#7621B0) screen glow, lavender (#C79BFF) highlights. Premium, cinematic, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-ia-tri',
+    montre: "Huit versions générées ; deux gardées, cochées en magenta, les autres écartées.",
+    ratio: '4:3',
+    job: '3fe38ea7-0b2a-4b91-8682-b29832aa7938',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205216_3fe38ea7-0b2a-4b91-8682-b29832aa7938.png`,
+    prompt:
+      "Close-up of a dark monitor showing a grid of eight AI-generated variations of the same slim drink can as the reference, two of them selected with a glowing magenta outline and a check mark icon, the others dimmed; a hand on a mouse in soft focus. Abstract interface icons only. Dark studio, magenta (#B600A8) and violet (#7621B0) glow, lavender (#C79BFF) highlights. Premium, cinematic, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-ia-montage',
+    montre: "Le montage : la vidéo verticale en aperçu, la timeline, la piste son, la table de mixage.",
+    ratio: '4:3',
+    job: 'd8411570-b147-4fd8-a646-b396b5737059',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205217_d8411570-b147-4fd8-a646-b396b5737059.png`,
+    prompt:
+      "Close-up of a video editor's dark monitor: a vertical video preview of the same slim drink can as the reference in the centre, and below it a multi-track editing timeline with coloured clip blocks, a glowing audio waveform track and a playhead; a small mixing desk with faders in the foreground. Abstract interface icons only. Dark studio, magenta (#B600A8) and violet (#7621B0) glow, lavender (#C79BFF) highlights. Premium, cinematic, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-ia-en-situation',
+    montre: "La vidéo finie dans le fil, sur un téléphone tenu en main en terrasse, sous-titres incrustés.",
+    ratio: '4:5',
+    job: '90265c01-390c-4c28-97a5-3941a6b9a263',
+    reference: '2fd49f57-1c91-442b-83c3-b468583a6dc0',
+    url: `${CDN}hf_20261125_205218_90265c01-390c-4c28-97a5-3941a6b9a263.png`,
+    prompt:
+      "A real person's hand holding a smartphone in a modern café at evening, the screen playing a vertical social video of the same slim drink can as the reference with bold subtitle bars (abstract shapes, no readable words) and a progress bar, social app interface icons only; warm bokeh with violet and magenta accents. Photorealistic lifestyle photograph, shallow depth of field. Hand only, no face. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+
+  // ── Atelier Noir décortiqué (concept réel de veolt.fr en référence) ───────
+  {
+    ...G,
+    nom: 'illu-an-zoning',
+    montre: "Le zoning d’Atelier Noir : la page réduite à des blocs gris sur sa grille, le stylet en main.",
+    ratio: '4:3',
+    job: '5cc58c27-5599-4a60-8e77-4361e58c94d6',
+    reference: '2d52582a-7064-4a63-b18d-0028e98def28',
+    mention: "Concept Veolt · étape illustrée IA",
+    source: 'https://veolt.fr/04-atelier-noir-parfum.jpg',
+    url: `${CDN}hf_20261125_205409_5cc58c27-5599-4a60-8e77-4361e58c94d6.png`,
+    prompt:
+      "Zoning stage of the website in the reference: on a dark designer's monitor, the same page layout reduced to plain grey wireframe blocks — a header bar, a large headline block on the left, a big rectangle where the product hero will go on the right, one button block, three feature tiles below — with thin alignment guides and a 12-column grid overlay; a hand with a stylus in soft focus. No colours except grey blocks and lavender guides on the dark screen. Dark studio, magenta (#B600A8) and violet (#7621B0) ambient light. Premium, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-an-maquette',
+    montre: "La maquette d’Atelier Noir en noir et blanc : la typographie, le flacon en héros, la palette pierre et noir.",
+    ratio: '4:3',
+    job: '8a328b9d-2995-4096-8cd4-134c58938d5e',
+    reference: '2d52582a-7064-4a63-b18d-0028e98def28',
+    mention: "Concept Veolt · étape illustrée IA",
+    source: 'https://veolt.fr/04-atelier-noir-parfum.jpg',
+    url: `${CDN}hf_20261125_205408_8a328b9d-2995-4096-8cd4-134c58938d5e.png`,
+    prompt:
+      "Mockup stage of the website in the reference: on a dark designer's monitor, the same page as a greyscale high-fidelity mockup — elegant serif headline shapes as grey bars, the black perfume bottle on stone as the hero image in black and white, section rhythm visible — next to a small colour palette panel with black, stone and warm grey swatches. Interface with abstract icons only. Dark studio, magenta (#B600A8) and violet (#7621B0) ambient light, lavender (#C79BFF) highlights. Premium, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-an-developpement',
+    montre: "Le développement : le code à gauche, la page Atelier Noir en direct à droite, la version mobile sur le téléphone.",
+    ratio: '4:3',
+    job: 'e0cfa4ed-58b8-4fe3-8c86-b61b081e94cc',
+    reference: '2d52582a-7064-4a63-b18d-0028e98def28',
+    mention: "Concept Veolt · étape illustrée IA",
+    source: 'https://veolt.fr/04-atelier-noir-parfum.jpg',
+    url: `${CDN}hf_20261125_205410_e0cfa4ed-58b8-4fe3-8c86-b61b081e94cc.png`,
+    prompt:
+      "Development stage of the website in the reference: a developer's dark ultrawide monitor split in two — on the left a code editor with colourful syntax-highlighted lines rendered as abstract coloured bars (no readable code), on the right the finished dark luxury perfumery page from the reference rendered live in a browser preview, plus a phone on the desk mirroring the same page in its mobile version. Dark studio, magenta (#B600A8) and violet (#7621B0) ambient light, lavender (#C79BFF) highlights. Premium, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+
+  // ── Concepts de sites Veolt, en situation ─────────────────────────────────
+  {
+    ...G,
+    nom: 'illu-novo-en-situation',
+    montre: "Novo, concept de vitrine de veolt.fr, ouvert sur un portable dans un bureau lumineux.",
+    ratio: '4:5',
+    job: '2aec139a-cde8-4f78-bcdb-012b2b81147d',
+    reference: 'ac098633-94cb-4434-a6d2-dfa57bdf1a26',
+    mention: "Concept Veolt · mise en situation IA",
+    source: 'https://veolt.fr/03-novo-minimal-dark.jpg',
+    url: `${CDN}hf_20261125_205407_2aec139a-cde8-4f78-bcdb-012b2b81147d.png`,
+    prompt:
+      "The minimal dark showcase website from the reference, shown live on a laptop open on a wooden desk in a bright modern studio office, a hand on the trackpad, a plant and a coffee cup nearby, window light mixed with subtle violet and magenta accents. Keep the screen layout faithful to the reference — dark, minimal, one clear headline area and one button — but with no readable text. Photorealistic photograph, shallow depth of field. Hand only, no face. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-elysia-en-situation',
+    montre: "Elysia, concept d’e-commerce de veolt.fr, sur une tablette tenue en main et sur un portable, le soir au salon.",
+    ratio: '4:5',
+    job: '20aaf01a-c992-4206-b7b7-a14e08e5fcda',
+    reference: '0669d4a6-1095-4db4-b660-6d522957729c',
+    mention: "Concept Veolt · mise en situation IA",
+    source: 'https://veolt.fr/01-elysia-ecommerce-tech.jpg',
+    url: `${CDN}hf_20261125_205443_20aaf01a-c992-4206-b7b7-a14e08e5fcda.png`,
+    prompt:
+      "The light e-commerce website from the reference — product categories, product cards with headphones and watches, a clean hero banner — shown live on a tablet held in two hands on a sofa at evening, and the same shop on a laptop on the coffee table; warm interior light with subtle violet and magenta accents. Keep the screen layout faithful to the reference but with no readable text. Photorealistic lifestyle photograph, shallow depth of field. Hands only, no faces. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    ...G,
+    nom: 'illu-espace-client',
+    montre: "Un espace client : l’appel de cadrage réservé, le devis prêt, les étapes du projet ; une notification sur le téléphone.",
+    ratio: '4:3',
+    job: 'a581d1de-08e2-4300-ae8c-9f8470b300b0',
+    url: `${CDN}hf_20261125_205445_a581d1de-08e2-4300-ae8c-9f8470b300b0.png`,
+    prompt:
+      "A laptop on a dark desk showing a client space dashboard in a dark interface: a calendar card with one booked call slot highlighted in magenta, a document card for a quote with a status pill, and a project progress timeline with three steps; a phone beside it showing a notification banner (abstract bars). Interface with abstract icons only. Dark studio, magenta (#B600A8) and violet (#7621B0) glow, lavender (#C79BFF) highlights. Premium, sharp. No readable text, no letters, no numbers, no logo, no watermark.",
+  },
+  {
+    nom: 'veolt-wealth',
+    montre: 'Wealth, concept de site animé de veolt.fr : le titre centré, le bouton, la courbe de lumière qui traverse la page.',
+    ratio: '4:3',
+    outil: 'Capture veolt.fr',
+    modele: 'image tirée de la vidéo du portfolio (wealth_marquee.mp4, 640 × 456)',
+    job: 'capture-2026-11-25',
+    url: '/pack/veolt-wealth.jpg',
+    date: '2026-11-25',
+    source: 'https://veolt.fr/wealth_marquee.mp4',
+    mention: 'Capture réelle · concept Veolt',
+    prompt: 'Aucun : image réelle tirée de la vidéo du concept Wealth sur veolt.fr, le 25/11/2026.',
+  },
+
+  // ── Première version des étapes du pipeline (l’objet seul) : gardée en appoint ─
+  {
+    ...G,
+    nom: 'illu-3d-modelisation-objet',
+    montre: 'Le flacon en maillage filaire lavande sur une grille : la forme exacte, reconstruite.',
+    ratio: '4:3',
+    job: FLACON,
+    url: `${CDN}hf_20261125_195137_dc5d360d-0bfc-451b-b193-16cbee7d143a.png`,
+    prompt:
+      '(Prompt d’origine non recopié — génération du 25/11/2026, 19:51.) Scène : le flacon de référence en maillage filaire, étape « modélisation » ; c’est l’image de référence des six étapes suivantes.',
+  },
+  {
+    ...G,
+    nom: 'illu-3d-materiaux-objet',
+    montre: 'Le même flacon en argile grise, à côté de quatre sphères de matières : verre dépoli, chrome, noir mat, laque violette.',
+    ratio: '4:3',
+    job: '4bdf1b14-3ac5-42c6-8403-6ed0b29e4b81',
+    reference: FLACON,
+    url: `${CDN}hf_20261125_195327_4bdf1b14-3ac5-42c6-8403-6ed0b29e4b81.png`,
+    prompt:
+      'Materials stage of the same perfume bottle as the reference (same faceted cap and same shape): the bottle now shown as a clean grey clay model, next to a neat row of four material preview spheres (frosted glass, brushed chrome, matte black, glossy violet lacquer) on a dark surface. Magenta (#B600A8) and violet (#7621B0) rim light, lavender (#C79BFF) highlights, black background. Premium CGI look-development breakdown. No text, no letters, no UI labels, no logo, no watermark.',
+  },
+  {
+    ...G,
+    nom: 'illu-3d-eclairage-objet',
+    montre: 'Le flacon en verre sur une scène noire, entouré de boîtes à lumière et de faisceaux magenta et violets.',
+    ratio: '4:3',
+    job: '4eebd057-4197-4cdb-b14f-5cbaf38f67d5',
+    reference: FLACON,
+    url: `${CDN}hf_20261125_195326_4eebd057-4197-4cdb-b14f-5cbaf38f67d5.png`,
+    prompt:
+      'Lighting stage of the same perfume bottle as the reference (same faceted cap and same shape), now in glass with materials applied, standing on a black stage surrounded by virtual softboxes and a strip light, visible volumetric light cones in magenta (#B600A8) and violet (#7621B0), dramatic lavender (#C79BFF) highlights on the glass. Cinematic CGI lighting breakdown. No text, no letters, no UI labels, no logo, no watermark.',
+  },
+  {
+    ...G,
+    nom: 'illu-3d-camera-objet',
+    montre: 'Une caméra virtuelle et son champ de vision pointés sur le flacon : on cadre comme un photographe.',
+    ratio: '4:3',
+    job: 'de8186d6-fd23-449c-acae-ae6ac7134faf',
+    reference: FLACON,
+    url: `${CDN}hf_20261125_195326_de8186d6-fd23-449c-acae-ae6ac7134faf.png`,
+    prompt:
+      'Camera stage of the same perfume bottle as the reference (same faceted cap and same shape), lit in glass, with a stylised virtual camera and its translucent view frustum pointing at it from a low three-quarter angle, a thin lavender (#C79BFF) focus line, magenta (#B600A8) accent lighting, shallow depth of field, black background. Elegant CGI breakdown. No text, no letters, no UI labels, no logo, no watermark.',
+  },
+  {
+    ...G,
+    nom: 'illu-3d-animation-objet',
+    montre: 'Le flacon fini en rotation, avec ses traînées de lumière et les silhouettes de ses positions clés.',
+    ratio: '4:3',
+    job: FLACON_FINI,
+    reference: FLACON,
+    url: `${CDN}hf_20261125_195328_037e2cf9-dad0-4d9b-a988-2e1b1f96d99c.png`,
+    prompt:
+      'Animation stage of the same perfume bottle as the reference (same faceted cap and same shape), finished glass and chrome, captured mid-rotation with elegant motion-blur light trails in magenta (#B600A8) and violet (#7621B0) sweeping around it, faint ghosted keyframe silhouettes showing the motion path, black background. Dynamic, premium CGI. No text, no letters, no UI labels, no logo, no watermark.',
+  },
+  {
+    ...G,
+    nom: 'illu-3d-rendu-objet',
+    montre: 'Le flacon en cours de calcul : l’image se résout tuile par tuile, certaines encore noires.',
+    ratio: '4:3',
+    job: '17702802-069f-4ba0-83da-3aae2e656bf3',
+    reference: FLACON_FINI,
+    url: `${CDN}hf_20261125_195810_17702802-069f-4ba0-83da-3aae2e656bf3.png`,
+    prompt: promptVeolt(
+      'Rendering stage of the same perfume bottle as the reference (same faceted cap, same glass shape): the final photoreal hero shot being computed, the image partly resolved in clean square render tiles, some tiles still dark and empty, as in a progressive bucket render',
+    ).replace('no numbers,', 'no numbers, no UI labels,'),
+  },
+  {
+    ...G,
+    nom: 'illu-3d-etalonnage-objet',
+    montre: 'Trois fois le même flacon, étalonné en argent froid, en neutre et en magenta chaud.',
+    ratio: '4:3',
+    job: 'd5aa593e-43f2-4fc8-a473-557d92fd7a51',
+    reference: FLACON_FINI,
+    url: `${CDN}hf_20261125_195809_d5aa593e-43f2-4fc8-a473-557d92fd7a51.png`,
+    prompt: promptVeolt(
+      'Colour-grading stage of the same perfume bottle as the reference (same faceted cap, same glass shape): three identical hero shots of the bottle side by side, each with a different colour grade — cool silver, neutral, and warm magenta — like a film grading comparison',
+    ).replace('no numbers,', 'no numbers, no UI labels,'),
+  },
+
   // ── Démonter un chiffre ───────────────────────────────────────────────────
   {
     ...G,
@@ -470,6 +836,64 @@ export const PLACEMENTS: Placement[] = [
 
   // Pourquoi nous donnons l'analyse avant de vendre
   { entite: 'veolt', sujet: 'v-pp-2', image: 'illu-analyse-remise', role: 'couverture' },
+
+  // ── Séries du 25/11/2026 (sujets-series-veolt.ts) ──────────────────────────
+  // De la demande au devis — captures réelles de veolt.fr
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, le questionnaire' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, vos objectifs' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'illu-espace-client', role: 'page', debut: 'Étape 4, votre espace client' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'page', debut: 'Étape 5, le devis' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-3', role: 'page', debut: 'De votre côté, en vrai' },
+
+  // Nos packs vidéo — captures réelles de veolt.fr
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-starter', role: 'page', debut: 'Starter, 499' },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'illu-ia-montage', role: 'page', debut: 'Creator, 899' },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'page', debut: 'Business, 1 799' },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-tarifs', role: 'page', debut: 'Sur veolt.fr, en vrai' },
+
+  // Une vidéo fabriquée avec l'IA
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-prompt', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-canette-esquisse', role: 'page', debut: 'Étape 1, le script' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-prompt', role: 'page', debut: 'Étape 2, le prompt', cadrage: { x: 0.62, y: 0.3, zoom: 1.5 } },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-tri', role: 'page', debut: 'Étape 3, la génération' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-tri', role: 'page', debut: 'Étape 4, le tri', cadrage: { x: 0.36, y: 0.38, zoom: 1.6 } },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-montage', role: 'page', debut: 'Étape 5, le montage' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-montage', role: 'page', debut: 'Étape 6, le son', cadrage: { x: 0.5, y: 0.72, zoom: 1.6 } },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-en-situation', role: 'page', debut: 'Le résultat, en situation' },
+
+  // Atelier Noir, décortiqué
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-atelier-noir-en-boutique', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-zoning', role: 'page', debut: 'Le zoning' },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-maquette', role: 'page', debut: 'La maquette' },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-developpement', role: 'page', debut: 'Le développement' },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-developpement', role: 'page', debut: 'Le mobile', cadrage: { x: 0.86, y: 0.72, zoom: 2.0 } },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-atelier-noir-en-boutique', role: 'page', debut: 'Le site, en situation' },
+
+  // Une canette, de l'esquisse à la pub
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-coloris', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-esquisse', role: 'page', debut: 'L’esquisse' },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-modele', role: 'page', debut: 'Le modèle 3D' },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-etiquette', role: 'page', debut: 'L’étiquette' },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-coloris', role: 'page', debut: 'Les déclinaisons' },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-en-main', role: 'page', debut: 'Le rendu', cadrage: { x: 0.62, y: 0.45, zoom: 1.5 } },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-en-main', role: 'page', debut: 'La canette, en situation' },
+
+  // L'analyse gratuite — captures réelles
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'illu-analyse-remise', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, votre secteur' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, où en est le projet' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-3', role: 'page', debut: 'Étape 3, vos besoins' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'illu-analyse-remise', role: 'page', debut: 'Ce que vous recevez' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-demarrage', role: 'page', debut: 'Sur veolt.fr, en vrai' },
+
+  // Trois concepts Veolt décortiqués
+  { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-elysia-en-situation', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-novo-en-situation', role: 'page', debut: 'Novo, la vitrine' },
+  { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-elysia-en-situation', role: 'page', debut: 'Elysia, l’e-commerce' },
+  { entite: 'veolt', sujet: 'v-vf-7', image: 'veolt-wealth', role: 'page', debut: 'Wealth, le site animé' },
+  { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-atelier-noir-en-boutique', role: 'page', debut: 'À l’arrivée, un site en ligne' },
 ];
 
 /**
@@ -502,6 +926,8 @@ export const imagePack = (nom: string) => IMAGES_PACK.find((x) => x.nom === nom)
 
 /** La mention posée dans le cadre de l'image. */
 export const mentionDe = (nom: string) => imagePack(nom)?.mention ?? 'Illustration IA';
+
+export const formeDe = (nom: string) => imagePack(nom)?.forme;
 
 /** Les placements d'un sujet : la couverture d'abord, puis les pages dans l'ordre du registre. */
 export function placementsDe(entite: string, sujet: string | null | undefined): Placement[] {
