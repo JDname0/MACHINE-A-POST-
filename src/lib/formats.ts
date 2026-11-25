@@ -103,7 +103,7 @@ export const FORMATS: Record<FormatSlug, FormatSpec> = {
     utileMax: 600,
     accrocheMax: 210,
     accrocheLibelle: 'texte du post, visible avant « voir plus »',
-    visuel: '8 à 10 pages, 1 080 × 1 350 (4:5) ou carré, exporté en PDF.',
+    visuel: '6 à 8 pages (Veolt : 7 au plus, une image par page — consignes du studio, 25/11/2026), 1 080 × 1 350 (4:5) ou carré, exporté en PDF.',
     ossature: [
       { nom: 'Page 1 — titre', consigne: 'Le titre = la promesse. Lisible en vignette, 6 à 10 mots.', limite: 80 },
       { nom: 'Page 2 — problème', consigne: 'Le problème, en une phrase et un chiffre.' },

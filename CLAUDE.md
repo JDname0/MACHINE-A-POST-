@@ -549,3 +549,36 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
 - **Pas d'emoji à l'image** : ni dans les visuels (`sousTitre` nettoyé), ni dans
   le texte des plans vidéo (`phrases()`, `montage.ts`) — les polices de titre
   n'ont pas les glyphes, ils sortaient en « �� ».
+
+## Repassage du 25/11/2026 (23 h) : court, illustré, supervisé
+
+- **Consignes du studio** (`src/lib/consignes-studio.ts`) : toutes les demandes
+  de Jonathan, écrites une fois (règle + pourquoi), lues par l'IA (`ia.ts`,
+  `consignesPourIA`), par le prompt des images (`promptDeclaratif`, charte v2
+  `CHARTE_PROMPT_VEOLT_V2`) et par le superviseur. Une consigne ajoutée là
+  s'applique partout au prochain passage.
+- **Carrousels Veolt : 7 pages au plus**, une image par page, plus de page
+  « À retenir ». Version courte dans `carrousels-veolt.ts` ; la première
+  version (10 à 12 pages) reste dans `carrousels-veolt-v1.ts` pour reconnaître
+  les brouillons non retouchés : `raccourcirCarrousels` (`db.ts`) les passe à
+  la version courte (brouillon **et** à relire, jamais validé), tracé au journal
+  « carrousel : version courte ». `fabriquer(…, { carrouselV1 })` refait l'ancienne.
+  `poserSeriesVeolt` reconnaît les deux versions.
+- **Mise en forme** : `*mots*` dans le texte d'une page → mis en valeur à
+  l'image (`TexteRiche`, lavande + souligné) ; `nu()` les retire partout
+  ailleurs. Un ou deux par page. `coupe.ts` ne finit plus une ligne de titre
+  sur un petit mot.
+- **22 images déclaratives** (Higgsfield, 4:3, charte v2) au registre, une
+  par page des carrousels courts ; nouvelles couvertures (v-dc-3, v-vf-4,
+  v-vf-5, v-vf-7). Importées comme les autres (Visuels → Importer).
+- **Vidéos : aucun plan texte seul.** Les plans « chiffre / liste / titre
+  centré » des scripts v-vf-* sont devenus des captures réelles ou des images ;
+  une capture avec `cadrage.zoom > 1` est **animée** (la caméra avance vers le
+  bloc utile, sans déborder sur le texte, `fabrique-video.ts`). Script
+  `vid-v-pp-2`. Écran de fin Veolt : 3 s au plus (`montage.ts`).
+- **Superviseur qualité** (`superviseur.ts`, page `/[entite]/qualite`, audit
+  JSON `/[entite]/qualite/audit`) : relit tous les posts à venir (pages,
+  images manquantes ou non importées, plans texte seul, figures d'article,
+  tics « IA »), montre les rendus semaine par semaine. Lecture seule.
+- **Garde-fou 15** : tics d'écriture « IA » (alerte).
+- Veille et propositions classées : `PROPOSITIONS-TENDANCES-2026.md`.

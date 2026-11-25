@@ -492,11 +492,14 @@ function raccourcirCarrousels(d: Base): number {
     const s = sujet(p.sujet_ref);
     if (!s) continue;
     const fmt = p.format_slug as Parameters<typeof fabriquer>[1];
-    const anciens = [fabriquer(s, fmt, 'veolt', { carrouselV1: true }), fabriquer(s, fmt, 'veolt', { carrouselV1: true, sansVoix: true })].map(cle);
+    // La première version du carrousel, écrite sur le sujet actuel ou sur sa
+    // version précédente (`sujets-revisions.ts`, ex. un titre corrigé).
+    const sujets = [s, REVISIONS_SUJETS[p.sujet_ref]].filter((x): x is NonNullable<typeof x> => !!x);
+    const anciens = sujets.flatMap((x) => [fabriquer(x, fmt, 'veolt', { carrouselV1: true }), fabriquer(x, fmt, 'veolt', { carrouselV1: true, sansVoix: true })]).map(cle);
     if (!anciens.includes(cle(p as never))) continue;
     const b = fabriquer(s, fmt, 'veolt');
     if (cle(b) === cle(p as never)) continue;
-    d.prepare("UPDATE publications SET accroche=?, corps=?, appel=?, maj_le=datetime('now') WHERE id=?").run(b.accroche, b.corps, b.appel, p.id);
+    d.prepare("UPDATE publications SET titre=?, accroche=?, corps=?, appel=?, maj_le=datetime('now') WHERE id=?").run(b.titre ?? p.titre, b.accroche, b.corps, b.appel, p.id);
     const n = (b.corps.match(/^PAGE \d+/gm) ?? []).length;
     d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
       'veolt',
@@ -518,6 +521,13 @@ function appliquerRevisions(d: Base): number {
   for (const [ref, ancien] of Object.entries(REVISIONS_SUJETS)) {
     const s = sujet(ref);
     if (!s) continue;
+    // Un titre corrigé suit sur les posts pas encore validés qui portent l'ancien.
+    if (ancien.titre !== s.titre) {
+      const r = d
+        .prepare("UPDATE publications SET titre=?, maj_le=datetime('now') WHERE sujet_ref=? AND titre=? AND statut IN ('brouillon','a-relire')")
+        .run(s.titre, ref, ancien.titre);
+      if (r.changes) d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(s.ref.startsWith('m-') ? 'magistria' : 'veolt', 'titre revu', `${r.changes} post(s) du sujet ${ref} : « ${ancien.titre} » → « ${s.titre} »`);
+    }
     const posts = d.prepare("SELECT * FROM publications WHERE sujet_ref=? AND statut='brouillon'").all(ref) as Array<Record<string, string | null> & { id: number }>;
     for (const p of posts) {
       const fmt = p.format_slug as Parameters<typeof fabriquer>[1];

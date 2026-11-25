@@ -954,6 +954,11 @@ async function preparerRendu(m: Montage) {
     // lieu d'un texte qui défile. Le point visé glisse vers le centre du cadre.
     const cad = plans[i].cadrage;
     if (telephone && cad && cad.zoom > 1) {
+      // La caméra avance à l'intérieur de la zone de l'image : rien ne déborde
+      // sur le texte du plan, posé en dessous.
+      cx.beginPath();
+      cx.rect(0, 0, L, c.y + c.h + Math.round(H * 0.012));
+      cx.clip();
       const v = Math.max(0, Math.min(1, (tl - 0.9) / Math.max(0.6, duree - 1.5)));
       const ev = v * v * (3 - 2 * v);
       const pz = 1 + (Math.min(2.2, cad.zoom) - 1) * ev;

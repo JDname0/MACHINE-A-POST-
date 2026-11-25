@@ -171,7 +171,7 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPages
         appel: s.appel,
         hashtags,
         consignesVisuel: [
-          `${pages.length} pages — la fourchette utile est 8 à 10.`,
+          entite === 'veolt' ? `${pages.length} pages — 7 au plus, une image par page (consignes du studio).` : `${pages.length} pages — la fourchette utile est 6 à 8.`,
           formatSlug === 'li-carrousel' ? '1 080 × 1 350 (4:5), exporté en PDF.' : '1 080 × 1 350.',
           'Une idée par page. Le titre de page 1 doit être lisible en vignette.',
           `Texte du post, court (${f.utileMin}–${f.utileMax}) : ${tronquer(texteCourt, f.utileMax)}`,

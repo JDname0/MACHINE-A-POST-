@@ -87,7 +87,7 @@ export const SUJETS: Record<EntiteSlug, Sujet[]> = {
     },
     {
       ref: 'v-mt-3',
-      titre: 'Un pipeline 3D de bout en bout, en dix pages',
+      titre: 'Un pipeline 3D de bout en bout, en sept étapes',
       pilier: 'montrer-le-travail',
       persona: 'marque-produit',
       accroche: "Du brief au rendu final : les sept étapes d'une publicité 3D produit, avec ce que chacune coûte en temps.",
