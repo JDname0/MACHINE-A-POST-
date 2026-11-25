@@ -101,6 +101,21 @@ laissés par l'IA bloquent la validation. La page calendrier exporte
 
 ## Production
 
+**Depuis le 25/11/2026, la production est https://post.veolt.fr** (o2switch,
+section « Hébergement o2switch » plus bas, pas à pas dans
+`MISE-EN-LIGNE-O2SWITCH.md`). Déploiement **à la main** depuis le Mac, sous
+Node 22 : `deploy/o2switch/deployer.sh`. Un push ne met rien en ligne chez
+o2switch. La branche `hebergement/o2switch` a été fusionnée dans `main` le
+25/11 : partir de `main` pour toute suite.
+
+**Vercel (historique)** : l'équipe Hobby est suspendue depuis le 20/11/2026
+(`FAIR_USE_LIMITS_EXCEEDED`, dépassement du transfert « Fast Origin Transfer »,
+surtout les médias servis par la fonction). Réouverture automatique prévue le
+**20/12/2026**, avec la base Blob du 19/11, donc **périmée** par rapport à
+o2switch. Tant que le dépôt reste relié au projet Vercel, un push sur `main`
+y déclenche encore un déploiement. Ce qui suit décrit ce mode Vercel, toujours
+pris en charge par le code (sans `MAP_STOCKAGE`).
+
 - **URL** : https://machine-a-post.vercel.app — équipe `jonathandubost-heticnets-projects`.
 - **Déploiement : automatique à chaque push sur `main`.** Le projet Vercel est
   relié au dépôt GitHub `JDname0/MACHINE-A-POST-` (alias
