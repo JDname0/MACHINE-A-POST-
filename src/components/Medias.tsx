@@ -16,7 +16,11 @@ import {
 } from '@/lib/medias';
 import { importerMedia, majMedia, supprimerMedia } from '@/app/actions';
 import { DepotMedias } from '@/components/DepotMedias';
-import { LienTemporaire } from '@/components/LienTemporaire';
+import { LienPartage } from '@/components/LienPartage';
+import { liensPartageActifs } from '@/lib/requetes';
+import { role } from '@/lib/auth';
+import { adresseDepuisEntetes } from '@/lib/adresse';
+import { headers } from 'next/headers';
 import { format } from '@/lib/formats';
 
 /**
@@ -37,6 +41,10 @@ import { format } from '@/lib/formats';
  */
 export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; posees?: string; refus?: string }) {
   const fichiers = mediasDe(entite);
+  // Liens de partage : actifs par média, adresse publique de l'outil, et qui a le droit d'en créer.
+  const liens = liensPartageActifs(entite);
+  const base = adresseDepuisEntetes(await headers());
+  const permisPartage = (await role()) === 'direction';
   const publications = publicationsPourChoix(entite);
   const stockage = etatMedias();
   const direct = depotDirect();
@@ -286,7 +294,7 @@ export async function Medias({ entite, posees, refus }: { entite: EntiteSlug; po
                   </a>
                 </div>
 
-                <LienTemporaire entite={entite} id={m.id} />
+                <LienPartage entite={entite} id={m.id} liens={liens.get(m.id) ?? []} base={base} permis={permisPartage} />
 
                 <details style={{ marginTop: 11 }}>
                   <summary style={{ fontSize: 12.5 }}>Modifier ou supprimer</summary>

@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { estEntite } from '@/lib/marques';
 import { connecte } from '@/lib/auth';
-import { lireFlux, lienSigne } from '@/lib/medias';
+import { lireFlux, lienSigne, TYPES_SERVIS } from '@/lib/medias';
 
 /**
  * Sert une image déposée.
@@ -16,19 +16,8 @@ import { lireFlux, lienSigne } from '@/lib/medias';
  * été écrite de travers, ce qui ferait de la médiathèque un hébergeur de page.
  */
 
-const TYPES_SERVIS = new Set([
-  'image/png',
-  'image/jpeg',
-  'image/webp',
-  'image/gif',
-  'video/mp4',
-  'video/quicktime',
-  'video/webm',
-  'audio/mpeg',
-  'audio/wav',
-  // Un carrousel LinkedIn fait ailleurs arrive en PDF (post fourni).
-  'application/pdf',
-]);
+// Liste blanche partagée avec la route des liens de partage : voir medias.ts.
+
 
 export async function GET(requete: Request, { params }: { params: Promise<{ entite: string; id: string }> }) {
   const { entite, id } = await params;

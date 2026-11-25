@@ -311,3 +311,104 @@ export function semaineDuCalendrier(entite: EntiteSlug, date: string): number | 
     .get(entite, lundi.toISOString().slice(0, 10), dimanche.toISOString().slice(0, 10)) as { semaine: number } | undefined;
   return r?.semaine ?? null;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Journal complet, filtrable (page /[entite]/journal, 25/11/2026)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type FiltresJournal = { qui?: string; du?: string; au?: string; action?: string; q?: string; page?: number };
+
+export type LigneJournal = { id: number; le: string; action: string; detail: string | null; auteur: string | null; entite: string | null };
+
+/** Décalage de Paris (en minutes) à une date donnée : +60 l'hiver, +120 l'été. */
+function decalageParis(d: Date): number {
+  const morceaux = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Paris', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).formatToParts(d);
+  const v = (t: string) => Number(morceaux.find((m) => m.type === t)?.value);
+  return (Date.UTC(v('year'), v('month') - 1, v('day'), v('hour'), v('minute')) - d.getTime()) / 60000;
+}
+
+/** Un jour « AAAA-MM-JJ » de Paris → l'instant UTC de son début (ou du lendemain), au format du journal. */
+function borneUtc(jour: string, lendemain = false): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(jour);
+  if (!m) return null;
+  const midiUtc = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + (lendemain ? 1 : 0), 12));
+  const debut = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + (lendemain ? 1 : 0)) - decalageParis(midiUtc) * 60000;
+  return new Date(debut).toISOString().replace('T', ' ').slice(0, 19);
+}
+
+/** Une ligne du journal (horodatée en UTC par SQLite) lue à l'heure de Paris. */
+export function heureParis(le: string): string {
+  return new Date(`${le.replace(' ', 'T')}Z`).toLocaleString('fr-FR', {
+    timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+export const PAR_PAGE_JOURNAL = 100;
+
+/**
+ * Le journal d'une entité (et les lignes communes, sans entité), filtré. La
+ * cloison tient : jamais une ligne de l'autre entité.
+ */
+export function journalFiltre(entite: EntiteSlug, f: FiltresJournal) {
+  const d = db();
+  const conds = ['(entite = ? OR entite IS NULL)'];
+  const args: Array<string | number> = [entite];
+  if (f.qui === 'direction' || f.qui === 'equipe') {
+    conds.push('auteur = ?');
+    args.push(f.qui);
+  } else if (f.qui === 'machine') {
+    conds.push('auteur IS NULL');
+  }
+  const du = f.du ? borneUtc(f.du) : null;
+  if (du) {
+    conds.push('le >= ?');
+    args.push(du);
+  }
+  const au = f.au ? borneUtc(f.au, true) : null;
+  if (au) {
+    conds.push('le < ?');
+    args.push(au);
+  }
+  if (f.action) {
+    conds.push('action = ?');
+    args.push(f.action);
+  }
+  const q = (f.q ?? '').trim().slice(0, 100);
+  if (q) {
+    conds.push('(action LIKE ? OR detail LIKE ?)');
+    args.push(`%${q}%`, `%${q}%`);
+  }
+  const ou = conds.join(' AND ');
+  const page = Math.max(1, Math.floor(f.page ?? 1));
+  const total = (d.prepare(`SELECT COUNT(*) AS n FROM journal WHERE ${ou}`).get(...args) as { n: number }).n;
+  const parAuteur = d
+    .prepare(`SELECT COALESCE(auteur, 'machine') AS qui, COUNT(*) AS n FROM journal WHERE ${ou} GROUP BY 1`)
+    .all(...args) as Array<{ qui: string; n: number }>;
+  const lignes = d
+    .prepare(`SELECT id, le, action, detail, auteur, entite FROM journal WHERE ${ou} ORDER BY id DESC LIMIT ? OFFSET ?`)
+    .all(...args, PAR_PAGE_JOURNAL, (page - 1) * PAR_PAGE_JOURNAL) as LigneJournal[];
+  const actions = d
+    .prepare('SELECT action, COUNT(*) AS n FROM journal WHERE (entite = ? OR entite IS NULL) GROUP BY action ORDER BY action')
+    .all(entite) as Array<{ action: string; n: number }>;
+  return { total, parAuteur, lignes, actions, page, pages: Math.max(1, Math.ceil(total / PAR_PAGE_JOURNAL)) };
+}
+
+/** Liens de partage encore valables (ni expirés, ni révoqués), par média. */
+export function liensPartageActifs(entite: EntiteSlug): Map<number, Array<{ id: number; jeton: string; duree: string; expire_le: string | null; cree_le: string }>> {
+  const lignes = db()
+    .prepare(
+      `SELECT id, media_id, jeton, duree, expire_le, cree_le FROM liens_partage
+       WHERE entite=? AND revoque_le IS NULL AND (expire_le IS NULL OR expire_le > datetime('now'))
+       ORDER BY id DESC`,
+    )
+    .all(entite) as Array<{ id: number; media_id: number; jeton: string; duree: string; expire_le: string | null; cree_le: string }>;
+  const parMedia = new Map<number, Array<{ id: number; jeton: string; duree: string; expire_le: string | null; cree_le: string }>>();
+  for (const l of lignes) {
+    const { media_id, ...reste } = l;
+    parMedia.set(media_id, [...(parMedia.get(media_id) ?? []), reste]);
+  }
+  return parMedia;
+}
+

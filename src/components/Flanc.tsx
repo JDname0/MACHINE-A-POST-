@@ -17,6 +17,7 @@ const PAGES = [
   ['indicateurs', 'Indicateurs'],
   ['terrain', 'Terrain'],
   ['rapport', 'Rapport mensuel'],
+  ['journal', 'Journal — qui a fait quoi'],
 ] as const;
 
 export async function Flanc({

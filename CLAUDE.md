@@ -362,7 +362,7 @@ pas de table de comptes.
   déconnecter Jonathan. Sans la variable, le compte n'existe pas.
 - **Refusé à l'équipe côté serveur** (`exigerSession()` renvoie le rôle) :
   valider (`changerStatut`, `trancher`), `publierParApi`, `declarerAuTerrain`,
-  `creerLienTemporaire`, marquer publié un post non validé. Les pages
+  `creerLienPartage` / `revoquerLienPartage`, marquer publié un post non validé. Les pages
   masquent ces boutons et le disent ; le serveur refuse quand même un
   formulaire forcé (testé).
 - **Un post validé que l'équipe modifie repasse « à relire »**
@@ -376,3 +376,31 @@ pas de table de comptes.
   Comptes dit si le compte équipe est créé et comment le gérer.
 - Toute **nouvelle action** commence par `const qui = await exigerSession();`
   et se demande si elle est un geste de la direction.
+
+## Journal complet et liens de partage (25/11/2026)
+
+- **Page Journal** (`/[entite]/journal`, menu « Journal — qui a fait quoi ») :
+  tout le journal de l'entité et les lignes communes (jamais l'autre entité),
+  100 par page, filtres **qui** (Jonathan, Équipe, la machine), **du / au**
+  (jours de Paris, convertis en bornes UTC — `le` est en UTC), **type
+  d'action**, **mot**. Heures affichées à l'heure de Paris (`heureParis`).
+  Lecture seule. `journalFiltre()` dans `requetes.ts`.
+- **Liens de partage** (`LienPartage.tsx`, table `liens_partage`, route
+  publique `/p/<jeton>`) : 2 heures, 30 jours ou **permanent**, révocables un
+  par un, réservés à la direction, tracés au journal. Jeton aléatoire en base
+  (pas une signature) : révoquer un lien ne touche ni les autres liens ni les
+  sessions. Lien révoqué, expiré ou inventé : même 404. La route ne sert que
+  le fichier désigné, types de `TYPES_SERVIS` (`medias.ts`), `noindex`.
+  Le lien signé de 2 heures envoyé à Instagram / TikTok par `publierParApi`
+  est un autre mécanisme (`lienPublic`) et n'a pas à durer.
+- `creerPublication` refuse un doublon format × pilier le même jour avec un
+  message et le lien du post existant (la contrainte UNIQUE produisait une
+  page d'erreur, relevé par le balayage des boutons du 25/11).
+- **Vérifié le 25/11 sur la copie conforme du serveur** : chaque bouton de
+  chaque page cliqué une fois, comptes direction et équipe (aucune 5xx hors
+  le doublon corrigé) ; essais ciblés : copier le texte, visuel PNG, PDF du
+  carrousel, rappels .ics, rapport CSV, article du plan, glisser-déposer,
+  import, dépôt médiathèque par morceaux, liens de partage, **vidéo fabriquée
+  dans le navigateur puis envoyée au serveur** (H.264 1080 × 1920, 25 s).
+  Le son est en AAC si le navigateur sait l'encoder (Chrome sur Mac /
+  Windows), sinon en Opus : fabriquer les vidéos dans Chrome.

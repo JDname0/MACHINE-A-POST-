@@ -15,10 +15,10 @@ export default async function Publications({
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ statut?: string; reseau?: string }>;
+  searchParams: Promise<{ statut?: string; reseau?: string; doublon?: string; date?: string }>;
 }) {
   const { entite } = await params;
-  const { statut, reseau } = await searchParams;
+  const { statut, reseau, doublon, date: dateDoublon } = await searchParams;
   const e = entite as EntiteSlug;
   const m = marque(e);
   const liste = publications(e, { statut, reseau });
@@ -45,7 +45,18 @@ export default async function Publications({
           </p>
         </header>
 
-        <details className="carte" style={{ marginBottom: 16 }}>
+        {doublon ? (
+          <p role="alert" className="encart" style={{ marginBottom: 12 }}>
+            ✖ Rien n&apos;a été créé : un post du même format et du même pilier existe déjà
+            {dateDoublon ? ` le ${dateDoublon.split('-').reverse().join('/')}` : ' ce jour-là'}.{' '}
+            <Link className="lien-accent" href={`/${e}/publications/${Number(doublon)}`}>
+              Ouvrir ce post
+            </Link>{' '}
+            — ou choisis une autre date, un autre format ou un autre sujet.
+          </p>
+        ) : null}
+
+        <details className="carte" style={{ marginBottom: 16 }} open={Boolean(doublon)}>
           <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
             Créer une publication hors calendrier
           </summary>

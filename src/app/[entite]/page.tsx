@@ -314,7 +314,12 @@ export default async function TableauDeBord({ params }: { params: Promise<{ enti
 
           <div className="carte">
             <h3>Journal</h3>
-            <p style={{ marginBottom: 12 }}>Tout ce que la machine a fait. Elle ne fait rien qui ne soit pas là.</p>
+            <p style={{ marginBottom: 12 }}>
+              Tout ce que la machine a fait. Elle ne fait rien qui ne soit pas là.{' '}
+              <Link className="lien-accent" href={`/${e}/journal`}>
+                Tout le journal, filtrable par personne et par jour →
+              </Link>
+            </p>
             <div className="pile">
               {s.journal.map((j, i) => (
                 <div key={i} style={{ fontSize: 12.5, color: 'var(--encre-dim)' }}>

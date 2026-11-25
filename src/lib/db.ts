@@ -212,6 +212,20 @@ function schema(d: Base) {
     -- Commentaires de validation (ajout du 18/11/2026) : le fil d'échange sur
     -- un post entre celui qui l'écrit et celui qui le valide. Un commentaire
     -- ne modifie jamais le post ; « résolu » le range sans l'effacer.
+    -- Liens de partage d'un média (25/11/2026) : 2 h, 30 jours ou permanents,
+    -- révocables un par un. Le jeton est aléatoire ; la route publique /p/<jeton>
+    -- sert le fichier tant que le lien n'est ni expiré ni révoqué.
+    CREATE TABLE IF NOT EXISTS liens_partage (
+      id INTEGER PRIMARY KEY,
+      entite TEXT NOT NULL,
+      media_id INTEGER NOT NULL REFERENCES medias(id) ON DELETE CASCADE,
+      jeton TEXT NOT NULL UNIQUE,
+      duree TEXT NOT NULL,
+      expire_le TEXT,
+      revoque_le TEXT,
+      cree_le TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS commentaires (
       id INTEGER PRIMARY KEY,
       publication_id INTEGER NOT NULL REFERENCES publications(id) ON DELETE CASCADE,

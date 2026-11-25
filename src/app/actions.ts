@@ -1229,6 +1229,14 @@ export async function creerPublication(fd: FormData) {
   const s = ref ? sujet(ref) : undefined;
   const pilier = String(fd.get('pilier') ?? '') || s?.pilier || sujetsDe(entite as 'veolt' | 'magistria')[0].pilier;
 
+  // Un seul post par jour pour un même format et un même pilier (contrainte
+  // de la base) : le dire, avec le lien vers celui qui existe, plutôt que de
+  // laisser la base refuser avec une page d'erreur (relevé le 25/11/2026).
+  const existe = db()
+    .prepare('SELECT id FROM publications WHERE entite=? AND date_prevue=? AND format_slug=? AND pilier=?')
+    .get(entite, date, formatSlug, pilier) as { id: number } | undefined;
+  if (existe) redirect(`/${entite}/publications?doublon=${existe.id}&date=${encodeURIComponent(date)}`);
+
   let titre = String(fd.get('titre') ?? '') || 'Sans titre';
   let b = { accroche: '', corps: '', appel: '', hashtags: '', consignesVisuel: [] as string[] };
   if (s) {
@@ -1708,33 +1716,59 @@ export async function deposerVideoMontee(fd: FormData) {
 }
 
 /**
- * Fabrique une adresse publique et datée pour un fichier de la médiathèque.
+ * Lien de partage d'un fichier de la médiathèque (25/11/2026) : 2 heures,
+ * 30 jours ou **permanent**, chacun révocable. Pour donner un fichier à un
+ * outil tiers — un programmateur, le gestionnaire de publicités, un client —
+ * sans lui ouvrir l'outil ni rendre le fichier public pour tout le monde.
  *
- * Utile deux fois : c'est ce que les API d'Instagram et de TikTok vont
- * chercher, et c'est ce qu'on donne à un outil tiers — un programmateur, le
- * gestionnaire de publicités, un client — sans lui ouvrir l'outil entier ni
- * rendre le fichier public pour toujours.
+ * Le jeton est aléatoire et rangé en base (`liens_partage`), servi par la
+ * route publique `/p/<jeton>` : c'est ce qui permet de révoquer un lien sans
+ * toucher aux autres ni déconnecter personne. Un geste de la direction.
+ *
+ * (Le lien que reçoivent Instagram et TikTok à la publication est autre :
+ * signé, deux heures, fabriqué par `publierParApi`. Il n'a pas à durer.)
  */
-export async function creerLienTemporaire(fd: FormData) {
+export async function creerLienPartage(fd: FormData) {
   const qui = await exigerSession();
-  // Un lien public vers un fichier privé : un geste de la direction.
-  if (qui !== 'direction') return { ok: false as const, raison: 'Réservé à Jonathan (direction) : un lien public rend le fichier visible hors de l’outil.' };
+  if (qui !== 'direction') return { ok: false as const, raison: 'Réservé à Jonathan (direction) : un lien de partage rend le fichier visible hors de l’outil.' };
   const entite = String(fd.get('entite'));
   const id = Number(fd.get('id'));
-  const row = db().prepare('SELECT cle, nom FROM medias WHERE id=? AND entite=?').get(id, entite) as
-    | { cle: string; nom: string }
-    | undefined;
+  const { DUREES_PARTAGE } = await import('@/lib/partage');
+  const duree = String(fd.get('duree') ?? '30j') as keyof typeof DUREES_PARTAGE;
+  if (!(duree in DUREES_PARTAGE)) return { ok: false as const, raison: 'Durée inconnue.' };
+  const row = db().prepare('SELECT nom FROM medias WHERE id=? AND entite=?').get(id, entite) as { nom: string } | undefined;
   if (!row) return { ok: false as const, raison: 'Fichier introuvable.' };
+  const { randomBytes } = await import('node:crypto');
+  const jeton = randomBytes(24).toString('base64url');
+  const heures = DUREES_PARTAGE[duree].heures;
+  db()
+    .prepare(
+      `INSERT INTO liens_partage (entite, media_id, jeton, duree, expire_le)
+       VALUES (?,?,?,?, ${heures === null ? 'NULL' : `datetime('now', '+${heures} hours')`})`,
+    )
+    .run(entite, id, jeton, duree);
+  tracer('lien de partage créé', `${row.nom} — ${DUREES_PARTAGE[duree].libelle}`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/visuels`);
+  return { ok: true as const, url: `${await adresseDeBase()}/p/${jeton}`, duree: DUREES_PARTAGE[duree].libelle };
+}
 
-  const { lienPublic } = await import('@/lib/medias');
-  try {
-    const l = await lienPublic(row.cle, await adresseDeBase(), entite, id);
-    tracer('lien temporaire créé', `${row.nom} — jusqu’à ${l.expire.toISOString()} (${l.porte})`, entite);
+/** Révoque un lien de partage : il ne sert plus rien, tout de suite. */
+export async function revoquerLienPartage(fd: FormData) {
+  const qui = await exigerSession();
+  const entite = String(fd.get('entite'));
+  if (qui !== 'direction') redirect(`/${entite}/visuels`);
+  const id = Number(fd.get('lien'));
+  const l = db()
+    .prepare('SELECT l.id, m.nom FROM liens_partage l JOIN medias m ON m.id = l.media_id WHERE l.id=? AND l.entite=?')
+    .get(id, entite) as { id: number; nom: string } | undefined;
+  if (l) {
+    db().prepare("UPDATE liens_partage SET revoque_le=datetime('now') WHERE id=? AND revoque_le IS NULL").run(id);
+    tracer('lien de partage révoqué', l.nom, entite);
     await sauvegarder();
-    return { ok: true as const, url: l.url, expire: l.expire.toISOString(), porte: l.porte };
-  } catch (e) {
-    return { ok: false as const, raison: (e as Error).message };
   }
+  revalidatePath(`/${entite}/visuels`);
+  redirect(`/${entite}/visuels`);
 }
 
 /**

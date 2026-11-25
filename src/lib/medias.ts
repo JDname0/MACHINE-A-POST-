@@ -534,3 +534,22 @@ export function lienSigne(entite: string, id: number, exp: string | null, jeton:
   const b = Buffer.from(attendu);
   return a.length === b.length && timingSafeEqual(a, b);
 }
+
+/**
+ * Les types qu'une route de fichier accepte de servir, et seulement ceux-là :
+ * pas question de renvoyer `text/html` parce qu'une fiche serait mal écrite,
+ * ce qui ferait de la médiathèque un hébergeur de pages. Partagé par
+ * `[entite]/medias/[id]` et `p/[jeton]`.
+ */
+export const TYPES_SERVIS = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'audio/mpeg',
+  'audio/wav',
+  'application/pdf',
+]);
