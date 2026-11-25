@@ -902,19 +902,63 @@ export async function publierParApi(fd: FormData) {
   await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
-  const row = db().prepare('SELECT * FROM publications WHERE id=?').get(id) as Record<string, string> | undefined;
-  if (!row) return;
+  const fiche = `/${entite}/publications/${id}`;
+  // Le résultat s'affiche sur la fiche (et reste au journal) : « écrit au
+  // journal » seul laissait croire qu'un clic sans effet visible avait échoué.
+  const resultat = (code: 'ok' | 'refus' | 'echec', detail: string) =>
+    `${fiche}?api=${code}&detail=${encodeURIComponent(detail.slice(0, 300))}#publier`;
+
+  // `AND entite=?` : la cloison tient aussi ici.
+  const row = db().prepare('SELECT * FROM publications WHERE id=? AND entite=?').get(id, entite) as Record<string, string> | undefined;
+  if (!row) redirect(resultat('refus', 'Post introuvable dans cette entité.'));
   if (row.statut !== 'valide') {
     tracer('publication API refusée', `publication ${id} — statut ${row.statut}, validation requise`, entite);
-    // Une mutation non poussée vers le Blob est une mutation perdue
-    // au prochain démarrage d'instance. Elle ne coûte rien en local.
     await sauvegarder();
-    revalidatePath(`/${entite}/publications/${id}`);
-    return;
+    redirect(resultat('refus', `Le post n’est pas validé (statut « ${row.statut} ») : rien n’est parti.`));
   }
   const f = format(row.format_slug);
-  if (f.reseau === 'blog') return;
+  if (f.reseau === 'blog') redirect(resultat('refus', 'Un article de blog ne se publie pas par API.'));
 
+  // Verrou en base, pris avant tout appel au réseau : un second clic, un
+  // second onglet ou une seconde personne ne publie pas le même post deux
+  // fois — sur Reddit, un doublon peut coûter le compte. Un verrou de plus de
+  // 10 minutes est celui d'un envoi interrompu : il ne bloque plus.
+  const pris = db()
+    .prepare(
+      `UPDATE publications SET envoi_en_cours=datetime('now') WHERE id=? AND entite=? AND statut='valide'
+         AND (envoi_en_cours IS NULL OR envoi_en_cours < datetime('now', '-10 minutes'))`,
+    )
+    .run(id, entite);
+  if (Number(pris.changes) === 0) {
+    tracer('publication API refusée', `publication ${id} — un envoi est déjà en cours`, entite);
+    await sauvegarder();
+    redirect(resultat('refus', 'Un envoi de ce post est déjà en cours : rien n’est reparti.'));
+  }
+
+  let issue: { code: 'ok' | 'refus' | 'echec'; detail: string };
+  try {
+    issue = await envoyerParApi(id, entite, row, f.reseau as ReseauConnectable, fd);
+  } catch (e) {
+    issue = { code: 'echec', detail: `Erreur inattendue : ${(e as Error).message}` };
+    tracer('échec API', `publication ${id} → ${f.reseau} : ${(e as Error).message}`, entite);
+  } finally {
+    db().prepare('UPDATE publications SET envoi_en_cours=NULL WHERE id=?').run(id);
+  }
+  await sauvegarder();
+  revalidatePath(fiche);
+  revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}`);
+  redirect(resultat(issue.code, issue.detail));
+}
+
+/** L'envoi lui-même, verrou déjà pris par `publierParApi`. */
+async function envoyerParApi(
+  id: number,
+  entite: string,
+  row: Record<string, string>,
+  reseau: ReseauConnectable,
+  fd: FormData,
+): Promise<{ code: 'ok' | 'refus' | 'echec'; detail: string }> {
   // Le média : choisi par son identifiant, jamais par une adresse saisie. Deux
   // raisons — l'outil doit pouvoir le contrôler contre le format avant de
   // l'envoyer, et l'adresse publique est **signée et datée**, donc produite
@@ -929,19 +973,16 @@ export async function publierParApi(fd: FormData) {
       | undefined;
     if (!media) {
       tracer('publication API refusée', `publication ${id} — média ${mediaId} introuvable`, entite);
-      revalidatePath(`/${entite}/publications/${id}`);
-      return;
+      return { code: 'refus', detail: 'Le média choisi est introuvable : rien n’est parti.' };
     }
     const { controlerMedia } = await import('@/lib/conformite-media');
-    const constats = controlerMedia(row.format_slug, media);
-    const bloquants = constats.filter((k) => k.niveau === 'blocage');
+    const bloquants = controlerMedia(row.format_slug, media).filter((k) => k.niveau === 'blocage');
     if (bloquants.length > 0) {
       // Le même principe que pour le texte : l'outil propose, mais il ne laisse
       // pas partir ce qu'il sait non conforme.
-      tracer('publication API refusée', `publication ${id} — média : ${bloquants.map((k) => k.message).join(' ; ')}`, entite);
-      await sauvegarder();
-      revalidatePath(`/${entite}/publications/${id}`);
-      return;
+      const motif = bloquants.map((k) => k.message).join(' ; ');
+      tracer('publication API refusée', `publication ${id} — média : ${motif}`, entite);
+      return { code: 'refus', detail: `Média non conforme : ${motif}` };
     }
     const { lienPublic } = await import('@/lib/medias');
     const lien = await lienPublic(media.cle, await adresseDeBase(), entite, media.id);
@@ -950,7 +991,7 @@ export async function publierParApi(fd: FormData) {
   }
 
   const texte = [row.accroche, row.corps, row.appel, row.hashtags].filter(Boolean).join('\n\n');
-  const res = await publier(f.reseau as ReseauConnectable, {
+  const res = await publier(reseau, {
     texte,
     titre: row.titre ?? undefined,
     sousForum: row.sous_forum ?? undefined,
@@ -961,10 +1002,10 @@ export async function publierParApi(fd: FormData) {
       .prepare("UPDATE publications SET statut='publie', url_publiee=?, publie_le=date('now'), maj_le=datetime('now') WHERE id=?")
       .run(res.url ?? null, id);
     tracer('publié par API', `publication ${id} → ${res.reseau} ${res.id}${res.avertissement ? ` · ${res.avertissement}` : ''}`, entite);
-  } else {
-    tracer('échec API', `publication ${id} → ${res.reseau} : ${res.raison}`, entite);
+    return { code: 'ok', detail: `Publié sur ${res.reseau}${res.url ? ` : ${res.url}` : ''}${res.avertissement ? ` (${res.avertissement})` : ''}` };
   }
-  revalidatePath(`/${entite}/publications/${id}`);
+  tracer('échec API', `publication ${id} → ${res.reseau} : ${res.raison}`, entite);
+  return { code: 'echec', detail: `${res.reseau} a refusé : ${res.raison} — ${res.remede}` };
 }
 
 export async function releverMetrique(fd: FormData) {

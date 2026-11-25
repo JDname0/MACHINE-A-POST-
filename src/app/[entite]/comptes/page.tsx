@@ -95,7 +95,8 @@ export default async function Comptes({ params }: { params: Promise<{ entite: st
                   ))}
                   <div className="aide">
                     Les valeurs ne sont jamais réaffichées ici, et jamais exposées côté client. La machine montre « posé »
-                    ou « manquant », pas la valeur.
+                    ou « manquant », pas la valeur. Où les poser : sur o2switch, cPanel → Setup Node.js App → variables
+                    d&apos;environnement, puis Restart — jamais dans le dépôt.
                   </div>
                   <div style={{ marginTop: 6 }}>
                     <a className="lien-accent" href={spec.doc} target="_blank" rel="noreferrer">

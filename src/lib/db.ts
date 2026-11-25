@@ -273,6 +273,10 @@ function migrer(d: Base) {
     // Heure de publication prévue (« 08:30 »), facultative. Sans elle, les
     // rappels .ics gardent l'heure par défaut. Ajout du 18/11/2026.
     ['publications', 'heure_prevue', 'TEXT'],
+    // Envoi par API en cours (horodatage) : verrou en base contre le double
+    // envoi d'un même post (deux clics, deux onglets, deux personnes, deux
+    // processus). Vide le reste du temps. Ajout du 25/11/2026.
+    ['publications', 'envoi_en_cours', 'TEXT'],
   ];
   for (const [table, colonne, type] of ajouts) {
     const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;

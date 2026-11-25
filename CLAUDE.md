@@ -324,3 +324,17 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
   (« Loading plugin data … violates object-src 'none' ») et l'aperçu restait
   vide. Vérifié le 25/11 avec la visionneuse du Chromium complet. Ne pas
   revenir à `<object>`/`<embed>`, ni assouplir `object-src` pour ça.
+- **Publier par API, prêt pour le branchement des réseaux (25/11/2026).**
+  `publierParApi` : post cherché `AND entite=?` (cloison) ; refus serveur
+  hors statut `valide`, même bouton forcé ; **verrou en base**
+  (`publications.envoi_en_cours`, pris avant l'appel au réseau, libéré dans un
+  `finally`, périmé après 10 min) contre le double envoi (deux clics, deux
+  onglets, deux personnes, deux processus) ; `sauvegarder()` après chaque
+  écriture ; résultat affiché sur la fiche (`?api=ok|refus|echec&detail=`,
+  bloc `#publier`) en plus du journal. Essayé avec de fausses clés LinkedIn :
+  refus hors validation, verrou, deux onglets simultanés (un seul envoi),
+  statut resté « validé » après l'échec. Liens signés des médias (Instagram,
+  TikTok) en mode fichiers : 200 sans session, 401 si modifiés ou expirés.
+- Les messages « clé manquante » (IA, connecteurs, page Comptes) disent où
+  poser une variable sur o2switch : cPanel → Setup Node.js App → variables
+  d'environnement, puis Restart.

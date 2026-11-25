@@ -147,7 +147,7 @@ export async function proposerReecriture(
 
 /** Un message d'erreur lisible dans l'interface, sans détail technique inutile. */
 export function messageErreurIA(e: unknown): string {
-  if (e instanceof Anthropic.AuthenticationError) return 'Clé ANTHROPIC_API_KEY refusée : vérifie la variable sur Vercel.';
+  if (e instanceof Anthropic.AuthenticationError) return 'Clé ANTHROPIC_API_KEY refusée : vérifie la variable du serveur (o2switch : cPanel → Setup Node.js App).';
   if (e instanceof Anthropic.RateLimitError) return 'Trop de demandes en même temps. Réessaie dans une minute.';
   if (e instanceof Anthropic.APIConnectionError) return 'Impossible de joindre l’API. Réessaie dans un instant.';
   if (e instanceof Anthropic.APIError) return `L’API a répondu une erreur (${e.status ?? '?'}). Réessaie.`;

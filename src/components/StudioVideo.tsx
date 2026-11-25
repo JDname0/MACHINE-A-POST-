@@ -274,7 +274,7 @@ export function StudioVideo(p: Props) {
             </div>
           ) : (
             <p className="aide" style={{ marginTop: 8 }}>
-              Il manque la variable <code>ANTHROPIC_API_KEY</code> côté serveur (sur Vercel, en variable sensible).
+              Il manque la variable <code>ANTHROPIC_API_KEY</code> côté serveur (sur o2switch : cPanel → Setup Node.js App → variables d’environnement, puis Restart).
             </p>
           )}
           {ia.t === 'note' ? <p className="aide" style={{ marginTop: 6 }}>{ia.texte} Les plans ci-dessous ont été remplacés : relis-les.</p> : null}

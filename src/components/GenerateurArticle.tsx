@@ -29,7 +29,7 @@ export function GenerateurArticle({
   const carte = { border: '1px solid var(--ligne)', borderRadius: 10, padding: 12, background: 'var(--fond)' } as const;
   const sansCle = !iaOk ? (
     <div className="aide" style={{ marginTop: 6 }}>
-      La rédaction par l’IA demande la clé <code>ANTHROPIC_API_KEY</code> côté serveur (Vercel). Les articles du plan, eux, se
+      La rédaction par l’IA demande la clé <code>ANTHROPIC_API_KEY</code> côté serveur (sur o2switch : cPanel → Setup Node.js App → variables d’environnement, puis Restart). Les articles du plan, eux, se
       génèrent sans clé.
     </div>
   ) : null;

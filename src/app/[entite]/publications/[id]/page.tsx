@@ -20,10 +20,10 @@ export default async function Composeur({
   searchParams,
 }: {
   params: Promise<{ entite: string; id: string }>;
-  searchParams: Promise<{ erreurIA?: string; enregistre?: string }>;
+  searchParams: Promise<{ erreurIA?: string; enregistre?: string; api?: string; detail?: string }>;
 }) {
   const { entite, id } = await params;
-  const { erreurIA, enregistre } = await searchParams;
+  const { erreurIA, enregistre, api, detail } = await searchParams;
   const e = entite as EntiteSlug;
   const p = publication(Number(id));
   if (!p || p.entite !== e) notFound();
@@ -474,8 +474,17 @@ export default async function Composeur({
             </div>
 
             {connectable && diag && spec ? (
-              <div className="carte">
+              <div className="carte" id="publier">
                 <h3>Voie 2 — {spec.nom} par API</h3>
+                {api ? (
+                  <p
+                    role={api === 'ok' ? 'status' : 'alert'}
+                    style={{ margin: '8px 0 10px', color: api === 'ok' ? 'var(--bon)' : 'var(--grave)' }}
+                  >
+                    {api === 'ok' ? '✓ ' : '✖ '}
+                    {detail ?? (api === 'ok' ? 'Publié.' : 'Rien n’est parti.')}
+                  </p>
+                ) : null}
                 {!diag.pret ? (
                   <>
                     <p>

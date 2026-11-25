@@ -95,7 +95,7 @@ export function AssistantIA({ p, retour, erreur }: { p: LignePublication; retour
       ) : (
         <div className="encart" style={{ marginTop: 8 }}>
           L&apos;assistance IA n&apos;est pas branchée : il manque la variable <code>ANTHROPIC_API_KEY</code> côté serveur
-          (sur Vercel, en variable sensible).
+          (sur o2switch : cPanel → Setup Node.js App → variables d&apos;environnement, puis Restart).
         </div>
       )}
     </details>
