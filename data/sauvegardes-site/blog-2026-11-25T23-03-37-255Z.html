@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="fonts.css" rel="stylesheet" />
+  <title>Blog | Veolt Studio</title>
+  <meta name="description" content="Conseils, guides et ressources sur la publicité 3D, le développement web et la stratégie business. Par Veolt Studio.">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://veolt.fr/blog.html">
+  <meta property="og:title" content="Blog | Veolt Studio">
+  <meta property="og:description" content="Conseils, guides et ressources sur la publicité 3D, le développement web et la stratégie business.">
+  <meta name="twitter:card" content="summary">
+  <link rel="canonical" href="https://veolt.fr/blog.html">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { background: #0C0C0C; font-family: 'Kanit', sans-serif; }
+    .hero-heading { background: linear-gradient(180deg, #646973 0%, #BBCCD7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .service-card { background: linear-gradient(160deg, rgba(215,226,234,0.06) 0%, rgba(215,226,234,0.02) 100%); border: 1px solid rgba(215,226,234,0.14); transition: border-color 0.3s ease, transform 0.3s ease, background 0.3s ease, opacity 0.25s ease; }
+    .service-card:hover { border-color: rgba(155,70,255,0.5); transform: translateY(-4px); background: linear-gradient(160deg, rgba(155,70,255,0.08) 0%, rgba(215,226,234,0.02) 100%); }
+    .tag-3d { background: rgba(155,70,255,0.12); border: 1px solid rgba(155,70,255,0.3); color: rgba(200,160,255,0.9); }
+    .tag-web { background: rgba(0,150,255,0.1); border: 1px solid rgba(0,150,255,0.25); color: rgba(120,200,255,0.9); }
+    .tag-business { background: rgba(255,160,0,0.08); border: 1px solid rgba(255,160,0,0.2); color: rgba(255,200,100,0.9); }
+    .filter-btn { display: inline-flex; align-items: center; gap: 7px; padding: 8px 20px; border-radius: 999px; border: 1px solid rgba(215,226,234,0.18); background: transparent; color: rgba(215,226,234,0.55); font-family: 'Kanit', sans-serif; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; cursor: pointer; transition: all 0.2s ease; }
+    .filter-btn:hover { border-color: rgba(215,226,234,0.4); color: rgba(215,226,234,0.85); background: rgba(215,226,234,0.05); }
+    .filter-btn.active-all { border-color: rgba(215,226,234,0.6); background: rgba(215,226,234,0.1); color: #D7E2EA; }
+    .filter-btn.active-3d { border-color: rgba(155,70,255,0.6); background: rgba(155,70,255,0.12); color: rgba(200,160,255,1); }
+    .filter-btn.active-web { border-color: rgba(0,150,255,0.6); background: rgba(0,150,255,0.12); color: rgba(120,200,255,1); }
+    .filter-btn.active-business { border-color: rgba(255,160,0,0.5); background: rgba(255,160,0,0.1); color: rgba(255,200,100,1); }
+    .dot-3d { width: 7px; height: 7px; border-radius: 50%; background: rgba(155,70,255,0.9); flex-shrink: 0; }
+    .dot-web { width: 7px; height: 7px; border-radius: 50%; background: rgba(0,150,255,0.9); flex-shrink: 0; }
+    .dot-business { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,160,0,0.9); flex-shrink: 0; }
+    .footer-social:hover { color: #fff !important; border-color: rgba(182,0,168,0.6) !important; background: rgba(182,0,168,0.12) !important; }
+    .pole-pill {
+      background: rgba(215,226,234,0.04);
+      border: 1px solid rgba(215,226,234,0.16);
+      backdrop-filter: blur(6px);
+    }
+  </style>
+  <script type="importmap">{"imports":{"react":"https://esm.sh/react@18.3.1","react/jsx-runtime":"https://esm.sh/react@18.3.1/jsx-runtime","react-dom/client":"https://esm.sh/react-dom@18.3.1/client?external=react","framer-motion":"https://esm.sh/framer-motion@12.38.0?external=react,react-dom","htm":"https://esm.sh/htm@3.1.1","three":"https://esm.sh/three@0.160.0"}}</script>
+</head>
+<body>
+  <div id="root" style="overflow-x: clip;"></div>
+  <script type="module">
+    import React, { useState, useRef, useEffect } from 'react';
+    import { createRoot } from 'react-dom/client';
+    import { motion, AnimatePresence } from 'framer-motion';
+    import htm from 'htm';
+    import * as THREE from 'three';
+    const html = htm.bind(React.createElement);
+    const EASE = [0.25, 0.1, 0.25, 1];
+
+    const BASE_NAV_LINKS = [
+      { label: 'Accueil', href: 'index.html' },
+      { label: 'À propos', href: 'about.html' },
+      { label: 'Tarifs', href: 'price.html' },
+      { label: 'Blog', href: 'blog.html' },
+      { label: 'Services', dropdown: [
+        { label: 'Nos services', href: 'index.html#services' },
+        { label: 'PUB & 3D', href: 'video.html' },
+        { label: 'Développement Web', href: 'web.html' },
+        { label: 'Analyse business', href: 'businessplan.html' },
+      ]},
+    ];
+
+    function FadeIn({ children, delay = 0, duration = 0.7, x = 0, y = 30, as = 'div', className }) {
+      const MotionTag = motion[as];
+      return html`<${MotionTag} className=${className} initial=${{ opacity: 0, x, y }} whileInView=${{ opacity: 1, x: 0, y: 0 }} viewport=${{ once: true, margin: '50px', amount: 0 }} transition=${{ delay, duration, ease: EASE }}>${children}<//>`;
+    }
+
+    function NavDropdown({ label, items, itemClassName }) {
+      const [open, setOpen] = useState(false);
+      const ref = useRef(null);
+      useEffect(() => { function h(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false); } document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h); }, []);
+      return html`<div ref=${ref} className="relative"><button type="button" onClick=${() => setOpen((o) => !o)} className=${`${itemClassName} gap-1.5`}>${label}<span className="inline-block text-[0.7em] transition-transform duration-200" style=${{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span></button>${open ? html`<div className="absolute left-1/2 -translate-x-1/2 sm:left-0 sm:translate-x-0 top-full mt-2 min-w-[220px] rounded-2xl border border-[#D7E2EA]/20 bg-[#0C0C0C]/95 backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.5)] overflow-hidden z-50">${items.map((item) => html`<a key=${item.label} href=${item.href} className="block px-5 py-3.5 text-[#D7E2EA] text-xs sm:text-sm font-medium uppercase tracking-wider transition-colors duration-150 hover:bg-[#D7E2EA]/10 border-b border-[#D7E2EA]/10 last:border-b-0">${item.label}</a>`)}</div>` : null}</div>`;
+    }
+
+
+    const SILVER = [0.729, 0.800, 0.839];
+    const VIOLET = [0.714, 0.0, 0.659];
+
+    const SIMPLEX_GLSL = `
+      vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
+      vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
+      vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
+      vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
+      float snoise(vec3 v){
+        const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);
+        vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
+        vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g;
+        vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
+        vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;
+        i=mod289(i);
+        vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
+        float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;
+        vec4 j=p-49.0*floor(p*ns.z*ns.z);
+        vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);
+        vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy;
+        vec4 h=1.0-abs(x)-abs(y);
+        vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
+        vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0;
+        vec4 sh=-step(h,vec4(0.0));
+        vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
+        vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
+        vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
+        p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
+        vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;
+        return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
+      }
+    `;
+
+    function AmbientField() {
+      const mountRef = useRef(null);
+      useEffect(() => {
+        const mount = mountRef.current;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.z = 5;
+        let renderer;
+        try {
+          renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        } catch (e) { console.warn('[AmbientField] WebGL indisponible', e); return; }
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.domElement.style.position = 'fixed';
+        renderer.domElement.style.inset = '0';
+        mount.appendChild(renderer.domElement);
+
+        const N = 450;
+        const positions = new Float32Array(N * 3);
+        const sizes = new Float32Array(N);
+        const brightness = new Float32Array(N);
+        for (let i = 0; i < N; i++) {
+          positions[i * 3] = (Math.random() - 0.5) * 60;
+          positions[i * 3 + 1] = (Math.random() - 0.5) * 30;
+          positions[i * 3 + 2] = Math.random() * -30 - 8;
+          sizes[i] = Math.random() < 0.5 ? 1.2 : 0.5;
+          brightness[i] = 0.85 + Math.random() * 0.3;
+        }
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+        geo.setAttribute('brightness', new THREE.BufferAttribute(brightness, 1));
+
+        const vertexShader = `
+          attribute float size;
+          attribute float brightness;
+          varying vec3 vColor;
+          varying float vBrightness;
+          varying float vDepth;
+          varying float vProximity;
+          uniform float uTime;
+          uniform float uScroll;
+          uniform vec2 uCursor;
+          uniform float uHover;
+          uniform float uAspect;
+          ${SIMPLEX_GLSL}
+          void main() {
+            vBrightness = brightness;
+            vec3 pos = position;
+            float seed = fract(sin(dot(position.xy, vec2(12.9898,78.233))) * 43758.5453);
+
+            pos.y += cos(uTime * 0.282 + seed * 1.5) * 0.5;
+            pos.z += sin(uTime * 0.28 + seed * 2.0) * 0.8;
+            pos.x += sin(uTime * 0.84 + position.z * 2.0) * 0.2;
+            pos.y += cos(uTime * 0.63 + position.x * 1.5) * 0.25;
+            pos.x += sin(uScroll * 5.0 + position.y * 0.5) * 3.0;
+            pos.y += cos(uScroll * 4.0 + position.x * 0.3) * 2.5;
+            pos.z += sin(uScroll * 3.5 + position.z * 0.4) * 2.0;
+
+            float noiseScale = 0.7;
+            float drift = uTime * 0.02;
+            float n1 = snoise(position * noiseScale + drift);
+            float n2 = snoise(position * noiseScale * 2.1 + vec3(37.0,91.0,54.0) + drift * 0.7);
+            float n3 = snoise(position * noiseScale * 4.3 + vec3(150.0,23.0,77.0) + drift * 0.4);
+            float combined = n1 * 0.6 + n2 * 0.3 + n3 * 0.1;
+            float zone = combined * 0.5 + 0.5;
+
+            vec3 silverC = vec3(${SILVER[0]}, ${SILVER[1]}, ${SILVER[2]});
+            vec3 violetC = vec3(${VIOLET[0]}, ${VIOLET[1]}, ${VIOLET[2]});
+            vec3 whiteC = vec3(1.0,1.0,1.0);
+            float silverWeight = 1.0 - smoothstep(0.39, 0.45, zone);
+            float whiteWeight = smoothstep(0.62, 0.68, zone);
+            float violetWeight = max(1.0 - silverWeight - whiteWeight, 0.0);
+            vColor = silverC * silverWeight + violetC * violetWeight + whiteC * whiteWeight;
+
+            vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+            float depth = -mvPosition.z;
+            vec2 cursorView = uCursor * depth * vec2(0.767 * uAspect, 0.767);
+            vec2 diff = mvPosition.xy - cursorView;
+            float d = length(diff);
+            float repelRadius = depth * 0.8;
+            float influence = pow(1.0 - smoothstep(0.0, repelRadius, d), 2.0) * uHover;
+            vec2 radial = normalize(diff + 0.001);
+            vec2 tangent = vec2(-radial.y, radial.x);
+            vec2 displacement = (radial * 0.6 + tangent * 0.4) * influence * depth * 0.07;
+            mvPosition.xy += displacement;
+
+            vProximity = influence;
+            vDepth = clamp(-mvPosition.z / 35.0, 0.0, 1.0);
+
+            float sizeBoost = 1.0 + influence * 0.5;
+            gl_PointSize = size * sizeBoost * (120.0 / -mvPosition.z);
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `;
+        const fragmentShader = `
+          varying vec3 vColor;
+          varying float vBrightness;
+          varying float vDepth;
+          varying float vProximity;
+          void main() {
+            vec2 center = gl_PointCoord - 0.5;
+            float dist = length(center);
+            float alpha = 1.0 - smoothstep(0.15, 0.45, dist);
+            float depthFade = mix(1.0, 0.1, vDepth);
+            float finalAlpha = alpha * vBrightness * depthFade * (0.55 + vProximity * 0.6);
+            vec3 glow = vColor * (1.0 + vProximity * 0.8);
+            gl_FragColor = vec4(glow, finalAlpha);
+          }
+        `;
+
+        const material = new THREE.ShaderMaterial({
+          uniforms: { uTime: { value: 0 }, uScroll: { value: 0 }, uCursor: { value: new THREE.Vector2(0, 0) }, uHover: { value: 0 }, uAspect: { value: window.innerWidth / window.innerHeight } },
+          vertexShader, fragmentShader,
+          transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        });
+        const points = new THREE.Points(geo, material);
+        scene.add(points);
+
+        const mouse = { x: 0, y: 0, hover: 0 };
+        function onMouseMove(e) { mouse.x = e.clientX / window.innerWidth * 2 - 1; mouse.y = -(e.clientY / window.innerHeight) * 2 + 1; mouse.hover = 1; }
+        function onMouseLeave() { mouse.hover = 0; }
+        window.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseleave', onMouseLeave);
+
+        let raf;
+        const clock = new THREE.Clock();
+        function animate() {
+          const t = clock.getElapsedTime();
+          material.uniforms.uTime.value = t;
+          material.uniforms.uScroll.value = window.scrollY * 0.0006;
+          material.uniforms.uCursor.value.set(mouse.x, mouse.y);
+          material.uniforms.uHover.value += (mouse.hover - material.uniforms.uHover.value) * 0.06;
+          renderer.render(scene, camera);
+          raf = requestAnimationFrame(animate);
+        }
+        animate();
+
+        function onResize() {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          material.uniforms.uAspect.value = window.innerWidth / window.innerHeight;
+        }
+        window.addEventListener('resize', onResize);
+
+        return () => {
+          cancelAnimationFrame(raf);
+          window.removeEventListener('resize', onResize);
+          window.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseleave', onMouseLeave);
+          mount.removeChild(renderer.domElement);
+          geo.dispose(); material.dispose(); renderer.dispose();
+        };
+      }, []);
+      return html`<div ref=${mountRef} style=${{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}></div>`;
+    }
+
+    const SCRAMBLE_ON = new URLSearchParams(window.location.search).get('scramble') !== '0';
+    const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&*+=<>/';
+
+    function Nav() {
+      const [loggedIn, setLoggedIn] = useState(false);
+      useEffect(() => { fetch('me.php').then((r) => r.json()).then((json) => setLoggedIn(!!json.loggedIn)).catch(() => {}); }, []);
+      const navLinks = [...BASE_NAV_LINKS, loggedIn ? { label: 'Mon compte', href: 'espace-client.html' } : { label: 'Se connecter', href: 'login.html' }];
+      const itemClass = 'text-[#D7E2EA] font-medium uppercase tracking-wider text-[9px] sm:text-[10px] md:text-xs transition-colors duration-200 inline-flex items-center justify-center whitespace-nowrap px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-full hover:bg-white/10 hover:text-white';
+      const activeClass = itemClass + ' border-[#D7E2EA]/60 bg-[#D7E2EA]/10';
+      return html`<${FadeIn} as="nav" delay=${0} y=${-20} className="relative z-50 flex flex-wrap gap-3 justify-end px-6 md:px-10 pt-6 md:pt-8"><div className="pole-pill flex items-center gap-0.5 sm:gap-1 rounded-full px-1.5 py-1.5">${navLinks.map((link) => link.dropdown ? html`<${NavDropdown} key=${link.label} label=${link.label} items=${link.dropdown} itemClassName=${itemClass} />` : html`<a key=${link.label} href=${link.href} className=${link.href === 'blog.html' ? activeClass : itemClass}>${link.label}</a>`)}</div><//>`;
+    }
+
+    const ARTICLES = [
+      { cat: '3D', catClass: 'tag-3d', title: 'Publicité 3D produit : comment ça marche vraiment', desc: "Packshot, animation, spot — on démonte le process de A à Z. Modélisation, shading, rendu : ce que ça coûte vraiment et quand c'est rentable.", date: 'Sept 2026', href: 'blog-publicite-3d-produit.html', img: 'blog-img-pub3d.jpg', alt: 'Flacons modélisés en 3D en lévitation sur fond violet' },
+      { cat: '3D', catClass: 'tag-3d', title: 'Packshot 3D vs photo produit : lequel choisir en 2026 ?', desc: "Coûts, délais, flexibilité, rendu final — une comparaison honnête pour aider les marques à prendre la bonne décision.", date: 'Oct 2026', href: 'blog-packshot-3d.html', img: 'blog-img-packshot.jpg', alt: 'Socle de présentation produit doré dans une lumière douce' },
+      { cat: '3D', catClass: 'tag-3d', title: 'Animation 3D publicitaire : prix et process en 2026', desc: "Ce que coûte réellement une animation 3D pour les réseaux sociaux ou la TV — avec des exemples de budgets selon la complexité.", date: 'Nov 2026', href: 'blog-animation-3d-publicitaire.html', img: 'blog-img-animation.jpg', alt: 'Composition de formes géométriques 3D colorées sur fond violet' },
+      { cat: 'Web', catClass: 'tag-web', title: 'Site vitrine sur mesure vs template : vrai comparatif', desc: "Squarespace, Webflow ou développement custom — lequel choisir vraiment en fonction du budget, des objectifs et du niveau de contrôle attendu.", date: 'Oct 2026', href: 'blog-site-vitrine-sur-mesure.html', img: 'blog-img-site-vitrine.jpg', alt: "Page d'accueil d'un créateur de sites affichée sur un écran d'ordinateur" },
+      { cat: 'Web', catClass: 'tag-web', title: 'Créer un site vitrine professionnel en 2026 : guide complet', desc: "Stack technique, design, SEO, budget — les étapes concrètes pour créer un site vitrine qui travaille vraiment pour votre activité.", date: 'Nov 2026', href: 'blog-creation-site-vitrine.html', img: 'blog-img-creation-site.jpg', alt: 'Maquette filaire de site web dessinée à la main dans un carnet' },
+      { cat: 'Web', catClass: 'tag-web', title: 'Agence web ou freelance : comment choisir pour son site ?', desc: "Prix, délais, engagement, qualité — comparatif complet pour choisir le bon type de prestataire selon vos vrais besoins.", date: 'Nov 2026', href: 'blog-agence-web-freelance.html', img: 'blog-img-agence-web.jpg', alt: 'Ordinateur portable ouvert devant un mur de notes de projet colorées' },
+      { cat: 'Business', catClass: 'tag-business', title: 'Plan financier pour freelance créatif : les bases essentielles', desc: "TJM, charges, prévisions de trésorerie — les bases concrètes pour piloter son activité sans être comptable.", date: 'Nov 2026', href: 'blog-plan-financier-freelance.html', img: 'blog-img-plan-financier.jpg', alt: 'Carnet à spirale, stylo et téléphone sur un bureau blanc épuré' },
+      { cat: 'Business', catClass: 'tag-business', title: 'Business plan agence créative : structure et conseils', desc: "Positionnement, modèle de revenus, projections financières — la structure d'un business plan réaliste pour une agence créative.", date: 'Déc 2026', href: 'blog-business-plan-agence.html', img: 'blog-img-business-plan.jpg', alt: 'Carnet relié et stylo posés sur un bureau en bois' },
+      { cat: 'Business', catClass: 'tag-business', title: 'Analyse financière TPE : les 5 indicateurs clés à surveiller', desc: "Marge brute, BFR, CAF, point mort, trésorerie — les 5 chiffres qui vous disent tout sur la santé de votre activité.", date: 'Janv 2027', href: 'blog-analyse-financiere-tpe.html', img: 'blog-img-analyse-financiere.jpg', alt: 'Tableau de bord financier affiché sur un ordinateur portable' },
+    ];
+
+    const COUNTS = {
+      'Tous': ARTICLES.length,
+      '3D': ARTICLES.filter(a => a.cat === '3D').length,
+      'Web': ARTICLES.filter(a => a.cat === 'Web').length,
+      'Business': ARTICLES.filter(a => a.cat === 'Business').length,
+    };
+
+    const FILTERS = [
+      { key: 'Tous', label: 'Tous les articles', activeClass: 'active-all', dot: null },
+      { key: '3D', label: '3D & Publicité', activeClass: 'active-3d', dot: 'dot-3d' },
+      { key: 'Web', label: 'Développement Web', activeClass: 'active-web', dot: 'dot-web' },
+      { key: 'Business', label: 'Business & Stratégie', activeClass: 'active-business', dot: 'dot-business' },
+    ];
+
+    function ArticleCard({ article, index }) {
+      return html`
+        <${motion.div}
+          layout
+          initial=${{ opacity: 0, y: 24 }}
+          animate=${{ opacity: 1, y: 0 }}
+          exit=${{ opacity: 0, scale: 0.95 }}
+          transition=${{ duration: 0.3, ease: EASE, delay: (index % 3) * 0.06 }}
+          style=${{ height: '100%' }}
+        >
+          <a
+            href=${article.href}
+            className="service-card group block rounded-[24px] overflow-hidden h-full flex flex-col no-underline"
+            style=${{ height: '100%' }}
+          >
+            <div className="relative overflow-hidden" style=${{ aspectRatio: '16 / 9' }}>
+              <img
+                src=${article.img}
+                alt=${article.alt}
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              />
+              <div className="absolute inset-0" style=${{ background: 'linear-gradient(180deg, rgba(12,12,12,0) 45%, rgba(12,12,12,0.55) 100%)' }}></div>
+            </div>
+            <div className="p-6 sm:p-7 flex flex-col flex-1">
+              <div className="flex items-center justify-between mb-5">
+                <span className=${'text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded-full ' + article.catClass}>${article.cat}</span>
+                <span style=${{ fontSize: '11px', color: 'rgba(215,226,234,0.35)', fontFamily: 'ui-monospace, monospace', letterSpacing: '0.1em' }}>${article.date}</span>
+              </div>
+              <h2 className="text-[#D7E2EA] font-bold leading-tight flex-1" style=${{ fontSize: 'clamp(1rem, 1.4vw, 1.15rem)', lineHeight: '1.35' }}>${article.title}</h2>
+              <p className="mt-3 leading-relaxed" style=${{ color: '#D7E2EA', opacity: 0.5, fontSize: '0.875rem' }}>${article.desc}</p>
+              <div className="mt-5">
+                <span style=${{ fontSize: '12px', color: 'rgba(215,226,234,0.35)', fontFamily: 'ui-monospace, monospace', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Lire l'article →</span>
+              </div>
+            </div>
+          </a>
+        <//>
+      `;
+    }
+
+    function FilterBar({ active, setActive }) {
+      return html`
+        <div style=${{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+          ${FILTERS.map(f => html`
+            <button
+              key=${f.key}
+              className=${'filter-btn' + (active === f.key ? ' ' + f.activeClass : '')}
+              onClick=${() => setActive(f.key)}
+            >
+              ${f.dot ? html`<span className=${f.dot}></span>` : null}
+              ${f.label}
+              <span style=${{ fontSize: '10px', opacity: 0.5, fontWeight: 400 }}>${COUNTS[f.key]}</span>
+            </button>
+          `)}
+        </div>
+      `;
+    }
+
+    function ArticlesSection() {
+      const [active, setActive] = useState('Tous');
+      const filtered = active === 'Tous' ? ARTICLES : ARTICLES.filter(a => a.cat === active);
+
+      return html`
+        <section className="px-6 md:px-10 pb-28 sm:pb-32">
+          <div className="max-w-6xl mx-auto">
+            <${FadeIn} delay=${0.1} className="mb-10">
+              <${FilterBar} active=${active} setActive=${setActive} />
+            <//>
+            <${motion.div}
+              layout
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6"
+              style=${{ alignItems: 'start' }}
+            >
+              <${AnimatePresence} mode="popLayout">
+                ${filtered.map((a, i) => html`
+                  <${ArticleCard} key=${a.href} article=${a} index=${i} />
+                `)}
+              <//>
+            <//>
+            ${filtered.length === 0 ? html`
+              <div style=${{ textAlign: 'center', padding: '80px 0', color: 'rgba(215,226,234,0.3)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Aucun article dans cette catégorie</div>
+            ` : null}
+          </div>
+        </section>
+      `;
+    }
+
+    function HeroSection() {
+      return html`
+        <section className="px-6 md:px-10 pt-24 sm:pt-28 md:pt-32 pb-12">
+          <div className="max-w-5xl mx-auto">
+            <${FadeIn} delay=${0.05}>
+              <span className="text-[#D7E2EA] uppercase tracking-[0.3em] text-xs sm:text-sm opacity-60">Ressources</span>
+            <//>
+            <${FadeIn} delay=${0.15} className="mt-6">
+              <h1 className="hero-heading font-black uppercase leading-[0.95] tracking-tight" style=${{ fontSize: 'clamp(2.5rem, 7.5vw, 6rem)' }}>Blog<br />& Guides.</h1>
+            <//>
+            <${FadeIn} delay=${0.3} className="mt-8 max-w-2xl">
+              <p className="text-[#D7E2EA] font-light leading-relaxed" style=${{ fontSize: 'clamp(1rem, 1.8vw, 1.2rem)', opacity: 0.65 }}>Conseils concrets sur la publicité 3D, le développement web et la stratégie business — par des praticiens, sans bullshit.</p>
+            <//>
+          </div>
+        </section>
+      `;
+    }
+
+    const FOOTER_SOCIALS = [
+      { label: 'Instagram', href: 'https://www.instagram.com/veoltproduction/', path: 'M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16zM12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.31-1.46.72-2.13 1.38C1.35 2.68.94 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.31.79.72 1.46 1.38 2.13.67.67 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.31 1.46-.72 2.13-1.38.67-.67 1.08-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.31-.79-.72-1.46-1.38-2.13-.67-.67-1.34-1.08-2.13-1.38-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0z M12 5.84A6.16 6.16 0 1 0 12 18.16 6.16 6.16 0 1 0 12 5.84zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z M18.41 4.16a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z' },
+      { label: 'TikTok', href: 'https://www.tiktok.com/@veoltproduction', path: 'M12.53.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z' },
+      { label: 'YouTube', href: '#', path: 'M23.5 6.19a3.02 3.02 0 0 0-2.12-2.14C19.5 3.54 12 3.54 12 3.54s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.19C0 8.07 0 12 0 12s0 3.93.5 5.81a3.02 3.02 0 0 0 2.12 2.14c1.87.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.81zM9.55 15.57V8.43L15.82 12l-6.27 3.57z' },
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/company/veolt-production/', path: 'M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.29zM5.34 7.43a2.07 2.07 0 1 1 0-4.13 2.07 2.07 0 0 1 0 4.13zm1.78 13.02H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z' },
+    ];
+    const FOOTER_SERVICES = ['Developpement web','Video & Pub 3D','Analyse Financiere','Motion Design','Branding'];
+    const FOOTER_LINKS = [{ label: 'Accueil', href: 'index.html' },{ label: 'A propos', href: 'about.html' },{ label: 'Tarifs', href: 'price.html' },{ label: 'Analyse business', href: 'analyse.html' },{ label: 'Espace client', href: 'espace-client.html' }];
+    const FOOTER_LEGAL = [{ label: 'Mentions légales', href: 'mentions-legales.html' },{ label: 'Confidentialité', href: 'politique-confidentialite.html' },{ label: 'CGV', href: '#' }];
+
+    function FooterSection() {
+      return html`<footer className="bg-[#0C0C0C]" style=${{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '64px' }}><div className="max-w-7xl mx-auto px-5 sm:px-8 md:px-10"><div className="flex items-center justify-between mb-12 flex-wrap gap-4"><p style=${{ fontFamily: 'ui-monospace, monospace', fontSize: '10px', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)' }}>Suivez-nous !</p><div className="flex gap-2 flex-wrap">${FOOTER_SOCIALS.filter((s) => s.href && s.href !== '#').map((s) => html`<a key=${s.label} href=${s.href} target="_blank" rel="noopener noreferrer" aria-label=${s.label + " — nouvelle fenêtre"} title=${s.label} className="footer-social" style=${{ width: '38px', height: '38px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.45)', textDecoration: 'none', transition: 'color .25s ease, border-color .25s ease, background .25s ease' }}><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d=${s.path} /></svg></a>`)}</div></div><${FadeIn} y=${20} className="mb-12 flex items-center justify-between gap-5 flex-wrap px-7 py-7 rounded-2xl" style=${{ background: 'rgba(155,70,255,0.06)', border: '1px solid rgba(155,70,255,0.14)' }}><div><h3 className="font-black uppercase text-white text-xl">Lancez votre projet avec nous</h3><p className="text-xs mt-1" style=${{ color: 'rgba(255,255,255,0.4)' }}>Analyse gratuite, réponse sous 24h.</p></div><a href="analyse.html"><button className="rounded-full text-white font-medium uppercase tracking-widest px-8 py-3 text-sm whitespace-nowrap" style=${{ background: 'linear-gradient(123deg, #18011F 7%, #B600A8 37%, #7621B0 72%, #BE4C00 100%)', boxShadow: '0px 4px 4px rgba(181,1,167,0.25), 4px 4px 12px #7721B1 inset', outline: '2px solid white', outlineOffset: '-3px' }}>Nous ecrire</button></a><//><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12"><div><p className="hero-heading font-black uppercase mb-3" style=${{ fontSize: '2rem' }}>Veolt</p><p style=${{ fontSize: '13px', color: 'rgba(255,255,255,0.38)', lineHeight: '1.7' }}>Studio creatif specialise en developpement web, video 3D et strategie de communication.</p></div><div><h4 style=${{ fontFamily: 'ui-monospace, monospace', fontSize: '9.5px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: '16px' }}>Services</h4>${FOOTER_SERVICES.map((s) => html`<a key=${s} href="analyse.html" style=${{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '9px', textDecoration: 'none' }}>${s}</a>`)}</div><div><h4 style=${{ fontFamily: 'ui-monospace, monospace', fontSize: '9.5px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: '16px' }}>Veolt</h4>${FOOTER_LINKS.map((l) => html`<a key=${l.label} href=${l.href} style=${{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '9px', textDecoration: 'none' }}>${l.label}</a>`)}</div><div><h4 style=${{ fontFamily: 'ui-monospace, monospace', fontSize: '9.5px', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.28)', marginBottom: '16px' }}>Legal</h4>${FOOTER_LEGAL.map((l) => html`<a key=${l.label} href=${l.href} style=${{ display: 'block', fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '9px', textDecoration: 'none' }}>${l.label}</a>`)}</div></div><div style=${{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '18px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}><p style=${{ fontFamily: 'ui-monospace, monospace', fontSize: '9.5px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.22)' }}>2026 Veolt - Studio creatif. All rights reserved.</p></div></div></footer>`;
+    }
+
+    function App() {
+      return html`
+        <div className="bg-[#0C0C0C]" style=${{ overflowX: 'clip' }}>
+          <${AmbientField} />
+          <div style=${{ position: 'relative', zIndex: 1 }}>
+            <${Nav} />
+            <${HeroSection} />
+            <${ArticlesSection} />
+            <${FooterSection} />
+          </div>
+        </div>
+      `;
+    }
+
+    createRoot(document.getElementById('root')).render(html`<${App} />`);
+  </script>
+</body>
+</html>

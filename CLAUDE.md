@@ -592,3 +592,26 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
   (`etiquetteCourte`). **Satori refuse `backgroundImage: 'none'`** : ne pas
   l'utiliser pour « annuler » un fond. La version courte de 22 h 30 est gardée
   (`PAGES_CARROUSEL_VEOLT_V1B`) : `raccourcirCarrousels` reconnaît les deux.
+
+## Mise en ligne des articles sur le site (26/11/2026)
+
+`src/lib/mise-en-ligne.ts`, bloc « Mettre en ligne sur veolt.fr » sur la fiche
+d'un article (`MiseEnLigne.tsx`), aperçu `publications/[id]/article`
+(`?telecharger=1` pour la page à déposer à la main), action
+`mettreArticleEnLigne`.
+
+- **Le geste de Jonathan** : direction seulement, article **validé** (ou déjà
+  publié, pour une mise à jour), contrôle entièrement vert — 3 images au moins,
+  source nommée, aucun « [?] », 500 mots et 3 sections, aucun blocage des
+  garde-fous, aucun tic « IA ». Refusé côté serveur sinon. Jamais automatique.
+- **Destination par variable d'environnement, jamais devinée** :
+  `MAP_SITE_VEOLT_DOSSIER` (racine de veolt.fr sur le même serveur, chemin
+  absolu ; doit contenir `blog.html`), `MAP_SITE_VEOLT_URL` (défaut
+  https://veolt.fr). Sans elle : aperçu et téléchargement seulement.
+- **Ce qui est écrit** : `blog-<titre>.html` (gabarit des articles du site,
+  bloc « Sources et méthode », JSON-LD Article, date de mise à jour), les
+  images `blog-img-<titre>-<n>.png`, et une ligne en tête du tableau `ARTICLES`
+  de `blog.html` (copie de `blog.html` gardée dans `<données>/sauvegardes-site/`
+  avant). Écritures atomiques. Rien d'autre n'est touché sur le site.
+- **MagistrIA** : magistrai.fr (Next.js) n'a pas de blog à ce jour ; l'entité a
+  l'aperçu et le téléchargement, la mise en ligne directe attend une destination.

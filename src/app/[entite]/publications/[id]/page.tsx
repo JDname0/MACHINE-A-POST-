@@ -1,3 +1,4 @@
+import { MiseEnLigne } from '@/components/MiseEnLigne';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Flanc } from '@/components/Flanc';
@@ -21,10 +22,10 @@ export default async function Composeur({
   searchParams,
 }: {
   params: Promise<{ entite: string; id: string }>;
-  searchParams: Promise<{ erreurIA?: string; enregistre?: string; relire?: string; reserve?: string; api?: string; detail?: string }>;
+  searchParams: Promise<{ erreurIA?: string; enregistre?: string; relire?: string; reserve?: string; api?: string; detail?: string; site?: string }>;
 }) {
   const { entite, id } = await params;
-  const { erreurIA, enregistre, relire, reserve, api, detail } = await searchParams;
+  const { erreurIA, enregistre, relire, reserve, api, detail, site } = await searchParams;
   // Équipe : prépare, ne valide ni ne publie (voir auth.ts). Le serveur refuse
   // de toute façon ; la page le dit au lieu de proposer un bouton inutile.
   const equipe = (await role()) === 'equipe';
@@ -499,6 +500,8 @@ export default async function Composeur({
                 )
               ) : null}
             </div>
+
+            {f.reseau === 'blog' ? <MiseEnLigne p={p} equipe={equipe} etat={site} detail={site ? detail : undefined} /> : null}
 
             {connectable && diag && spec ? (
               <div className="carte" id="publier">

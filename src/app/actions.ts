@@ -1939,3 +1939,40 @@ export async function resoudreCommentaire(fd: FormData) {
   revalidatePath(`/${entite}/aujourdhui`);
   redirect(retourSur(fd, entite, c.publication_id));
 }
+
+/**
+ * Met un article de blog en ligne sur le site de l'entité (`mise-en-ligne.ts`).
+ * Le geste de Jonathan : direction seulement, article **validé** (ou déjà
+ * publié, pour une mise à jour), contrôle qualité vert. Écrit dans le dossier
+ * du site déclaré par l'environnement, puis marque le post publié avec son adresse.
+ */
+export async function mettreArticleEnLigne(fd: FormData) {
+  const qui = await exigerSession();
+  const id = Number(fd.get('id'));
+  const entite = String(fd.get('entite'));
+  const retour = (etat: string, detail: string) => `/${entite}/publications/${id}?site=${etat}&detail=${encodeURIComponent(detail.slice(0, 300))}#mise-en-ligne`;
+  const p = db().prepare('SELECT * FROM publications WHERE id=? AND entite=?').get(id, entite) as import('@/lib/requetes').LignePublication | undefined;
+  if (!p || p.format_slug !== 'blog-article') redirect(retour('refus', 'Article introuvable.'));
+  if (qui !== 'direction') {
+    tracer('mise en ligne refusée', `publication ${id} — réservée à la direction`, entite);
+    await sauvegarder();
+    redirect(retour('refus', 'La mise en ligne est réservée à la direction.'));
+  }
+  if (!['valide', 'publie'].includes(p!.statut)) redirect(retour('refus', 'L’article doit être validé avant d’aller en ligne.'));
+  const { ecrireArticle } = await import('@/lib/mise-en-ligne');
+  let resultat: Awaited<ReturnType<typeof ecrireArticle>>;
+  try {
+    resultat = await ecrireArticle(p!);
+  } catch (e) {
+    tracer('mise en ligne échouée', `publication ${id} — ${(e as Error).message}`, entite);
+    await sauvegarder();
+    redirect(retour('echec', (e as Error).message));
+  }
+  db()
+    .prepare("UPDATE publications SET statut='publie', url_publiee=?, publie_le=COALESCE(publie_le, date('now')), maj_le=datetime('now') WHERE id=? AND entite=?")
+    .run(resultat!.url, id, entite);
+  tracer('article mis en ligne', `publication ${id} → ${resultat!.url} (${resultat!.fichiers.length} fichiers ; ${resultat!.blog})`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/publications/${id}`);
+  redirect(retour('ok', `${resultat!.url} — ${resultat!.blog}`));
+}
