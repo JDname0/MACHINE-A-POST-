@@ -11,6 +11,7 @@ import { attendu } from '@/lib/conformite-media';
 import { aUneVideo, imagesMemoire, montagePret } from '@/lib/production';
 import { commentairesDe } from '@/lib/suivi';
 import { FilCommentaires } from '@/components/FilCommentaires';
+import { role } from '@/lib/auth';
 
 /**
  * La file de validation : une semaine à la fois, chaque post avec son visuel,
@@ -29,10 +30,12 @@ export default async function Valider({
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ s?: string; bloque?: string; erreurIA?: string }>;
+  searchParams: Promise<{ s?: string; bloque?: string; erreurIA?: string; reserve?: string }>;
 }) {
   const { entite } = await params;
-  const { s, bloque, erreurIA } = await searchParams;
+  const { s, bloque, erreurIA, reserve } = await searchParams;
+  // Équipe : la file se lit et se commente, la validation revient à Jonathan.
+  const equipe = (await role()) === 'equipe';
   const [idErreurIA, ...msgIA] = (erreurIA ?? '').split('|');
   const e = entite as EntiteSlug;
   const m = marque(e);
@@ -83,6 +86,17 @@ export default async function Valider({
               </button>
             </form>
           </div>
+          {equipe ? (
+            <p className="aide" style={{ marginTop: 8 }}>
+              Connecté en équipe : tu relis, tu commentes, tu renvoies « À retravailler » ; la validation est réservée à
+              Jonathan.
+            </p>
+          ) : null}
+          {reserve === 'valider' ? (
+            <p role="alert" style={{ color: 'var(--grave)', marginTop: 8 }}>
+              ✖ La validation est réservée à Jonathan (direction) : le statut n&apos;a pas changé.
+            </p>
+          ) : null}
         </header>
 
         <nav className="rang" style={{ marginBottom: 16, flexWrap: 'wrap', gap: 6 }} aria-label="Semaines">
@@ -232,15 +246,21 @@ export default async function Valider({
 
               {p.statut !== 'publie' ? (
                 <div className="rang" style={{ marginTop: 12, gap: 8 }}>
-                  <form action={trancher}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <input type="hidden" name="entite" value={e} />
-                    <input type="hidden" name="retour" value={retour} />
-                    <input type="hidden" name="decision" value="valide" />
-                    <button type="submit" disabled={!validable || p.statut === 'valide'}>
-                      {p.statut === 'valide' ? 'Validé ✓' : 'Valider'}
-                    </button>
-                  </form>
+                  {equipe ? (
+                    <span className="aide" style={{ alignSelf: 'center' }}>
+                      {p.statut === 'valide' ? 'Validé ✓ par Jonathan' : 'Validation : Jonathan'}
+                    </span>
+                  ) : (
+                    <form action={trancher}>
+                      <input type="hidden" name="id" value={p.id} />
+                      <input type="hidden" name="entite" value={e} />
+                      <input type="hidden" name="retour" value={retour} />
+                      <input type="hidden" name="decision" value="valide" />
+                      <button type="submit" disabled={!validable || p.statut === 'valide'}>
+                        {p.statut === 'valide' ? 'Validé ✓' : 'Valider'}
+                      </button>
+                    </form>
+                  )}
                   <form action={trancher} className="rang" style={{ gap: 8, flex: '1 1 320px' }}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="entite" value={e} />

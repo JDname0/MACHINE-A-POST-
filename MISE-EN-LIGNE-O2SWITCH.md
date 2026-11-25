@@ -81,6 +81,7 @@ Même écran → **Environment variables** → **Add variable** :
 | `MAP_DOSSIER_DONNEES` | `/home/<compte>/machine-a-post-donnees` (chemin **absolu**) |
 | `MACHINE_MOT_DE_PASSE` | ton mot de passe de l'outil |
 | `MACHINE_CLE_SESSION` | une **nouvelle** clé : sur le Mac, `openssl rand -hex 32` |
+| `MACHINE_MOT_DE_PASSE_EQUIPE` | facultatif : le mot de passe de ton employé (compte « équipe » : prépare, ne valide ni ne publie). **Différent** du tien. Le changer le déconnecte sans te déconnecter ; le retirer ferme son accès. |
 | `ANTHROPIC_API_KEY` | si tu veux l'IA (rédaction, réécriture) |
 
 Facultatif, seulement si tu t'en sers : `ELEVENLABS_API_KEY`, `RUNWAY_API_KEY`,

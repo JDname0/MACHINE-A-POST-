@@ -13,13 +13,16 @@ import { BoutonVideo } from './BoutonVideo';
 import { BoutonCopier } from './BoutonCopier';
 import type { EntiteSlug } from '@/lib/marques';
 import type { ReactNode } from 'react';
+import { role } from '@/lib/auth';
 
 /**
  * Le post vu depuis le calendrier, quel que soit son format : texte, image,
  * pages de carrousel ou vidéo — avec ce qu'il faut pour le produire et le
  * valider sans quitter le calendrier.
  */
-export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer: string; notice?: string }) {
+export async function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer: string; notice?: string }) {
+  // Équipe : prépare ; la validation revient à Jonathan (refusée côté serveur de toute façon).
+  const equipe = (await role()) === 'equipe';
   const e = p.entite as EntiteSlug;
   const f = format(p.format_slug);
   const { constats, validable } = constatsDe(p);
@@ -406,15 +409,21 @@ export function ApercuPost({ p, fermer, notice }: { p: LignePublication; fermer:
         <div className="rang" style={{ gap: 8, flexWrap: 'wrap' }}>
           {p.statut !== 'publie' ? (
             <>
-              <form action={trancher}>
-                <input type="hidden" name="id" value={p.id} />
-                <input type="hidden" name="entite" value={e} />
-                <input type="hidden" name="retour" value={ici} />
-                <input type="hidden" name="decision" value="valide" />
-                <button type="submit" disabled={!validable || p.statut === 'valide'}>
-                  {p.statut === 'valide' ? 'Validé ✓' : 'Valider'}
-                </button>
-              </form>
+              {equipe ? (
+                <span className="aide" style={{ alignSelf: 'center' }}>
+                  {p.statut === 'valide' ? 'Validé ✓ par Jonathan' : 'Validation : Jonathan'}
+                </span>
+              ) : (
+                <form action={trancher}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="entite" value={e} />
+                  <input type="hidden" name="retour" value={ici} />
+                  <input type="hidden" name="decision" value="valide" />
+                  <button type="submit" disabled={!validable || p.statut === 'valide'}>
+                    {p.statut === 'valide' ? 'Validé ✓' : 'Valider'}
+                  </button>
+                </form>
+              )}
               <form action={trancher}>
                 <input type="hidden" name="id" value={p.id} />
                 <input type="hidden" name="entite" value={e} />

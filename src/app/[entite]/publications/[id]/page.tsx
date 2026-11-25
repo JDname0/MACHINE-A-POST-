@@ -13,6 +13,7 @@ import { db } from '@/lib/db';
 import { AssistantIA } from '@/components/AssistantIA';
 import { FilCommentaires } from '@/components/FilCommentaires';
 import { commentairesDe } from '@/lib/suivi';
+import { role } from '@/lib/auth';
 import { enregistrerPublication, changerStatut, marquerPublie, publierParApi, releverMetrique, memoriserVisuel, declarerAuTerrain } from '@/app/actions';
 
 export default async function Composeur({
@@ -20,10 +21,18 @@ export default async function Composeur({
   searchParams,
 }: {
   params: Promise<{ entite: string; id: string }>;
-  searchParams: Promise<{ erreurIA?: string; enregistre?: string; api?: string; detail?: string }>;
+  searchParams: Promise<{ erreurIA?: string; enregistre?: string; relire?: string; reserve?: string; api?: string; detail?: string }>;
 }) {
   const { entite, id } = await params;
-  const { erreurIA, enregistre, api, detail } = await searchParams;
+  const { erreurIA, enregistre, relire, reserve, api, detail } = await searchParams;
+  // Équipe : prépare, ne valide ni ne publie (voir auth.ts). Le serveur refuse
+  // de toute façon ; la page le dit au lieu de proposer un bouton inutile.
+  const equipe = (await role()) === 'equipe';
+  const RESERVE: Record<string, string> = {
+    valider: 'La validation est réservée à Jonathan (direction) : le statut n’a pas changé.',
+    publie: 'Seul un post validé par Jonathan peut être marqué publié.',
+    terrain: 'La déclaration au terrain est réservée à Jonathan (direction).',
+  };
   const e = entite as EntiteSlug;
   const p = publication(Number(id));
   if (!p || p.entite !== e) notFound();
@@ -213,6 +222,11 @@ export default async function Composeur({
                 ) : enregistre ? (
                   <span role="status" style={{ color: 'var(--bon)' }}>
                     ✓ Brouillon enregistré à {enregistre.slice(0, 5)}
+                    {relire ? (
+                      <span style={{ color: 'var(--attention)', display: 'block' }}>
+                        Ce post était validé : il repasse « À relire », Jonathan doit le revalider.
+                      </span>
+                    ) : null}
                   </span>
                 ) : null}
               </div>
@@ -245,13 +259,22 @@ export default async function Composeur({
 
             <div className="carte">
               <h3>Statut</h3>
+              {reserve && RESERVE[reserve] ? (
+                <p role="alert" style={{ color: 'var(--grave)', marginBottom: 8 }}>
+                  ✖ {RESERVE[reserve]}
+                </p>
+              ) : null}
               <p style={{ marginBottom: 10 }}>
-                {validable
-                  ? 'Aucun blocage. À toi de valider.'
-                  : "Validation impossible tant qu'un blocage subsiste. Ce n'est pas une question de style."}
+                {equipe
+                  ? validable
+                    ? 'Aucun blocage. Passe-le « À relire » : la validation revient à Jonathan.'
+                    : "Validation impossible tant qu'un blocage subsiste. Corrige, puis passe-le « À relire »."
+                  : validable
+                    ? 'Aucun blocage. À toi de valider.'
+                    : "Validation impossible tant qu'un blocage subsiste. Ce n'est pas une question de style."}
               </p>
               <div className="rang">
-                {(['brouillon', 'a-relire', 'valide', 'abandonne'] as const).map((s) => (
+                {(['brouillon', 'a-relire', 'valide', 'abandonne'] as const).filter((s) => !(equipe && s === 'valide' && p.statut !== 'valide')).map((s) => (
                   <form key={s} action={changerStatut}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="entite" value={e} />
@@ -259,7 +282,7 @@ export default async function Composeur({
                     <button
                       type="submit"
                       className={p.statut === s ? '' : 'fantome'}
-                      disabled={s === 'valide' && !validable}
+                      disabled={s === 'valide' && (!validable || equipe)}
                     >
                       {LIBELLE_STATUT[s]}
                     </button>
@@ -449,17 +472,21 @@ export default async function Composeur({
                 <strong style={{ color: 'var(--encre)' }}>publier le lien nu, c&apos;est accepter de ne jamais savoir</strong>.
                 Rien du contenu du post ne part : une référence, un réseau, une page de destination.
               </p>
-              <form action={declarerAuTerrain}>
-                <input type="hidden" name="id" value={p.id} />
-                <input type="hidden" name="entite" value={e} />
-                <div className="champ">
-                  <label htmlFor="url_cible">Page de destination sur le site</label>
-                  <input id="url_cible" name="url_cible" placeholder="https://veolt.fr/…" />
-                </div>
-                <button type="submit" className="fantome">
-                  Déclarer et obtenir le lien
-                </button>
-              </form>
+              {equipe ? (
+                <p className="aide">La déclaration au terrain est réservée à Jonathan (direction).</p>
+              ) : (
+                <form action={declarerAuTerrain}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <input type="hidden" name="entite" value={e} />
+                  <div className="champ">
+                    <label htmlFor="url_cible">Page de destination sur le site</label>
+                    <input id="url_cible" name="url_cible" placeholder="https://veolt.fr/…" />
+                  </div>
+                  <button type="submit" className="fantome">
+                    Déclarer et obtenir le lien
+                  </button>
+                </form>
+              )}
               {p.lien_suivi ? (
                 p.lien_suivi.startsWith('[non déclaré]') ? (
                   <div className="encart" style={{ marginTop: 11 }}>
@@ -485,7 +512,12 @@ export default async function Composeur({
                     {detail ?? (api === 'ok' ? 'Publié.' : 'Rien n’est parti.')}
                   </p>
                 ) : null}
-                {!diag.pret ? (
+                {equipe ? (
+                  <p className="aide">
+                    La publication par API est réservée à Jonathan (direction), sur un post qu&apos;il a validé. Tu
+                    peux poster à la main avec la voie 1, puis « Marquer comme publié ».
+                  </p>
+                ) : !diag.pret ? (
                   <>
                     <p>
                       Connecteur inerte. {diag.manquantes.length} variable(s) manquante(s) :{' '}

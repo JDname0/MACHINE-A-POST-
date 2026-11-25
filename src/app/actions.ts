@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { db, tracer } from '@/lib/db';
 import { sauvegarder } from '@/lib/persistance';
-import { verifier, ouvrirSession, fermerSession } from '@/lib/auth';
+import { verifier, ouvrirSession, fermerSession, LIBELLE_ROLE, type Role } from '@/lib/auth';
+import { ouvrirPorteur } from '@/lib/auteur';
 import { publier, type ReseauConnectable } from '@/lib/connecteurs';
 import { format } from '@/lib/formats';
 import { declarerPost, reference } from '@/lib/suite-veolt';
@@ -36,15 +37,42 @@ async function adresseDeBase(): Promise<string> {
  * Sans mot de passe posé (`protegee()` faux), rien ne change : l'outil est
  * ouvert, et le dit.
  */
-async function exigerSession(): Promise<void> {
-  const { protegee, connecte } = await import('@/lib/auth');
-  if (protegee() && !(await connecte())) redirect('/connexion');
+async function exigerSession(): Promise<Role> {
+  // Le porteur s'ouvre AVANT le premier `await` : il s'attache au contexte de
+  // l'action, et `tracer()` y lit l'auteur pour le journal (voir auteur.ts).
+  const porteur = ouvrirPorteur();
+  const { role } = await import('@/lib/auth');
+  const r = await role();
+  if (!r) redirect('/connexion');
+  porteur.auteur = r;
+  return r;
+}
+
+/**
+ * Un post validé que l'équipe modifie (texte ou fichiers fournis) repasse
+ * « à relire » : sinon la validation de Jonathan pourrait être contournée en
+ * changeant le post après coup. Rien ne change pour la direction.
+ */
+function aRevaliderSiEquipe(qui: Role, publicationId: number | null | undefined, entite: string, motif: string): boolean {
+  if (qui !== 'equipe' || !publicationId) return false;
+  const r = db()
+    .prepare("UPDATE publications SET statut='a-relire', maj_le=datetime('now') WHERE id=? AND entite=? AND statut='valide'")
+    .run(publicationId, entite);
+  if (Number(r.changes) === 0) return false;
+  tracer('repassé à relire', `publication ${publicationId} — ${motif} par l’équipe après validation`, entite);
+  return true;
+}
+
+function avecReserve(url: string, quoi: string): string {
+  const [base, ancre] = url.split('#');
+  return `${base}${base.includes('?') ? '&' : '?'}reserve=${quoi}${ancre ? `#${ancre}` : ''}`;
 }
 
 export async function seConnecter(fd: FormData) {
   const mdp = String(fd.get('motDePasse') ?? '');
-  if (!verifier(mdp)) redirect('/connexion?erreur=1');
-  await ouvrirSession();
+  const r = verifier(mdp);
+  if (!r) redirect('/connexion?erreur=1');
+  await ouvrirSession(r);
   redirect('/veolt');
 }
 
@@ -54,9 +82,13 @@ export async function seDeconnecter() {
 }
 
 export async function enregistrerPublication(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
+  const CHAMPS = ['titre', 'accroche', 'corps', 'appel', 'hashtags', 'consignes_visuel', 'persona', 'pilier', 'preuve', 'indicateur', 'sous_forum'] as const;
+  const avant = db().prepare(`SELECT ${CHAMPS.join(', ')} FROM publications WHERE id=? AND entite=?`).get(id, entite) as
+    | Record<(typeof CHAMPS)[number], string | null>
+    | undefined;
   // `AND entite=?` : la cloison tient aussi ici, un formulaire d'une entité ne
   // réécrit jamais un post de l'autre.
   const r = db()
@@ -86,24 +118,35 @@ export async function enregistrerPublication(fd: FormData) {
     db().prepare('UPDATE publications SET heure_prevue=? WHERE id=? AND entite=?').run(heureValide(String(fd.get('heure_prevue'))), id, entite);
   }
   tracer('brouillon enregistré', `publication ${id}`, entite);
+  const apres = db().prepare(`SELECT ${CHAMPS.join(', ')} FROM publications WHERE id=?`).get(id) as Record<string, string | null>;
+  const change = avant ? CHAMPS.some((k) => (avant[k] ?? '') !== (apres[k] ?? '')) : false;
+  const aRelire = change && aRevaliderSiEquipe(qui, id, entite, 'texte modifié');
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/publications/${id}`);
   revalidatePath(`/${entite}/calendrier`);
   revalidatePath(`/${entite}/aujourdhui`);
+  revalidatePath(`/${entite}/valider`);
   // Dire que c'est enregistré, et à quelle heure : sans ce retour, rien ne
   // distinguait un enregistrement réussi d'un clic perdu (25/11/2026).
   const heure = new Date().toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
-  redirect(`/${entite}/publications/${id}?enregistre=${encodeURIComponent(heure)}`);
+  redirect(`/${entite}/publications/${id}?enregistre=${encodeURIComponent(heure)}${aRelire ? '&relire=1' : ''}`);
 }
 
 export async function changerStatut(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const statut = String(fd.get('statut'));
   if (!['brouillon', 'a-relire', 'valide', 'abandonne'].includes(statut)) return;
+  if (statut === 'valide' && qui !== 'direction') {
+    // Le « oui » de la règle 1 est celui de Jonathan : refusé côté serveur,
+    // pas seulement masqué dans la page.
+    tracer('validation refusée', `publication ${id} — réservée à la direction`, entite);
+    await sauvegarder();
+    redirect(avecReserve(`/${entite}/publications/${id}`, 'valider'));
+  }
   if (statut === 'valide') {
     // Même règle que la file de validation : le garde-fou est revérifié ici,
     // un bouton grisé n'empêche pas un formulaire envoyé à la main.
@@ -112,7 +155,7 @@ export async function changerStatut(fd: FormData) {
     const p = publication(id);
     if (!p || !constatsDe(p).validable) return;
   }
-  db().prepare("UPDATE publications SET statut=?, maj_le=datetime('now') WHERE id=?").run(statut, id);
+  db().prepare("UPDATE publications SET statut=?, maj_le=datetime('now') WHERE id=? AND entite=?").run(statut, id, entite);
   if (statut === 'valide') {
     const { publication } = await import('@/lib/requetes');
     const p = publication(id);
@@ -136,7 +179,7 @@ export async function changerStatut(fd: FormData) {
  * jamais en « validé », quelle que soit la page d'où vient la demande.
  */
 export async function trancher(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const decision = String(fd.get('decision'));
@@ -146,6 +189,11 @@ export async function trancher(fd: FormData) {
   const p = publication(id);
   if (!p || p.entite !== entite || p.statut === 'publie') redirect(retour);
 
+  if (decision === 'valide' && qui !== 'direction') {
+    tracer('validation refusée', `publication ${id} — réservée à la direction`, entite);
+    await sauvegarder();
+    redirect(avecReserve(`${retour}#p${id}`, 'valider'));
+  }
   if (decision === 'valide') {
     if (!constatsDe(p).validable) redirect(`${retour}${retour.includes('?') ? '&' : '?'}bloque=${id}#p${id}`);
     db().prepare("UPDATE publications SET statut='valide', maj_le=datetime('now') WHERE id=?").run(id);
@@ -157,7 +205,7 @@ export async function trancher(fd: FormData) {
     // Le motif du renvoi, s'il est donné, devient un commentaire de validation :
     // celui qui reprend le post sait quoi changer.
     const motif = String(fd.get('commentaire') ?? '').trim().slice(0, 4000);
-    if (motif) poserCommentaire(id, entite, motif, String(fd.get('auteur') ?? '').trim().slice(0, 80) || null);
+    if (motif) poserCommentaire(id, entite, motif, String(fd.get('auteur') ?? '').trim().slice(0, 80) || LIBELLE_ROLE[qui]);
   } else {
     redirect(retour);
   }
@@ -675,7 +723,7 @@ export async function creerPostImporte(fd: FormData): Promise<{ ok: true; id: nu
  * envoie directement au store, puis `enregistrerTeleversement` les inscrit.
  */
 export async function deposerLivrables(fd: FormData): Promise<{ posees: number; refus: string[] }> {
-  await exigerSession();
+  const qui = await exigerSession();
   const entite = String(fd.get('entite'));
   const publicationId = Number(fd.get('publication_id'));
   const { publication } = await import('@/lib/requetes');
@@ -717,6 +765,7 @@ export async function deposerLivrables(fd: FormData): Promise<{ posees: number; 
     posees++;
   }
   if (posees) tracer('post fourni téléversé', `publication ${publicationId} : ${posees} fichier(s)`, entite);
+  if (posees) aRevaliderSiEquipe(qui, publicationId, entite, 'fichiers ajoutés');
   await sauvegarder();
   revalidatePath(`/${entite}/calendrier`);
   revalidatePath(`/${entite}/visuels`);
@@ -726,7 +775,7 @@ export async function deposerLivrables(fd: FormData): Promise<{ posees: number; 
 
 /** Change l'ordre d'un fichier dans un post fourni (une page de carrousel monte ou descend). */
 export async function deplacerLivrable(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const entite = String(fd.get('entite'));
   const id = Number(fd.get('id'));
   const sens = fd.get('sens') === 'haut' ? -1 : 1;
@@ -743,6 +792,7 @@ export async function deplacerLivrable(fd: FormData) {
       [liste[i], liste[j]] = [liste[j], liste[i]];
       const maj = db().prepare('UPDATE medias SET ordre=? WHERE id=?');
       db().transaction(() => liste.forEach((x, k) => maj.run(k + 1, x.id)))();
+      aRevaliderSiEquipe(qui, m.publication_id, entite, 'ordre des pages changé');
       await sauvegarder();
     }
   }
@@ -832,13 +882,23 @@ export async function rejeterIA(fd: FormData) {
 }
 
 export async function marquerPublie(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const url = String(fd.get('url_publiee') ?? '') || null;
+  // L'équipe poste à la main ce que Jonathan a validé, et le marque publié —
+  // rien d'autre : un post non validé ne passe pas « publié » par elle.
+  if (qui !== 'direction') {
+    const s = db().prepare('SELECT statut FROM publications WHERE id=? AND entite=?').get(id, entite) as { statut: string } | undefined;
+    if (!s || s.statut !== 'valide') {
+      tracer('« publié » refusé', `publication ${id} — statut ${s?.statut ?? 'introuvable'}, validation de la direction requise`, entite);
+      await sauvegarder();
+      redirect(avecReserve(`/${entite}/publications/${id}`, 'publie'));
+    }
+  }
   db()
-    .prepare("UPDATE publications SET statut='publie', url_publiee=?, publie_le=date('now'), maj_le=datetime('now') WHERE id=?")
-    .run(url, id);
+    .prepare("UPDATE publications SET statut='publie', url_publiee=?, publie_le=date('now'), maj_le=datetime('now') WHERE id=? AND entite=?")
+    .run(url, id, entite);
   tracer('publication marquée publiée', `publication ${id}`, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
@@ -859,11 +919,13 @@ export async function marquerPublie(fd: FormData) {
  * accepter de ne jamais savoir ce que ce post a produit.
  */
 export async function declarerAuTerrain(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite')) as EntiteSlug;
   const url = String(fd.get('url_cible') ?? '').trim();
-  const p = db().prepare('SELECT * FROM publications WHERE id=?').get(id) as
+  // Une déclaration part vers une autre machine : un geste de la direction.
+  if (qui !== 'direction') redirect(avecReserve(`/${entite}/publications/${id}`, 'terrain'));
+  const p = db().prepare('SELECT * FROM publications WHERE id=? AND entite=?').get(id, entite) as
     | Record<string, string>
     | undefined;
   if (!p) return;
@@ -899,7 +961,7 @@ export async function declarerAuTerrain(fd: FormData) {
 
 /** Le bouton qui appelle l'API. Il n'est proposé que sur une publication validée. */
 export async function publierParApi(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
   const fiche = `/${entite}/publications/${id}`;
@@ -907,6 +969,11 @@ export async function publierParApi(fd: FormData) {
   // journal » seul laissait croire qu'un clic sans effet visible avait échoué.
   const resultat = (code: 'ok' | 'refus' | 'echec', detail: string) =>
     `${fiche}?api=${code}&detail=${encodeURIComponent(detail.slice(0, 300))}#publier`;
+  if (qui !== 'direction') {
+    tracer('publication API refusée', `publication ${id} — réservée à la direction`, entite);
+    await sauvegarder();
+    redirect(resultat('refus', 'La publication est réservée à Jonathan (direction) : rien n’est parti.'));
+  }
 
   // `AND entite=?` : la cloison tient aussi ici.
   const row = db().prepare('SELECT * FROM publications WHERE id=? AND entite=?').get(id, entite) as Record<string, string> | undefined;
@@ -1476,17 +1543,18 @@ export async function majMedia(fd: FormData) {
 
 /** Le fichier part avec la fiche : une ligne qui désigne un objet absent ne sert personne. */
 export async function supprimerMedia(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const id = Number(fd.get('id'));
   const entite = String(fd.get('entite'));
-  const row = db().prepare('SELECT cle, nom, publication_id FROM medias WHERE id=? AND entite=?').get(id, entite) as
-    | { cle: string; nom: string; publication_id: number | null }
+  const row = db().prepare('SELECT cle, nom, publication_id, origine FROM medias WHERE id=? AND entite=?').get(id, entite) as
+    | { cle: string; nom: string; publication_id: number | null; origine: string | null }
     | undefined;
   if (!row) return;
   const { effacer } = await import('@/lib/medias');
   await effacer(row.cle);
   db().prepare('DELETE FROM medias WHERE id=?').run(id);
   tracer('image supprimée', row.nom, entite);
+  if (row.origine === 'livrable') aRevaliderSiEquipe(qui, row.publication_id, entite, 'fichier fourni retiré');
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
@@ -1513,7 +1581,7 @@ export async function supprimerMedia(fd: FormData) {
  * jamais un contrôle.
  */
 export async function enregistrerTeleversement(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
   const entite = String(fd.get('entite'));
   const chemin = String(fd.get('chemin') ?? '');
   const prefixe = 'machine-a-post/medias/';
@@ -1581,6 +1649,7 @@ export async function enregistrerTeleversement(fd: FormData) {
     );
   if (fd.get('origine') === 'video' && publicationId) await remplacerAnciennesVideos(publicationId, cle);
   tracer('fichier déposé', `${fd.get('nom')} · ${typeMime}`, entite);
+  if (livrable) aRevaliderSiEquipe(qui, publicationId, entite, 'fichier fourni ajouté');
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
@@ -1647,7 +1716,9 @@ export async function deposerVideoMontee(fd: FormData) {
  * rendre le fichier public pour toujours.
  */
 export async function creerLienTemporaire(fd: FormData) {
-  await exigerSession();
+  const qui = await exigerSession();
+  // Un lien public vers un fichier privé : un geste de la direction.
+  if (qui !== 'direction') return { ok: false as const, raison: 'Réservé à Jonathan (direction) : un lien public rend le fichier visible hors de l’outil.' };
   const entite = String(fd.get('entite'));
   const id = Number(fd.get('id'));
   const row = db().prepare('SELECT cle, nom FROM medias WHERE id=? AND entite=?').get(id, entite) as

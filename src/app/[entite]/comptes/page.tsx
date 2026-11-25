@@ -4,6 +4,7 @@ import { compteursMenu, sousForums, joursDepuis } from '@/lib/requetes';
 import { BARREAUX, CONNEXIONS, diagnostiquer, type ReseauConnectable } from '@/lib/connecteurs';
 import { db } from '@/lib/db';
 import { majConnexion, majSousForum } from '@/app/actions';
+import { compteEquipeActif, protegee, role, LIBELLE_ROLE } from '@/lib/auth';
 
 export default async function Comptes({ params }: { params: Promise<{ entite: string }> }) {
   const { entite } = await params;
@@ -34,6 +35,28 @@ export default async function Comptes({ params }: { params: Promise<{ entite: st
             n&apos;est pas atteint, la voie manuelle assistée reste la bonne — et ce n&apos;est pas un pis-aller.
           </p>
         </header>
+
+        {protegee() ? (
+          <div className="carte" style={{ marginBottom: 16 }}>
+            <h3>Les comptes de l&apos;outil</h3>
+            <p style={{ marginTop: 6 }}>
+              <span className="pastille" data-t="ok">Jonathan (direction) ✓</span>{' '}
+              <span className="pastille" data-t={compteEquipeActif() ? 'ok' : undefined}>
+                Équipe {compteEquipeActif() ? '✓ actif' : '— non créé'}
+              </span>{' '}
+              <span className="aide">Connecté en ce moment : {LIBELLE_ROLE[(await role()) ?? 'direction']}.</span>
+            </p>
+            <div className="aide" style={{ marginTop: 8 }}>
+              La direction fait tout, dont <strong>valider</strong> et <strong>publier</strong>. L&apos;équipe prépare
+              (écrit, produit, importe, commente, poste à la main ce qui est validé) ; un post validé qu&apos;elle
+              modifie repasse « À relire ». Le journal dit qui a fait quoi.
+              <br />
+              Créer le compte équipe : cPanel → Setup Node.js App → variable <span className="mono">MACHINE_MOT_DE_PASSE_EQUIPE</span>{' '}
+              (différente de ton mot de passe), puis Restart. Changer cette variable déconnecte l&apos;employé sans te
+              déconnecter ; la supprimer ferme son accès.
+            </div>
+          </div>
+        ) : null}
 
         <div className="encart" style={{ marginBottom: 20 }}>
           <strong>Ordre recommandé.</strong> Reddit d&apos;abord — c&apos;est le seul sans revue, et ça valide la

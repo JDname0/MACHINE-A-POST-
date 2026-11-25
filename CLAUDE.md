@@ -145,6 +145,11 @@ pris en charge par le code (sans `MAP_STOCKAGE`).
 
 ## Changer le mot de passe
 
+**Sur o2switch (production depuis le 25/11/2026)** : cPanel → Setup Node.js App
+→ variables d'environnement, puis Restart. Changer `MACHINE_MOT_DE_PASSE`
+**et** `MACHINE_CLE_SESSION` (`openssl rand -hex 32`) ensemble, pour la raison
+dite plus bas. Le script ci-dessous ne vise que Vercel.
+
 `scripts/changer-mot-de-passe.sh` — saisie masquée en local, pose sur Vercel,
 mise à jour de `SECRETS-A-GARDER.txt` et `.env.local`, redéploiement.
 
@@ -338,3 +343,33 @@ Après la suspension du compte Vercel Hobby. Pas à pas : `MISE-EN-LIGNE-O2SWITC
 - Les messages « clé manquante » (IA, connecteurs, page Comptes) disent où
   poser une variable sur o2switch : cPanel → Setup Node.js App → variables
   d'environnement, puis Restart.
+
+## Deux comptes : direction et équipe (25/11/2026)
+
+`src/lib/auth.ts`, `src/lib/auteur.ts`. Un cookie signé porte le **rôle** ;
+pas de table de comptes.
+
+- **direction** (`MACHINE_MOT_DE_PASSE`) : tout, dont **valider** et
+  **publier** — le « oui » de la règle 1. Son jeton est celui d'avant : les
+  sessions ouvertes survivent au déploiement.
+- **équipe** (`MACHINE_MOT_DE_PASSE_EQUIPE`, facultatif, différent du premier) :
+  prépare — écrit, produit, importe, commente, renvoie « à retravailler »,
+  poste à la main et marque « publié » **ce qui est validé**. Son jeton dérive
+  aussi de son mot de passe : le changer déconnecte l'employé sans
+  déconnecter Jonathan. Sans la variable, le compte n'existe pas.
+- **Refusé à l'équipe côté serveur** (`exigerSession()` renvoie le rôle) :
+  valider (`changerStatut`, `trancher`), `publierParApi`, `declarerAuTerrain`,
+  `creerLienTemporaire`, marquer publié un post non validé. Les pages
+  masquent ces boutons et le disent ; le serveur refuse quand même un
+  formulaire forcé (testé).
+- **Un post validé que l'équipe modifie repasse « à relire »**
+  (`aRevaliderSiEquipe`) : texte, fichiers fournis ajoutés, retirés ou
+  réordonnés. Sinon la validation serait contournable.
+- **Journal : colonne `auteur`** (`direction`, `equipe`, vide = la machine),
+  remplie par `tracer()` depuis un `AsyncLocalStorage` ouvert au début de
+  `exigerSession()`, **avant tout `await`** — c'est ce qui l'attache au
+  contexte de l'action. Ne pas déplacer `ouvrirPorteur()` après un `await`.
+- Le menu dit qui est connecté (si le compte équipe existe) ; la page
+  Comptes dit si le compte équipe est créé et comment le gérer.
+- Toute **nouvelle action** commence par `const qui = await exigerSession();`
+  et se demande si elle est un geste de la direction.

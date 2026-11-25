@@ -117,6 +117,7 @@ export function statsEntite(entite: EntiteSlug) {
       action: string;
       detail: string | null;
       le: string;
+      auteur: string | null;
     }>,
   };
 }

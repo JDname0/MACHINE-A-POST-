@@ -320,6 +320,11 @@ export default async function TableauDeBord({ params }: { params: Promise<{ enti
                 <div key={i} style={{ fontSize: 12.5, color: 'var(--encre-dim)' }}>
                   <span className="mono">{j.le.slice(0, 16)}</span> — {j.action}
                   {j.detail ? ` · ${j.detail}` : ''}
+                  {j.auteur ? (
+                    <span className="pastille" style={{ marginLeft: 6 }} data-t={j.auteur === 'equipe' ? 'accent' : undefined}>
+                      {j.auteur === 'equipe' ? 'Équipe' : 'Jonathan'}
+                    </span>
+                  ) : null}
                 </div>
               ))}
             </div>

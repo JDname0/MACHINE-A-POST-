@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { marque, type EntiteSlug } from '@/lib/marques';
+import { role, compteEquipeActif, LIBELLE_ROLE } from '@/lib/auth';
 
 const PAGES = [
   ['', 'Tableau de bord'],
@@ -18,7 +19,7 @@ const PAGES = [
   ['rapport', 'Rapport mensuel'],
 ] as const;
 
-export function Flanc({
+export async function Flanc({
   entite,
   page,
   compteurs,
@@ -29,6 +30,7 @@ export function Flanc({
 }) {
   const m = marque(entite);
   const autre: EntiteSlug = entite === 'veolt' ? 'magistria' : 'veolt';
+  const qui = await role();
   return (
     <aside className="flanc">
       <div>
@@ -56,6 +58,17 @@ export function Flanc({
       </nav>
 
       <div className="flanc-pied">
+        {qui && compteEquipeActif() ? (
+          <div style={{ marginBottom: 8 }}>
+            Connecté : <strong style={{ color: 'var(--encre)' }}>{LIBELLE_ROLE[qui]}</strong>
+            {qui === 'equipe' ? (
+              <>
+                <br />
+                Tu prépares ; la validation et la publication sont réservées à Jonathan.
+              </>
+            ) : null}
+          </div>
+        ) : null}
         <strong style={{ color: 'var(--encre)' }}>L&apos;outil propose, tu décides.</strong>
         <br />
         Rien ne part sans ton « oui », publication par publication.

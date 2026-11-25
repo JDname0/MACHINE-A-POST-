@@ -10,6 +10,7 @@
 
 import { ouvrirBase, type Base } from './sqlite';
 import { ENTITES, type EntiteSlug } from './marques';
+import { auteurCourant } from './auteur';
 import { CHEMIN_BASE, EN_SERVERLESS, MODE_FICHIERS, hydrater, sauvegardeDatee, sauvegarder } from './persistance';
 import { deroule } from './calendrier';
 import { ARTICLES, articlesDe, sujet, sujetsDe } from './sujets';
@@ -277,6 +278,9 @@ function migrer(d: Base) {
     // envoi d'un même post (deux clics, deux onglets, deux personnes, deux
     // processus). Vide le reste du temps. Ajout du 25/11/2026.
     ['publications', 'envoi_en_cours', 'TEXT'],
+    // Qui a fait l'action : 'direction' ou 'equipe' (deux comptes, 25/11/2026).
+    // Vide pour ce que fait la machine elle-même (démarrage, semis).
+    ['journal', 'auteur', 'TEXT'],
   ];
   for (const [table, colonne, type] of ajouts) {
     const colonnes = d.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
@@ -348,7 +352,10 @@ function poserArticles(d: Base): number {
 }
 
 export function tracer(action: string, detail?: string, entite?: string) {
-  db().prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(entite ?? null, action, detail ?? null);
+  // L'auteur vient de la session de l'action en cours (voir `auteur.ts`).
+  db()
+    .prepare('INSERT INTO journal (entite, action, detail, auteur) VALUES (?, ?, ?, ?)')
+    .run(entite ?? null, action, detail ?? null, auteurCourant());
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
