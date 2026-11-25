@@ -252,7 +252,7 @@ async function preparerRendu(m: Montage) {
         return charger(media?.url ?? carteDe(i));
       }
       const u = new URL(carteDe(i), window.location.origin);
-      for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'legende', 'pagination', 'chiffre']) u.searchParams.set(cle, '');
+      for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'legende', 'pagination', 'chiffre', 'question', 'fin', 'etiquette']) u.searchParams.set(cle, '');
       if (m.variante === 'sombre') u.searchParams.set('variante', 'sombre');
       return charger(u.pathname + u.search);
     }),

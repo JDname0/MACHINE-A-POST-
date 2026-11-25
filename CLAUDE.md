@@ -251,6 +251,38 @@ identique à l'octet, vérifié).
   abandonné. Relancer ne refait rien. Les vidéos se refont par les lots du
   studio vidéo (fabriquées dans le navigateur).
 
+## Kit Veolt et codes LinkedIn 2026 (25/11/2026, suite)
+
+- **Univers du kit** (`ThemeVisuel.kit`, Veolt seulement) : sphère de particules
+  de veolt.fr derrière le texte (`sphere-veolt-png.ts`, PNG transparent ; halo en
+  dégradé radial Satori, sinon la palette réduite fait des anneaux), signature
+  « STUDIO CRÉATIF & CONSEIL » (`Signature`), pastille du kit
+  « VEOLT.FR · DEVIS SOUS 24 H » (`Pastille`). Pas de sphère sur une photo.
+- **Question dans l'image** (`Contenu.question`, `QuestionCarte`) : la question
+  du post (`questionDuPost`, `fiche.ts` — l'appel s'il finit par « ? ») est
+  posée dans le visuel LinkedIn image et la page de fin des carrousels.
+  Jamais « likez » ni « commentez MOT ».
+- **Carrousels** : page de fin du kit (`Contenu.fin` : logo, question,
+  pastille), étiquette au-dessus du titre (`Contenu.etiquette` : « À retenir »,
+  sinon le sujet), explication sous le titre. Pages **écrites pour le format**
+  dans `carrousels-veolt.ts` (10 à 11 pages, une idée par page, preuves
+  autorisées seulement, « [?] » gardés) ; `approfondirCarrousels()` (`db.ts`)
+  les pose sur les brouillons **non retouchés**, tracé au journal.
+- **Garde-fous** : règle 12 (appât à l'engagement LinkedIn, alerte), règle 13
+  (ressource promise absente de `marques.ts > ressources`, blocage — Veolt :
+  analyse gratuite et articles publiés seulement), règle 14 (appel Veolt
+  LinkedIn qui n'est pas une question, conseil). Lien LinkedIn : plus de
+  « premier commentaire », message privé ou Sélection de la page.
+- **Formats** (relevé 2026-11-25) : LinkedIn texte 800–1 500 car., étape
+  « Question » ; carrousel : documents natifs 7,00 % (Socialinsider 2026).
+  `ia.ts` transmet les ressources réelles à l'IA.
+- **Vidéos Veolt sans script** : sphère / galaxie en fond sur **tous** les
+  plans et décor alterné (horizon, étoiles, rayons) ; écran de fin avec le
+  surtitre du kit (`surTitreKit`). Les paramètres `question`, `fin`,
+  `etiquette` sont vidés des cartes de fond vidéo (`fabrique-video.ts`).
+- `VERSION_CHARTE_VEOLT = 'kit-2026-11-25'` : « Remettre les visuels au logo »
+  refait tout au prochain clic.
+
 ## Suivi du chargé de communication (18/11/2026)
 
 `src/lib/suivi.ts` porte trois ajouts, tous en lecture des vraies données :

@@ -242,6 +242,23 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
     const forme = p.entite === 'veolt' ? ('sphere' as const) : ('cerveau' as const);
     if (plans[0].source.type === 'carte') plans[0] = { ...plans[0], noyau: { forme, place: 'fond', construction: true, intensite: 0.22 } };
     plans[plans.length - 1] = { ...plans[plans.length - 1], noyau: { forme: p.entite === 'veolt' ? 'galaxie' : 'cerveau', place: 'fond', cadran: true, intensite: 0.16 } };
+    // Veolt (25/11/2026) : de la profondeur sur tous les plans, pas seulement le
+    // premier et le dernier. La sphère de veolt.fr reste en fond, discrète et
+    // vivante, et le décor change d'un plan à l'autre (horizon, étoiles,
+    // rayons) : chaque coupe est un changement de scène, pas un fondu sur le
+    // même fond plat.
+    if (p.entite === 'veolt') {
+      const decors = ['horizon', 'etoiles', 'rayons'] as const;
+      for (let i = 1; i < plans.length - 1; i++) {
+        const x = plans[i];
+        if (x.source.type !== 'carte') continue;
+        plans[i] = {
+          ...x,
+          fond: x.fond ?? decors[i % decors.length],
+          noyau: x.noyau ?? { forme: i % 2 ? 'galaxie' : 'sphere', place: 'fond', activite: 0.35, intensite: 0.14 },
+        };
+      }
+    }
   }
   return { plans, cartes, largeur: cadre.largeur, hauteur: cadre.hauteur, ratio: cadre.ratio, scriptRef: script?.ref ?? null };
 }

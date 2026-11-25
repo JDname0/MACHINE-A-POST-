@@ -34,7 +34,7 @@ export async function GET(
 
   // Le texte est surchargeable : c'est un générateur, pas cinq images figées.
   const surcharge: Partial<Contenu> = {};
-  for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'chiffre', 'legende', 'pagination'] as const) {
+  for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'chiffre', 'legende', 'pagination', 'question', 'fin', 'etiquette'] as const) {
     const v = url.searchParams.get(cle);
     if (v != null) surcharge[cle] = v;
   }

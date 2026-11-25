@@ -62,26 +62,33 @@ export const FORMATS: Record<FormatSlug, FormatSpec> = {
     raison: 'Le format de base. C\'est lui qui installe la régularité, et la régularité est ce qui diffuse une page.',
     cadence: '2 fois par semaine',
     maxCaracteres: 3000,
-    utileMin: 900,
-    utileMax: 1800,
+    // Relevé 2026-11-25 : 800 à 1 500 caractères est la fourchette la plus vue
+    // (étude Magnettu 2026) ; au-delà le taux de lecture jusqu'au bout chute.
+    utileMin: 800,
+    utileMax: 1500,
     accrocheMax: 210,
     accrocheLibelle: 'visible avant « voir plus »',
-    visuel: '1 200 × 1 200 (carré) ou 1 200 × 627. Lisible en vignette, porteuse d\'une information.',
+    visuel: '1 080 × 1 350 (4:5) ou 1 200 × 627. Lisible en vignette, porteuse d\'une information — et, côté Veolt, de la question du post.',
     ossature: [
       { nom: 'Accroche', consigne: 'Une affirmation précise, chiffrée ou à contre-courant. Jamais une question creuse.', limite: 210 },
       { nom: 'Rupture', consigne: 'Un saut de ligne. Le « voir plus » doit tomber ici.' },
       { nom: 'Corps', consigne: 'Paragraphes de 1 à 2 lignes, beaucoup de blancs. 14 paragraphes courts battent 7 longs.' },
       { nom: 'Preuve', consigne: 'Le chiffre, la pièce, l\'arrêt, le rendu. C\'est ce qui tient le lecteur.' },
       { nom: 'Enseignement', consigne: 'Une phrase qui se retient et se cite.' },
-      { nom: 'Appel', consigne: 'Une seule demande. Un avis, pas un rendez-vous.' },
+      {
+        nom: 'Question',
+        consigne:
+          "Une seule question, qui appelle une expérience (pas un oui/non) : c'est elle qui déclenche les commentaires argumentés. Côté Veolt, elle est aussi posée dans l'image. Une ressource réelle (analyse gratuite, article publié) se propose en message privé.",
+      },
     ],
     indicateurCle: 'temps de lecture — viser 30 s et plus ; 31 à 60 s donne la diffusion maximale',
     pieges: [
-      'Un lien dans le corps réduit la diffusion : le mettre en commentaire, posté par la page.',
+      'Un lien dans le post réduit la diffusion, et le « lien en premier commentaire » n\'est plus un contournement fiable (2026) : proposer la ressource en message privé ou l\'épingler dans la Sélection de la page.',
+      '« Commentez MOT », « likez si… », « partagez », « abonnez-vous » : appât à l\'engagement, que LinkedIn demande d\'éviter et pénalise. La portée des posts « Commentez MOT-CLÉ » a chuté d\'environ 60 % depuis fin juillet 2026.',
       'Plus de 3 hashtags dilue. Descriptifs, en pied.',
       'Un post très liké mais survolé est moins diffusé qu\'un post peu liké mais lu.',
     ],
-    releve: '2026-10-06',
+    releve: '2026-11-25',
   },
 
   'li-carrousel': {
@@ -89,7 +96,7 @@ export const FORMATS: Record<FormatSlug, FormatSpec> = {
     reseau: 'linkedin',
     nom: 'LinkedIn — carrousel (document PDF)',
     raison:
-      "Le format le plus performant disponible (~6,6 % d'engagement) et le seul où une page entreprise tient la comparaison avec un profil personnel. Pour nous qui publions en page, c'est le format décisif.",
+      "Le format le plus performant pour une page entreprise : 7,00 % d'engagement moyen pour les documents natifs, en hausse de 14 % sur un an (Socialinsider 2026, 1,3 million de posts de pages). Pour nous qui publions en page, c'est le format décisif.",
     cadence: '1 fois par semaine',
     maxCaracteres: 3000,
     utileMin: 300,
@@ -102,7 +109,7 @@ export const FORMATS: Record<FormatSlug, FormatSpec> = {
       { nom: 'Page 2 — problème', consigne: 'Le problème, en une phrase et un chiffre.' },
       { nom: 'Pages 3 à 8 — corps', consigne: 'Une idée par page. Jamais deux. Une page = un écran de métro.' },
       { nom: 'Page 9 — à retenir', consigne: 'La synthèse, celle qu\'on capture d\'écran.' },
-      { nom: 'Page 10 — appel', consigne: "L'appel, et l'identité de l'entité." },
+      { nom: 'Page 10 — fin', consigne: "La question du post et l'identité. Côté Veolt, la page de fin du kit est générée : logo V + VEOLT, question, pastille veolt.fr." },
       { nom: 'Texte du post', consigne: 'Court : 300 à 600 caractères. Il introduit, il ne résume pas.', limite: 600 },
     ],
     indicateurCle: 'taux d\'achèvement du document — viser 15 à 20 s de lecture sur le document',
@@ -110,7 +117,7 @@ export const FORMATS: Record<FormatSlug, FormatSpec> = {
       'En dessous de 6 pages le format ne vaut pas le travail ; au-dessus de 12 l\'achèvement s\'effondre.',
       'Un titre de page 1 illisible en vignette annule tout le reste.',
     ],
-    releve: '2026-10-06',
+    releve: '2026-11-25',
   },
 
   'li-video': {

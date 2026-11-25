@@ -176,7 +176,8 @@ export function controler(b: BrouillonAControler): Constat[] {
         niveau: 'alerte',
         regle: 'LinkedIn — lien dans le corps',
         message: 'Le corps contient une URL.',
-        remede: 'Un lien dans le corps réduit la diffusion. Le mettre en premier commentaire, posté par la page.',
+        remede:
+          "Un lien dans le post réduit la diffusion, et le « lien en premier commentaire » n'est plus un contournement fiable (relevé 2026-11-25). Retirer le lien : proposer la ressource en message privé, ou l'épingler dans la Sélection de la page.",
       });
     }
     if (f.reseau === 'reddit') {
@@ -252,6 +253,60 @@ export function controler(b: BrouillonAControler): Constat[] {
           "Un article, un numéro de décision ou une date. C'est exactement ce que le produit fait — un post qui ne le fait pas contredit la promesse qu'il vend.",
       });
     }
+  }
+
+  // ─── 12. LinkedIn : appât à l'engagement (relevé 2026-11-25) ─────────────
+  // LinkedIn demande d'éviter les contenus qui réclament explicitement des
+  // likes, partages, commentaires ou abonnements, et les « Commentez MOT »
+  // ont perdu l'essentiel de leur portée en 2026. La question posée dans le
+  // post (et dans l'image) suffit à faire réagir, sans le réclamer.
+  if (f.reseau === 'linkedin') {
+    const appats: Array<[RegExp, string]> = [
+      [/(?:^|[^\p{L}])(?:[Cc]ommente[zr]?|[Tt]ape[zr]?|[ÉéEe]crive[zr]?|[Rr]épondez|[Mm]ettez)(?![\p{L}])[^.\n]{0,40}(?:«\s*|"|“)[A-ZÀ-Ý0-9][A-ZÀ-Ý0-9'’ -]{1,20}(?:\s*»|"|”)/u, '« commentez MOT » pour recevoir quelque chose'],
+      [/\b(?:like[zr]?|liker|likez|mettez un (?:like|pouce)|un petit like)\b/i, 'demande de like'],
+      [/\b(?:partage[zr]?|repartage[zr]?|reposte[zr]?)\b[^.\n]{0,25}\b(?:ce post|si|autour|à votre réseau|pour)\b/i, 'demande de partage'],
+      [/\babonne[zr]?-vous\b|\bsuivez(?:-nous| la page)\b/i, "demande d'abonnement"],
+      [/\b(?:réagi(?:ssez|r)|votez)\s+(?:avec|si|👍|❤)/i, 'réaction réclamée'],
+    ];
+    for (const [motif, libelle] of appats) {
+      const t = texte.match(motif);
+      if (t) {
+        out.push({
+          niveau: 'alerte',
+          regle: 'LinkedIn — appât à l’engagement',
+          message: `${libelle} : « ${t[0].trim()} ».`,
+          remede:
+            "LinkedIn réduit la portée des posts qui réclament un like, un partage, un abonnement ou un mot-clé en commentaire. Remplacer par une vraie question, qui appelle une expérience (pas un oui/non). Une ressource se propose en message privé.",
+        });
+        break;
+      }
+    }
+  }
+
+  // ─── 13. Ressource promise qui n'existe pas (règle 2) ────────────────────
+  if (m.ressources) {
+    const promesse = texte.match(
+      /\b(?:guide|rapport|livre blanc|check-?list|modèle|template|kit|grille|e-?book|audit|webinaire|mini-formation)\b[^.\n]{0,60}\b(?:recevoir|reçoi|envoy|envoie|télécharg|obtenir|offert|gratuit|disponible|demandez)|\b(?:recevoir|recevez|envoy|télécharg|obtenez|demandez)[^.\n]{0,60}\b(?:guide|rapport|livre blanc|check-?list|modèle|template|kit|grille|e-?book|audit|webinaire|mini-formation)\b/i,
+    );
+    if (promesse && !m.ressources.some((r) => r.motif.test(promesse[0]))) {
+      out.push({
+        niveau: 'blocage',
+        regle: `${m.nom} — ressource promise inexistante`,
+        message: `« ${promesse[0].trim()} » : cette ressource n'est pas déclarée comme disponible.`,
+        remede: `Ressources réelles à ce jour : ${m.ressources.map((r) => `${r.nom} (${r.ou})`).join(' ; ')}. Proposer l'une d'elles, ou créer la ressource puis la déclarer dans marques.ts.`,
+      });
+    }
+  }
+
+  // ─── 14. Veolt, LinkedIn : l'appel est une question ──────────────────────
+  if (b.entite === 'veolt' && f.reseau === 'linkedin' && b.appel.trim() && !b.appel.trim().endsWith('?')) {
+    out.push({
+      niveau: 'conseil',
+      regle: 'LinkedIn — la question du post',
+      message: "L'appel n'est pas une question.",
+      remede:
+        "Une question qui appelle une expérience déclenche des commentaires argumentés, ceux que LinkedIn diffuse le plus loin — et elle est alors posée dans l'image du post. Une invitation (« Demandez l'analyse gratuite ») peut suivre, en message privé.",
+    });
   }
 
   return out;

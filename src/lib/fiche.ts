@@ -58,6 +58,10 @@ export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; cont
   const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) };
   const photo = photoDuPost(p);
   if (photo) contenu.photo = String(photo);
+  // Veolt, LinkedIn (codes 2026) : la question du post est posée dans l'image.
+  // Elle appelle une réponse argumentée sans la réclamer (pas de « likez »).
+  const q = questionDuPost(p);
+  if (q && p.format_slug === 'li-texte-image') contenu.question = q;
   // La couverture d'un carrousel annonce son vrai nombre de pages (pas le « 1 / 9 » d'exemple).
   if (slug === 'carrousel') {
     const n = [...p.corps.matchAll(/PAGE\s+\d+\s*[—–-]/g)].length;
@@ -96,7 +100,26 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
   if (!/carrousel/.test(p.format_slug)) return [];
   const pages = [...p.corps.matchAll(/PAGE\s+(\d+)\s*[—–-]\s*([\s\S]*?)(?=\n\s*PAGE\s+\d+\s*[—–-]|$)/g)].map((m) => m[2].trim());
   const photo = pages.length ? photoDuPost(p) : null;
+  const question = questionDuPost(p);
   return pages.map((texte, i) => {
+    // Veolt : la dernière page est la page de fin du kit (logo, question, pastille).
+    if (p.entite === 'veolt' && i === pages.length - 1 && pages.length > 1) {
+      const appel = texte.split('\n')[0].trim();
+      const { ligne1, ligne2 } = deuxLignes(appel);
+      return {
+        slug: 'carrousel' as GabaritSlug,
+        contenu: { ligne1, ligne2, sousTitre: '', pagination: `${i + 1} / ${pages.length}`, fin: '1', ...(question ? { question } : {}) },
+      };
+    }
+    // Veolt : la page « À RETENIR » prend l'enseignement en titre, l'étiquette
+    // dit ce que c'est ; les pages intérieures portent le sujet en étiquette.
+    if (p.entite === 'veolt' && i > 0) {
+      const aRetenir = texte.match(/^À RETENIR\s*:\s*([\s\S]+)$/i);
+      if (aRetenir) {
+        const { ligne1, ligne2 } = deuxLignes(aRetenir[1].trim());
+        return { slug: 'carrousel' as GabaritSlug, contenu: { ligne1, ligne2, sousTitre: '', pagination: `${i + 1} / ${pages.length}`, etiquette: 'À retenir' } };
+      }
+    }
     const [premiere, ...reste] = texte.split(/(?<=[.:!?])\s+/);
     // Une première phrase trop longue pour le titre se coupe à une pause
     // (virgule, deux-points, tiret) ou entre deux mots — jamais dans un mot.
@@ -110,11 +133,25 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
         ligne2,
         sousTitre: borner([suite, ...reste].filter(Boolean).join(' '), 230),
         pagination: `${i + 1} / ${pages.length}`,
+        ...(p.entite === 'veolt' && i > 0 && p.titre ? { etiquette: p.titre.length > 48 ? `${p.titre.slice(0, p.titre.lastIndexOf(' ', 46))}…` : p.titre } : {}),
         // La couverture du carrousel porte la photo ; les pages restent nettes, pour la lecture.
         ...(i === 0 && photo ? { photo: String(photo) } : {}),
       },
     };
   });
+}
+
+/**
+ * La question d'un post Veolt, à poser dans l'image : l'appel s'il est une
+ * vraie question (il finit par « ? »), borné pour tenir sur trois lignes.
+ * `null` pour MagistrIA, pour un appel qui n'est pas une question, ou un appel
+ * encore marqué « [?] ».
+ */
+export function questionDuPost(p: LignePublication): string | null {
+  if (p.entite !== 'veolt') return null;
+  const a = (p.appel ?? '').trim();
+  if (!a.endsWith('?') || /\[(?:\?|à compléter)\]/i.test(a)) return null;
+  return a.length > 150 ? `${a.slice(0, a.lastIndexOf(' ', 146))}… ?` : a;
 }
 
 /** Coupe un titre trop long à la dernière pause avant `max`, sinon au dernier espace ; la suite repart avec « … ». */

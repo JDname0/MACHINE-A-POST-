@@ -59,6 +59,14 @@ export interface Marque {
   /** Ce qui est bloqué, et pourquoi. Affiché tel quel quand le garde-fou déclenche. */
   preuvesInterdites: Array<{ motif: RegExp; libelle: string; raison: string }>;
   contraintes: string[];
+  /**
+   * Les ressources qu'un post peut proposer parce qu'elles **existent**
+   * (analyse, article…). Un post qui promet un guide, un rapport, un audit ou
+   * un modèle absent de cette liste est bloqué (garde-fous.ts, règle 13) :
+   * promettre une ressource qui n'existe pas, c'est la preuve inventée de la
+   * règle 2. Créer la ressource, puis l'ajouter ici. Absent : règle inactive.
+   */
+  ressources?: Array<{ nom: string; motif: RegExp; ou: string }>;
 }
 
 export const MARQUES: Record<EntiteSlug, Marque> = {
@@ -143,6 +151,13 @@ export const MARQUES: Record<EntiteSlug, Marque> = {
       "l'analyse gratuite, qui est une vraie offre sans engagement",
       'la combinaison des trois métiers : développeurs web, créateurs vidéo et analystes financiers',
       "l'expérience personnelle de l'associé, formulée « mon associé a accompagné X sur Y »",
+    ],
+    // Relevé le 25/11/2026 : l'analyse gratuite est une vraie offre (veolt.fr,
+    // « Demander l'analyse gratuite ») ; les articles sont ceux du blog veolt.fr.
+    // Pas de guide, de rapport, de livre blanc ni de modèle à ce jour.
+    ressources: [
+      { nom: "l'analyse gratuite", motif: /analyse (?:gratuite|offerte)/i, ou: 'veolt.fr — formulaire « Demander l’analyse gratuite »' },
+      { nom: 'un article du blog', motif: /\barticles?\b/i, ou: 'veolt.fr/blog — seulement un article déjà publié' },
     ],
     preuvesInterdites: [
       {

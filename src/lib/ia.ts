@@ -73,6 +73,14 @@ function cadreEntite(entite: EntiteSlug): string {
     'Preuves INTERDITES — un post qui en contient est bloqué. Si le post en a besoin pour tenir, change l’angle :',
     ...m.preuvesInterdites.map((x) => `- ${x.libelle} : ${x.raison}`),
     '',
+    ...(m.ressources
+      ? [
+          'Ressources qui existent vraiment — les seules qu’un post peut proposer (en message privé, jamais par « commentez MOT ») :',
+          ...m.ressources.map((r) => `- ${r.nom} (${r.ou})`),
+          'Ne promets aucun guide, rapport, audit ou modèle hors de cette liste.',
+          '',
+        ]
+      : []),
     'Contraintes de la marque :',
     ...m.contraintes.map((x) => `- ${x}`),
     '',

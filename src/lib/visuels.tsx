@@ -16,6 +16,7 @@
 import type { EntiteSlug } from './marques';
 import { DEGRADE_MOT } from './logo-veolt';
 import { URL_PNG_V } from './logo-veolt-png';
+import { URL_PNG_SPHERE } from './sphere-veolt-png';
 
 export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel' | 'couverture';
 
@@ -127,6 +128,13 @@ interface ThemeVisuel {
    * sur chaque visuel. Absent : pictogramme carré + initiale.
    */
   pictogramme?: string;
+  /**
+   * Univers du kit Veolt (25/11/2026) : sphère de particules de veolt.fr posée
+   * derrière le texte (PNG transparent), mot de la signature mis en lavande,
+   * et la suite de la pastille (« Devis sous 24 h », preuve autorisée tant que
+   * le délai est tenu — `marques.ts`).
+   */
+  kit?: { sphere: string; motAccent: string; pastilleSuite: string };
   /** Trame posée sous les halos (grille fine du site MagistrIA). */
   trame?: string;
   /** Sur-titre en petites capitales espacées, et sa couleur (police Mono). */
@@ -163,8 +171,9 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
       // Le dégradé de texte du site en ligne (veolt.fr, relevé le 10/11) : magenta → lavande.
       titreDegrade: 'linear-gradient(100deg, #B600A8 0%, #C79BFF 100%)',
       marque: 'Veolt',
-      signature: 'Studio Créatif',
+      signature: 'Studio créatif & conseil',
       pictogramme: URL_PNG_V,
+      kit: { sphere: URL_PNG_SPHERE, motAccent: 'créatif', pastilleSuite: 'Devis sous 24 h' },
       services: 'Business plan  •  Sites & web 3D  •  Vidéo & 3D',
       adresse: 'veolt.fr',
       surface: 'rgba(237,235,242,0.06)',
@@ -227,6 +236,16 @@ export interface Contenu {
   pagination?: string;
   /** Identifiant d'une photo de la médiathèque (Higgsfield…) posée en fond, sous un voile à la charte. */
   photo?: string;
+  /**
+   * La question du post, posée dans l'image (LinkedIn, 2026) : elle appelle
+   * une réponse argumentée sans la réclamer. Jamais « likez » ni « commentez
+   * MOT » — LinkedIn pénalise l'appât à l'engagement (garde-fous.ts, règle 12).
+   */
+  question?: string;
+  /** Dernière page d'un carrousel : page de fin à l'identité (logo, question, pastille). */
+  fin?: string;
+  /** Petite étiquette au-dessus du titre d'une page de carrousel (« À RETENIR », titre du sujet). */
+  etiquette?: string;
 }
 
 export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
@@ -346,9 +365,7 @@ function Identite({ t, taille = 1 }: { t: ThemeVisuel; taille?: number }) {
           >
             {t.marque.toUpperCase()}
           </div>
-          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 16 * taille, color: t.encreDouce, marginTop: 4 * taille }}>
-            {t.signature}
-          </div>
+          <Signature t={t} taille={taille} />
         </div>
       </div>
     );
@@ -381,7 +398,113 @@ function Identite({ t, taille = 1 }: { t: ThemeVisuel; taille?: number }) {
   );
 }
 
+/** La signature en petites capitales espacées ; kit Veolt : le mot d'accent en lavande. */
+function Signature({ t, taille = 1 }: { t: ThemeVisuel; taille?: number }) {
+  const texte = t.signature.toUpperCase();
+  const accent = t.kit?.motAccent.toUpperCase();
+  const i = accent ? texte.indexOf(accent) : -1;
+  const morceaux: Array<[string, boolean]> =
+    i < 0 || !accent ? [[texte, false]] : [[texte.slice(0, i), false], [accent, true], [texte.slice(i + accent.length), false]];
+  return (
+    <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 14 * taille, letterSpacing: 3 * taille, color: '#9BA5B1', marginTop: 6 * taille }}>
+      {morceaux
+        .filter(([m]) => m)
+        .map(([m, a], k) => (
+          <span key={k} style={{ color: a ? t.accentDoux : '#9BA5B1', fontWeight: a ? 600 : 400, whiteSpace: 'pre' }}>
+            {m}
+          </span>
+        ))}
+    </div>
+  );
+}
+
+/**
+ * La sphère de particules du kit (veolt.fr), derrière le texte : halo magenta
+ * en dégradé radial (Satori), particules en PNG par-dessus. Positionnée en
+ * absolu : elle ne prend aucune place dans la mise en page.
+ */
+function Sphere({ t, largeur, hauteur }: { t: ThemeVisuel; largeur: number; hauteur: number }) {
+  if (!t.kit) return null;
+  const paysage = largeur / hauteur > 1.4;
+  const d = Math.round((paysage ? hauteur * 1.25 : Math.max(largeur, hauteur) * 0.82) / 2) * 2;
+  const cx = paysage ? largeur * 0.82 : largeur * 0.88;
+  const cy = paysage ? hauteur * 0.5 : hauteur * 0.25;
+  const x = Math.round(cx - d / 2);
+  const y = Math.round(cy - d / 2);
+  return (
+    <div style={{ position: 'absolute', top: 0, left: 0, width: largeur, height: hauteur, display: 'flex' }}>
+      <div
+        style={{
+          position: 'absolute',
+          left: x,
+          top: y,
+          width: d,
+          height: d,
+          display: 'flex',
+          backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(182,0,168,0.26) 0%, rgba(118,33,176,0.10) 45%, rgba(12,12,12,0) 70%)',
+        }}
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={t.kit.sphere} alt="" width={d} height={d} style={{ position: 'absolute', left: x, top: y, opacity: 0.66 }} />
+    </div>
+  );
+}
+
+/**
+ * La question du post, dans l'image (LinkedIn 2026). Une carte de verre :
+ * sur-titre « Et vous ? », puis la question. Elle invite une réponse
+ * argumentée, elle ne réclame ni like ni mot-clé.
+ */
+function QuestionCarte({ t, question, taille = 1 }: { t: ThemeVisuel; question: string; taille?: number }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10 * taille,
+        padding: `${22 * taille}px ${28 * taille}px`,
+        borderRadius: 22 * taille,
+        backgroundColor: 'rgba(19,19,22,0.78)',
+        border: '1.5px solid rgba(215,226,234,0.16)',
+        borderLeft: `${5 * taille}px solid ${t.accent}`,
+      }}
+    >
+      <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 15 * taille, letterSpacing: 4 * taille, color: t.accentDoux }}>
+        ET VOUS ?
+      </div>
+      <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 30 * taille, lineHeight: 1.35, color: t.encre }}>
+        {question}
+      </div>
+    </div>
+  );
+}
+
 function Pastille({ t, taille = 1 }: { t: ThemeVisuel; taille?: number }) {
+  if (t.kit) {
+    // La pastille du kit : verre sombre, filet fin, point au dégradé, capitales espacées.
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14 * taille,
+          alignSelf: 'flex-start',
+          padding: `${15 * taille}px ${30 * taille}px`,
+          borderRadius: 999,
+          backgroundColor: 'rgba(19,19,22,0.82)',
+          border: '1.5px solid rgba(215,226,234,0.18)',
+          color: '#D7E2EA',
+          fontFamily: 'Inter',
+          fontWeight: 600,
+          fontSize: 21 * taille,
+          letterSpacing: 3 * taille,
+        }}
+      >
+        <div style={{ display: 'flex', width: 13 * taille, height: 13 * taille, borderRadius: 999, backgroundImage: 'linear-gradient(135deg, #C79BFF, #B600A8)' }} />
+        <span>{`${t.adresse} · ${t.kit.pastilleSuite}`.toUpperCase()}</span>
+      </div>
+    );
+  }
   return (
     <div
       style={{
@@ -594,7 +717,8 @@ export function rendre(
   variante: Variante = 'clair',
   photoDonnees?: string,
 ) {
-  const el = rendreSansPhoto(entite, gabarit, contenu, variante);
+  // Sur une photo, la sphère du kit n'est pas posée : la photo est le décor.
+  const el = rendreSansPhoto(entite, gabarit, contenu, variante, !photoDonnees);
   if (!photoDonnees) return el;
   const t = theme(entite, variante);
   const g = GABARITS[gabarit];
@@ -625,6 +749,7 @@ function rendreSansPhoto(
   gabarit: GabaritSlug,
   contenu?: Partial<Contenu>,
   variante: Variante = 'clair',
+  avecSphere = true,
 ) {
   const t = theme(entite, variante);
   const g = GABARITS[gabarit];
@@ -641,11 +766,15 @@ function rendreSansPhoto(
     padding: marge,
     backgroundColor: t.fond,
     backgroundImage: t.trame ? `${t.halos},${t.trame}` : t.halos,
+    position: 'relative',
   };
+  // L'univers du kit Veolt (sphère de particules), sous tout le reste.
+  const sphere = avecSphere ? <Sphere t={t} largeur={g.largeur} hauteur={g.hauteur} /> : null;
 
   if (gabarit === 'chiffre') {
     return (
       <div style={base}>
+        {sphere}
         <Identite t={t} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div
@@ -667,7 +796,14 @@ function rendreSansPhoto(
             {c.sousTitre}
           </div>
         </div>
-        <Pastille t={t} />
+        {c.question ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+            <QuestionCarte t={t} question={c.question} taille={0.9} />
+            <Pastille t={t} />
+          </div>
+        ) : (
+          <Pastille t={t} />
+        )}
       </div>
     );
   }
@@ -679,6 +815,7 @@ function rendreSansPhoto(
     const taille = (entite === 'veolt' ? 1.3 : 1) * (long > 80 ? 46 : long > 55 ? 54 : 64);
     return (
       <div style={{ ...base, padding: '56px 64px' }}>
+        {sphere}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Identite t={t} taille={0.8} />
           <div style={{ display: 'flex', fontFamily: 'Mono', fontSize: 16, letterSpacing: 4, color: t.surTitre?.couleur ?? t.accent }}>
@@ -699,12 +836,52 @@ function rendreSansPhoto(
   if (gabarit === 'affirmation') {
     return (
       <div style={base}>
+        {sphere}
         <Identite t={t} />
         <Titre t={t} c={c} taille={entite === 'veolt' ? 108 : 88} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
-          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 28, color: t.encreDouce, lineHeight: 1.45 }}>
-            {c.sousTitre}
+          {c.question ? (
+            <QuestionCarte t={t} question={c.question} />
+          ) : (
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 28, color: t.encreDouce, lineHeight: 1.45 }}>
+              {c.sousTitre}
+            </div>
+          )}
+          <Pastille t={t} />
+        </div>
+      </div>
+    );
+  }
+
+  if (gabarit === 'carrousel' && c.fin && t.kit) {
+    // Page de fin d'un carrousel Veolt, à l'identité du kit : le logo en grand,
+    // la question du post (ou son appel), la pastille. Elle se capture et se partage.
+    return (
+      <div style={{ ...base, alignItems: 'center', justifyContent: 'center', gap: 46 }}>
+        <Sphere t={t} largeur={g.largeur} hauteur={g.hauteur} />
+        {c.pagination ? (
+          <div style={{ position: 'absolute', top: marge, right: marge, display: 'flex', fontFamily: 'Inter', fontSize: 24, color: t.encreDouce, border: `1px solid ${t.encreDouce}`, borderRadius: 999, padding: '8px 20px' }}>
+            {c.pagination}
           </div>
+        ) : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={t.pictogramme} alt="" width={230} height={230} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, marginTop: -30 }}>
+          <div style={{ display: 'flex', fontFamily: 'Kanit', fontWeight: 900, fontSize: 120, lineHeight: 1, letterSpacing: -3, backgroundImage: DEGRADE_MOT, backgroundClip: 'text', color: 'transparent' }}>
+            {t.marque.toUpperCase()}
+          </div>
+          <Signature t={t} taille={1.5} />
+        </div>
+        <div style={{ display: 'flex', width: 860 }}>
+          {c.question ? (
+            <QuestionCarte t={t} question={c.question} />
+          ) : (
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 34, lineHeight: 1.4, color: t.encre, textAlign: 'center' }}>
+              {[c.ligne1, c.ligne2].filter(Boolean).join(' ')}
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           <Pastille t={t} />
         </div>
       </div>
@@ -714,6 +891,7 @@ function rendreSansPhoto(
   if (gabarit === 'carrousel') {
     return (
       <div style={base}>
+        {sphere}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Identite t={t} />
           {c.pagination ? (
@@ -734,11 +912,26 @@ function rendreSansPhoto(
             <div style={{ display: 'flex' }} />
           )}
         </div>
-        <Titre t={t} c={c} taille={entite === 'veolt' ? 104 : 84} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+          {c.etiquette ? (
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 20, letterSpacing: 4, color: t.accentDoux }}>
+              {c.etiquette.toUpperCase()}
+            </div>
+          ) : null}
+          <Titre t={t} c={c} taille={entite === 'veolt' ? 104 : 84} />
+          {/* Veolt : l'explication suit son titre, au lieu d'attendre en pied de page. */}
+          {t.kit && c.sousTitre ? (
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 36, color: t.encre, lineHeight: 1.45, marginTop: 16, maxWidth: 900 }}>
+              {c.sousTitre}
+            </div>
+          ) : null}
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
-          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 32, color: t.encre, lineHeight: 1.4 }}>
-            {c.sousTitre}
-          </div>
+          {!t.kit ? (
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 32, color: t.encre, lineHeight: 1.4 }}>
+              {c.sousTitre}
+            </div>
+          ) : null}
           <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 24, color: t.encreDouce }}>
             Faites défiler →
           </div>
@@ -750,6 +943,7 @@ function rendreSansPhoto(
   if (gabarit === 'reel') {
     return (
       <div style={base}>
+        {sphere}
         <Identite t={t} taille={1.15} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 44 }}>
           <Titre t={t} c={c} taille={entite === 'veolt' ? 136 : 106} />
@@ -765,6 +959,7 @@ function rendreSansPhoto(
   // lancement
   return (
     <div style={base}>
+      {sphere}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 46 }}>
         <Identite t={t} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>

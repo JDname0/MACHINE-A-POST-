@@ -1248,6 +1248,24 @@ export function sceneApp(cx: C2D, e: Env, sc: Extract<Scene, { type: 'app' }>, t
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** L'écran de fin complet : marque, slogan, public, bouton, adresse, petite ligne. */
+/** Kit Veolt : « STUDIO CRÉATIF & CONSEIL », capitales espacées, « créatif » en lavande, centré. */
+function surTitreKit(cx: C2D, e: Env, y: number, a: number) {
+  const t = e.L * 0.026;
+  cx.font = fonte(e.f.corps, t);
+  espacer(cx, Math.round(t * 0.38));
+  const morceaux: Array<[string, string]> = [['STUDIO ', '#9BA5B1'], ['CRÉATIF', e.accent2], [' & CONSEIL', '#9BA5B1']];
+  const w = morceaux.reduce((s, [m]) => s + cx.measureText(m).width, 0);
+  let x = (e.L - w) / 2;
+  cx.globalAlpha = a;
+  for (const [m, c] of morceaux) {
+    cx.fillStyle = c;
+    cx.fillText(m, x, y);
+    x += cx.measureText(m).width;
+  }
+  espacer(cx, 0);
+  cx.globalAlpha = 1;
+}
+
 export function sceneFinV2(cx: C2D, e: Env, sc: Extract<Scene, { type: 'fin' }>, titre: string, tl: number) {
   const L = e.L;
   e.repere('impact', 0.05);
@@ -1255,6 +1273,7 @@ export function sceneFinV2(cx: C2D, e: Env, sc: Extract<Scene, { type: 'fin' }>,
   let y = e.H * (e.vertical ? 0.36 : 0.3);
   const tl1 = L * (e.majuscules ? 0.15 : 0.1);
   voile(cx, e, y + e.H * 0.13, L * 0.7, e.H * 0.3, apparition(tl, 0, 0.5));
+  if (e.marque === 'veolt') surTitreKit(cx, e, y - tl1 * 0.98, apparition(tl, 0.15, 0.5));
   logotype(cx, e, y, tl1, apparition(tl, 0, 0.5), borne((tl - 0.4) / 0.9));
   y += tl1 * 0.75;
   const lignesSlogan = sc.slogan ?? (titre ? [titre] : []);

@@ -9,6 +9,7 @@
 import { format, type FormatSlug } from './formats';
 import { serieDe, type Sujet } from './sujets';
 import { marque, type EntiteSlug } from './marques';
+import { PAGES_CARROUSEL_VEOLT } from './carrousels-veolt';
 
 export interface Brouillon {
   accroche: string;
@@ -54,8 +55,13 @@ function tronquer(s: string, max: number): string {
  * texte publié. Un sujet sans source donne une consigne qui le dit — ne rien
  * afficher laisserait croire qu'on a vérifié.
  */
-export function fabriquer(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug): Brouillon {
-  const b = tailler(s, formatSlug, entite);
+export function fabriquer(
+  s: Sujet,
+  formatSlug: FormatSlug,
+  entite: EntiteSlug,
+  options: { sansPagesEcrites?: boolean } = {},
+): Brouillon {
+  const b = tailler(s, formatSlug, entite, options.sansPagesEcrites ?? false);
   b.consignesVisuel = [
     s.source ? `SOURCE DU FAIT AVANCÉ — ${s.source}` : 'SOURCE DU FAIT AVANCÉ — [?] non renseignée. À nommer avant de passer en « validé ».',
     ...b.consignesVisuel,
@@ -63,7 +69,7 @@ export function fabriquer(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug):
   return b;
 }
 
-function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug): Brouillon {
+function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPagesEcrites: boolean): Brouillon {
   const f = format(formatSlug);
   const m = marque(entite);
   const hashtags = HASHTAGS[entite][s.pilier] ?? '';
@@ -103,8 +109,10 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug): Brouillo
     case 'ig-carrousel': {
       const pages: string[] = [];
       pages.push(`PAGE 1 — ${tronquer(s.titre, 80)}`);
-      pages.push(`PAGE 2 — ${s.corps[0]}`);
-      s.corps.slice(1).forEach((p, i) => pages.push(`PAGE ${i + 3} — ${p}`));
+      // Veolt : les pages écrites pour le carrousel (une idée par page, titre +
+      // explication) quand elles existent ; sinon le corps du sujet, une phrase par page.
+      const ecrites = entite === 'veolt' && !sansPagesEcrites ? PAGES_CARROUSEL_VEOLT[s.ref] : undefined;
+      (ecrites ?? s.corps).forEach((p, i) => pages.push(`PAGE ${i + 2} — ${p}`));
       pages.push(`PAGE ${pages.length + 1} — À RETENIR : ${s.enseignement}`);
       pages.push(`PAGE ${pages.length + 1} — ${s.appel}\n${m.nom} · ${m.signature}`);
       const texteCourt = `${s.accroche}\n\n${s.enseignement}`;
