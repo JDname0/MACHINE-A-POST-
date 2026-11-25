@@ -59,7 +59,8 @@ export function constatsDe(p: LignePublication): { constats: Constat[]; validabl
 export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; contenu: Partial<Contenu> } | null {
   let slug = gabaritPour(p.format_slug, p.pilier);
   if (!slug) return null;
-  const trouve = p.accroche.match(/(?:art\.?\s*)?[LRD]\.?\s*\d+(?:-\d+)?|\d[\d  ]*(?:\s*€|\s*%)?/i);
+  // Un nombre collé à des lettres (« 3D », « 4K ») n'est pas un chiffre à afficher en grand.
+  const trouve = p.accroche.match(/(?:art\.?\s*)?[LRD]\.?\s*\d+(?:-\d+)?|\d[\d  ]*(?:\s*€|\s*%)?(?![\p{L}\d])/iu);
   // Le gabarit « chiffre » sans chiffre réel dans l'accroche afficherait un
   // tiret, ou pire un nombre d'exemple : on passe à l'affirmation.
   if (slug === 'chiffre' && !trouve) slug = 'affirmation';
