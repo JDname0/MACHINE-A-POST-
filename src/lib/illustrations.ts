@@ -1123,6 +1123,50 @@ export const IMAGES_PACK: ImagePack[] = [
       "Three large macro photograph prints pinned side by side on a dark wall above a lit light table: woven linen fabric, oak wood grain, a single water droplet on glass; a photographer's loupe and a camera lens resting on the light table. Textures only real photography captures",
     ),
   },
+  {
+    ...G,
+    nom: 'illu-deux-devis-reel',
+    montre: "Deux devis de site sur un bureau : une page courte, et un devis plus long dont quatre lignes sont surlignées.",
+    ratio: '4:3',
+    job: '5d5ab564-6eb1-491a-af70-bff4754fa8a7',
+    url: `${CDN}hf_20261125_222626_5d5ab564-6eb1-491a-af70-bff4754fa8a7.png`,
+    prompt: promptDeclaratif(
+      "Two printed website quotes side by side on a real wooden desk: on the left a short one-page quote, on the right a longer multi-page quote with four lines highlighted in magenta marker; a hand holds a pen between them, comparing, reading glasses and a coffee cup nearby",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-site-a-refaire-reel',
+    montre: "Un téléphone qui charge encore un vieux site encombré, et un portable qui affiche une page nette, un seul bouton.",
+    ratio: '4:3',
+    job: '1cda7131-ecc0-4470-ab53-e8115c74e613',
+    url: `${CDN}hf_20261125_222627_1cda7131-ecc0-4470-ab53-e8115c74e613.png`,
+    prompt: promptDeclaratif(
+      "A real smartphone on a wooden café table showing an old cluttered website with a loading spinner, next to an open laptop showing a clean modern page with one clear headline block and one button; a hand reaches for the laptop trackpad. Time to redo the site",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-dossier-loupe-reel',
+    montre: "Un dossier de prêt ouvert sur le bureau du banquier, une loupe posée sur une seule ligne du tableau.",
+    ratio: '4:3',
+    job: 'd859a3c1-05f9-4d36-9336-26ff7cad6f2c',
+    url: `${CDN}hf_20261125_222627_d859a3c1-05f9-4d36-9336-26ff7cad6f2c.png`,
+    prompt: promptDeclaratif(
+      "A loan application folder open on a bank officer's wooden desk, a real brass magnifying glass held by a hand over one single line of a financial table, a desk lamp, a stamp and a fountain pen nearby. What the banker really looks at",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-accueil-avant-apres-reel',
+    montre: "Deux portables côte à côte : la page d’accueil chargée d’avant, la page nette d’après.",
+    ratio: '4:3',
+    job: 'b16a57c4-07f5-496c-b5d5-c07474fa9317',
+    url: `${CDN}hf_20261125_222626_b16a57c4-07f5-496c-b5d5-c07474fa9317.png`,
+    prompt: promptDeclaratif(
+      "Two real laptops side by side on a dark desk: the left one shows a busy outdated homepage with a large photo slider and two competing buttons, the right one shows the same company's clean redesigned homepage with one headline block and a single magenta button. Before and after",
+    ),
+  },
 ];
 
 /** Où chaque image sert. L'ordre compte : il est repris dans les vidéos. */
@@ -1134,10 +1178,10 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris-reel', role: 'page', debut: 'Au-delà de cinq visuels' },
 
   // Avant / après sur une page d'accueil — la même image, recadrée sur chaque écran
-  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres', role: 'couverture' },
-  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres', role: 'page', debut: 'Le défaut le plus fréquent', cadrage: { x: 0.26, y: 0.47, zoom: 2.3 } },
-  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres', role: 'page', debut: 'Avant, le slogan d', cadrage: { x: 0.255, y: 0.4, zoom: 2.15 } },
-  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres', role: 'page', debut: 'Après, la promesse en haut', cadrage: { x: 0.745, y: 0.4, zoom: 2.15 } },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres-reel', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres-reel', role: 'page', debut: 'Le défaut le plus fréquent', cadrage: { x: 0.26, y: 0.47, zoom: 2.3 } },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres-reel', role: 'page', debut: 'Avant, le slogan d', cadrage: { x: 0.255, y: 0.4, zoom: 2.15 } },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant-apres-reel', role: 'page', debut: 'Après, la promesse en haut', cadrage: { x: 0.745, y: 0.4, zoom: 2.15 } },
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-en-main', role: 'page', debut: 'Un seul bouton', cadrage: { x: 0.55, y: 0.32, zoom: 1.25 } },
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-en-main', role: 'page', debut: 'Le site refait, en main' },
 
@@ -1153,7 +1197,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-mt-3', image: 'illu-flacon-en-situation', role: 'page', debut: 'Le produit fini, en situation' },
 
   // Pourquoi un devis de site varie de 1 500 à 10 000 €
-  { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-deux-devis', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-deux-devis-reel', role: 'couverture' },
   { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-pages-gabarit', role: 'page', debut: 'Ligne 1, les pages uniques' },
   { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-atelier-noir-en-boutique', role: 'page', debut: 'À l’arrivée, un site en ligne' },
 
@@ -1180,10 +1224,10 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-pd-1', image: 'illu-bfr-reservoir-reel', role: 'couverture' },
 
   // Trois signes qu'il faut refaire son site
-  { entite: 'veolt', sujet: 'v-pd-2', image: 'illu-site-a-refaire', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-pd-2', image: 'illu-site-a-refaire-reel', role: 'couverture' },
 
   // Ce que votre banquier ne vous dira pas sur votre dossier
-  { entite: 'veolt', sujet: 'v-pd-3', image: 'illu-dossier-loupe', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-pd-3', image: 'illu-dossier-loupe-reel', role: 'couverture' },
 
   // Nos prix sont bas. Voilà pourquoi
   { entite: 'veolt', sujet: 'v-pp-1', image: 'illu-un-modele-dix-coloris-reel', role: 'couverture' },
@@ -1260,7 +1304,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris-reel', role: 'page', debut: 'Un modèle, dix coloris' },
   { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-flacon-en-situation', role: 'page', debut: 'Et à la fin, la vraie scène' },
 
-  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-a-refaire', role: 'page', debut: 'Trois secondes pour comprendre' },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-a-refaire-reel', role: 'page', debut: 'Trois secondes pour comprendre' },
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant', role: 'page', debut: 'Avant, le slogan' },
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-apres', role: 'page', debut: 'Après, la promesse' },
   { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-blocs-reordonnes', role: 'page', debut: 'Rien n’a été réécrit' },
@@ -1325,18 +1369,18 @@ export const PLACEMENTS: Placement[] = [
  * avant l'appel final. Rien qu'une image du registre, avec sa mention.
  */
 export const FIGURES_ARTICLES: Record<string, string[]> = {
-  'v-art-bp-1': ['illu-dossier-loupe', 'illu-previsionnel-banquier', 'illu-bfr-reservoir-reel'],
+  'v-art-bp-1': ['illu-dossier-loupe-reel', 'illu-previsionnel-banquier', 'illu-bfr-reservoir-reel'],
   'v-art-bp-2': ['illu-quatre-entretiens', 'illu-analyse-remise', 'illu-trois-metiers-reel'],
-  'v-art-bp-3': ['illu-previsionnel-banquier', 'illu-bfr-reservoir-reel', 'illu-dossier-loupe'],
+  'v-art-bp-3': ['illu-previsionnel-banquier', 'illu-bfr-reservoir-reel', 'illu-dossier-loupe-reel'],
   'v-art-bp-4': ['illu-bfr-reservoir-reel', 'illu-previsionnel-banquier', 'illu-quatre-entretiens'],
-  'v-art-bp-5': ['illu-previsionnel-banquier', 'illu-quatre-entretiens', 'illu-dossier-loupe'],
-  'v-art-bp-6': ['illu-dossier-loupe', 'illu-porte-ouverte-reel', 'illu-analyse-remise'],
-  'v-art-site-1': ['illu-pages-gabarit', 'illu-deux-devis', 'illu-atelier-noir-en-boutique'],
-  'v-art-site-2': ['illu-deux-devis', 'illu-pages-gabarit', 'illu-atelier-noir-en-boutique'],
-  'v-art-site-3': ['illu-site-a-refaire', 'illu-accueil-avant-apres', 'illu-site-en-main'],
+  'v-art-bp-5': ['illu-previsionnel-banquier', 'illu-quatre-entretiens', 'illu-dossier-loupe-reel'],
+  'v-art-bp-6': ['illu-dossier-loupe-reel', 'illu-porte-ouverte-reel', 'illu-analyse-remise'],
+  'v-art-site-1': ['illu-pages-gabarit', 'illu-deux-devis-reel', 'illu-atelier-noir-en-boutique'],
+  'v-art-site-2': ['illu-deux-devis-reel', 'illu-pages-gabarit', 'illu-atelier-noir-en-boutique'],
+  'v-art-site-3': ['illu-site-a-refaire-reel', 'illu-accueil-avant-apres-reel', 'illu-site-en-main'],
   'v-art-site-4': ['illu-atelier-noir-en-boutique', 'illu-pages-gabarit', 'illu-site-en-main'],
   'v-art-site-5': ['illu-pipeline-3d', 'illu-site-en-main', 'illu-atelier-noir-en-boutique'],
-  'v-art-site-6': ['illu-accueil-avant-apres', 'illu-deux-devis', 'illu-site-en-main'],
+  'v-art-site-6': ['illu-accueil-avant-apres-reel', 'illu-deux-devis-reel', 'illu-site-en-main'],
   'v-art-3d-1': ['illu-photo-ou-3d-reel', 'illu-matieres-photo-reel', 'illu-studio-et-poste-3d-reel', 'illu-flacon-en-situation'],
   'v-art-3d-2': ['illu-pipeline-3d', 'illu-3d-modelisation', 'illu-3d-eclairage', 'illu-3d-rendu', 'illu-flacon-en-situation'],
   'v-art-3d-3': ['illu-3d-modelisation', 'illu-3d-materiaux', 'illu-3d-eclairage', 'illu-3d-etalonnage', 'illu-flacon-en-situation'],

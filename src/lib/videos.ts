@@ -170,7 +170,7 @@ export const VIDEOS: ScriptVideo[] = [
     tournage: 'Le rapport remis de la main à la main, le vrai questionnaire de veolt.fr dans un téléphone, le plan d’action.',
     plans: [
       { de: 0, a: 3, image: 'Une main tend un rapport d’analyse ouvert, de l’autre côté de la table.', texte: 'On vous donne l’analyse avant de vendre.', illustration: 'illu-analyse-remise' },
-      { de: 3, a: 6.5, image: 'Un dossier, une loupe qui fait ressortir une seule ligne.', chapitre: '01 · Pas de plaquette', texte: 'Vous jugez le travail, pas la promesse.', illustration: 'illu-dossier-loupe' },
+      { de: 3, a: 6.5, image: 'Un dossier, une loupe qui fait ressortir une seule ligne.', chapitre: '01 · Pas de plaquette', texte: 'Vous jugez le travail, pas la promesse.', illustration: 'illu-dossier-loupe-reel' },
       { de: 6.5, a: 10, image: 'Le questionnaire de veolt.fr dans un téléphone : la caméra avance sur les choix.', chapitre: '02 · Dix questions', texte: 'Quelques minutes sur veolt.fr.', illustration: 'veolt-questionnaire-1', cadrage: { x: 0.5, y: 0.42, zoom: 1.7 } },
       { de: 10, a: 13.5, image: 'Un plan d’action imprimé, trois étapes repérées.', chapitre: '03 · Sous 24 h', texte: 'Un plan d’action, par écrit.', illustration: 'illu-plan-action' },
       { de: 13.5, a: 17, image: 'Le rapport ouvert, en gros plan.', texte: 'S’il ne vous sert pas, vous ne nous devez rien.', illustration: 'illu-analyse-remise', cadrage: { x: 0.55, y: 0.55, zoom: 1.5 } },
