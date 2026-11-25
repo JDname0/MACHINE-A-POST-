@@ -12,6 +12,7 @@
  * ressorte identique à chaque fabrication.
  */
 
+import { dessinerV } from './logo-veolt';
 import type { ElementApp, FondPlan, Scene } from './montage';
 import type { TypeRepere } from './son';
 import { verre, pastilleVerre, halosSite, grilleSite } from './verre';
@@ -321,7 +322,11 @@ function logotype(cx: C2D, e: Env, y: number, taille: number, a: number, reflet:
   cx.font = fonte(e.f.titre, taille);
   const w1 = cx.measureText(debut).width;
   const w2 = cx.measureText(fin).width;
-  const x = (e.L - w1 - w2) / 2;
+  // Veolt : le monogramme V (logo-veolt.ts) devant le mot, à hauteur des capitales.
+  const boite = e.marque === 'veolt' ? taille * 1.19 : 0;
+  const decalage = e.marque === 'veolt' ? boite * 0.66 + taille * 0.14 : 0;
+  const x = (e.L - w1 - w2 + decalage) / 2;
+  if (boite) dessinerV(cx, x - decalage - boite * 0.17, y - taille * 0.7 - boite * 0.215, boite, { alpha: a });
   cx.globalAlpha = a;
   cx.fillStyle = e.degrade && !fin ? degrade(cx, x, w1, e.degrade) : e.encre;
   cx.fillText(debut, x, y);

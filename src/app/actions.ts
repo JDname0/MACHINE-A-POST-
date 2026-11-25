@@ -292,6 +292,37 @@ export async function memoriserSemaine(fd: FormData) {
 }
 
 /**
+ * Veolt : remet au logo (25/11/2026) les visuels de tous les posts encore à
+ * venir — brouillon, à relire, validé. Un post publié garde l'image qui est
+ * réellement partie ; un post abandonné n'est pas touché. Seuls les visuels
+ * mémorisés d'une ancienne charte sont refaits (empreinte, `memoire.ts`) :
+ * relancer ne refait rien. Le texte et le statut des posts ne bougent pas.
+ * Les vidéos se fabriquent dans le navigateur : à relancer par les lots du
+ * studio vidéo.
+ */
+export async function remettreVisuelsAuLogo(fd: FormData) {
+  await exigerSession();
+  const entite = String(fd.get('entite'));
+  if (entite !== 'veolt') redirect(`/${entite}/visuels`);
+  const { publications } = await import('@/lib/requetes');
+  const { memoriserVisuelDe } = await import('@/lib/memoire');
+  let refaits = 0;
+  let echecs = 0;
+  for (const p of publications('veolt').filter((x) => x.statut !== 'publie' && x.statut !== 'abandonne')) {
+    try {
+      if ((await memoriserVisuelDe(p)) === 'cree') refaits++;
+    } catch (e) {
+      echecs++;
+      console.error('[mémoire] visuel non refait', p.id, e);
+    }
+  }
+  tracer('visuels remis au logo', `${refaits} post(s)${echecs ? `, ${echecs} échec(s)` : ''}`, 'veolt');
+  await sauvegarder();
+  revalidatePath('/veolt', 'layout');
+  redirect(`/veolt/visuels?logo=${refaits}${echecs ? `&echecs=${echecs}` : ''}#logo`);
+}
+
+/**
  * Vidéo à la demande : un nouveau post vidéo, hors calendrier, tiré du texte
  * d'un post existant (un LinkedIn, un carrousel…). Le calendrier n'est pas
  * touché : le post créé n'a pas de semaine, il garde la date du post source.

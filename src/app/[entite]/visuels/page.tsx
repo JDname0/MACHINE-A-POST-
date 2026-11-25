@@ -7,16 +7,17 @@ import { videosDe } from '@/lib/videos';
 import { format } from '@/lib/formats';
 import { Medias } from '@/components/Medias';
 import { Sons } from '@/components/Sons';
+import { remettreVisuelsAuLogo } from '@/app/actions';
 
 export default async function Visuels({
   params,
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ variante?: string; posees?: string; refus?: string }>;
+  searchParams: Promise<{ variante?: string; posees?: string; refus?: string; logo?: string; echecs?: string }>;
 }) {
   const { entite } = await params;
-  const { variante: v, posees, refus } = await searchParams;
+  const { variante: v, posees, refus, logo, echecs } = await searchParams;
   const variante = v === 'sombre' ? 'sombre' : 'clair';
   const e = entite as EntiteSlug;
   const m = marque(e);
@@ -47,11 +48,30 @@ export default async function Visuels({
             pas un dégradé.
           </div>
         ) : (
+          <>
+          <div className="encart" id="logo" style={{ marginBottom: 14 }}>
+            <strong>Le logo sur chaque post.</strong> Le monogramme V suivi de VEOLT (arrêté le 25/11/2026) figure
+            sur tous les visuels, pages de carrousel et couvertures d&apos;article, et dans chaque vidéo : en en-tête
+            des cartes, en coin sur les photos et les clips, en grand sur l&apos;écran de fin. Les visuels faits
+            avant ce logo se remettent à jour d&apos;un clic : posts à venir seulement, un post publié garde
+            l&apos;image qui est partie. Les vidéos se refont par les lots du studio vidéo.
+            <form action={remettreVisuelsAuLogo} style={{ marginTop: 10 }}>
+              <input type="hidden" name="entite" value="veolt" />
+              <button type="submit">Remettre les visuels au logo</button>
+            </form>
+            {logo !== undefined ? (
+              <p className="aide" style={{ marginTop: 8 }}>
+                ✓ {logo} post(s) remis au logo{echecs ? ` — ${echecs} échec(s), voir le journal du serveur` : ''}.
+                {logo === '0' ? ' Tout était déjà à jour.' : ''}
+              </p>
+            ) : null}
+          </div>
           <div className="encart" style={{ marginBottom: 22 }}>
             <strong>Veolt peut y aller.</strong> Le site assume déjà le fond quasi noir et le dégradé magenta → violet →
             orange. L&apos;axe de la référence tombe donc juste, et les halos saturés sont un atout : un studio créatif
             qui publie sobre se vend moins bien que ce qu&apos;il sait faire.
           </div>
+          </>
         )}
 
         {e === 'magistria' ? (

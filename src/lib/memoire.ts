@@ -17,6 +17,7 @@ import { db, tracer } from './db';
 import { GABARITS, rendre, type GabaritSlug, type Contenu } from './visuels';
 import { chargerPolices } from './polices';
 import { nouvelleCle, ecrire } from './medias';
+import { VERSION_CHARTE_VEOLT } from './logo-veolt';
 import { visuelsDuPost } from './fiche';
 import type { EntiteSlug } from './marques';
 import type { LignePublication } from './requetes';
@@ -38,7 +39,11 @@ async function memoriserUn(
   v: { slug: GabaritSlug; contenu: Partial<Contenu> },
   page: number | null,
 ): Promise<ResultatMemoire> {
-  const empreinte = createHash('sha1').update(JSON.stringify([p.entite, v.slug, v.contenu])).digest('hex');
+  // Veolt : la version de charte entre dans l'empreinte, sinon un visuel fait
+  // avant le logo (25/11/2026) passerait pour à jour. MagistrIA : empreinte inchangée.
+  const cles: unknown[] = [p.entite, v.slug, v.contenu];
+  if (p.entite === 'veolt') cles.push(VERSION_CHARTE_VEOLT);
+  const empreinte = createHash('sha1').update(JSON.stringify(cles)).digest('hex');
   const d = db();
   const existe = d.prepare('SELECT id, publication_id FROM medias WHERE empreinte = ?').get(empreinte) as
     | { id: number; publication_id: number | null }

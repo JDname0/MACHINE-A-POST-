@@ -17,6 +17,7 @@
  * Module navigateur uniquement : il n'est importé que par des composants client.
  */
 
+import { dessinerV } from './logo-veolt';
 import type { PlanMontage, Scene } from './montage';
 import {
   dessinerFond,
@@ -998,6 +999,28 @@ async function preparerRendu(m: Montage) {
     cx2.fillRect(0, 0, L * borne(t / t0), h);
   };
 
+  /**
+   * Veolt : le logo sur chaque plan. Une carte et un visuel généré le portent
+   * déjà dans leur en-tête, l'écran de marque et l'écran de fin le montrent en
+   * grand : partout ailleurs (décor dessiné, photo, clip, vidéo apportée), le V
+   * se pose en haut à gauche, à la place de l'en-tête des cartes.
+   */
+  const filigrane = (i: number, tl: number) => {
+    if (marque !== 'veolt') return;
+    const x = plans[i];
+    const sc = x.scene?.type;
+    if (sc === 'marque' || sc === 'fin') return;
+    if (x.source.type === 'carte') {
+      // La carte porte l'en-tête de marque ; un décor dessiné (horizon, sphère…) non.
+      if ((x.fond ?? th.fondDefaut ?? 'carte') === 'carte') return;
+    } else {
+      const id = x.source.id;
+      if (m.images.find((k) => k.id === id)?.origine === 'genere') return;
+    }
+    const boite = Math.round(Math.min(L, H) * 0.1);
+    dessinerV(ctx, marge * 0.75, marge * 0.75, boite, { alpha: Math.min(1, 0.4 + tl * 2) * 0.92 });
+  };
+
   const tmp2 = document.createElement('canvas');
   tmp2.width = L;
   tmp2.height = H;
@@ -1064,6 +1087,7 @@ async function preparerRendu(m: Montage) {
     vignette(ctx, L, H, 0.42);
     grainFilm(ctx, L, H, t, 0.04);
     barre(t);
+    filigrane(i, t - a);
   };
 
   /**

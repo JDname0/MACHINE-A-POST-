@@ -224,6 +224,31 @@ lancement et les quatre refus — écrits pour que personne ne les « corrige »
   (ElevenLabs, Runway, Ollama — clés serveur uniquement, bouton pressé par
   Jonathan, jamais automatique).
 
+## Logo Veolt sur chaque post (25/11/2026)
+
+`src/lib/logo-veolt.ts` porte le monogramme V arrêté avec Jonathan (branche
+gauche argentée, branche droite lavande → violet → magenta, étincelle
+lavande), en SVG pour Satori et en dessin canvas pour les vidéos. **Règle :
+le logo figure sur chaque post Veolt.** MagistrIA n'est pas touché (rendu
+identique à l'octet, vérifié).
+
+- **Visuels** (`visuels.tsx`) : `ThemeVisuel.pictogramme` ; `Identite` pose
+  le V puis VEOLT en Kanit Black (`Kanit-Black.woff`, poids 900, déclaré dans
+  `polices.ts`) au dégradé argenté. Tous les gabarits, pages de carrousel et
+  couvertures d'article en héritent.
+- **Vidéos** : le V devant VEOLT sur l'écran de marque et l'écran de fin
+  (`logotype()`, `rendu-scenes.ts`) ; en coin haut gauche sur tout plan qui
+  n'affiche pas l'en-tête d'une carte — décor dessiné (horizon, sphère),
+  photo, clip, vidéo apportée (`filigrane()`, `fabrique-video.ts`).
+- **Empreinte** : `VERSION_CHARTE_VEOLT` entre dans l'empreinte des visuels
+  mémorisés (`memoire.ts`), sinon un visuel d'avant le logo passerait pour à
+  jour. La changer fait refaire les visuels Veolt au prochain passage.
+- **« Remettre les visuels au logo »** (`/veolt/visuels`, action
+  `remettreVisuelsAuLogo`) : refait les visuels des posts à venir (brouillon,
+  à relire, validé), jamais un post publié (il garde l'image partie) ni
+  abandonné. Relancer ne refait rien. Les vidéos se refont par les lots du
+  studio vidéo (fabriquées dans le navigateur).
+
 ## Suivi du chargé de communication (18/11/2026)
 
 `src/lib/suivi.ts` porte trois ajouts, tous en lecture des vraies données :

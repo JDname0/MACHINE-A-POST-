@@ -17,6 +17,7 @@ export const DOSSIER_POLICES = path.join(process.cwd(), 'src', 'assets', 'police
 export const FICHIERS_POLICES = [
   'BebasNeue.ttf',
   'Kanit-Bold.ttf',
+  'Kanit-Black.woff',
   'Spectral-Bold.ttf',
   'Spectral-SemiBold.ttf',
   'Inter-Regular.ttf',
@@ -29,13 +30,15 @@ export const FICHIERS_POLICES = [
 
 const lire = (f: string) => readFileSync(path.join(DOSSIER_POLICES, f));
 
-let cache: Array<{ name: string; data: Buffer; weight: 400 | 600 | 700; style: 'normal' }> | null = null;
+let cache: Array<{ name: string; data: Buffer; weight: 400 | 600 | 700 | 900; style: 'normal' }> | null = null;
 
 export function chargerPolices() {
   if (cache) return cache;
   cache = [
     { name: 'Bebas', data: lire('BebasNeue.ttf'), weight: 400, style: 'normal' },
     { name: 'Kanit', data: lire('Kanit-Bold.ttf'), weight: 700, style: 'normal' },
+    // Le mot VEOLT du logo (titre de veolt.fr) : Kanit Black.
+    { name: 'Kanit', data: lire('Kanit-Black.woff'), weight: 900, style: 'normal' },
     { name: 'Spectral', data: lire('Spectral-Bold.ttf'), weight: 700, style: 'normal' },
     { name: 'Spectral', data: lire('Spectral-SemiBold.ttf'), weight: 600, style: 'normal' },
     { name: 'Inter', data: lire('Inter-Regular.ttf'), weight: 400, style: 'normal' },

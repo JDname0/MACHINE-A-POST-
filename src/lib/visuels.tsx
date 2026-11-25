@@ -14,6 +14,7 @@
  */
 
 import type { EntiteSlug } from './marques';
+import { urlV, DEGRADE_MOT } from './logo-veolt';
 
 export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel' | 'couverture';
 
@@ -119,6 +120,12 @@ interface ThemeVisuel {
    * sur son site. Absent : pictogramme carré + nom (Veolt).
    */
   logotype?: [string, string, string];
+  /**
+   * Monogramme dessiné (adresse `data:` d'un SVG), posé devant le nom de la
+   * marque. Veolt : le logo V arrêté le 25/11/2026 (`logo-veolt.ts`), présent
+   * sur chaque visuel. Absent : pictogramme carré + initiale.
+   */
+  pictogramme?: string;
   /** Trame posée sous les halos (grille fine du site MagistrIA). */
   trame?: string;
   /** Sur-titre en petites capitales espacées, et sa couleur (police Mono). */
@@ -156,6 +163,7 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
       titreDegrade: 'linear-gradient(100deg, #B600A8 0%, #C79BFF 100%)',
       marque: 'Veolt',
       signature: 'Studio Créatif',
+      pictogramme: urlV(),
       services: 'Business plan  •  Sites & web 3D  •  Vidéo & 3D',
       adresse: 'veolt.fr',
       surface: 'rgba(237,235,242,0.06)',
@@ -312,6 +320,35 @@ function Identite({ t, taille = 1 }: { t: ThemeVisuel; taille?: number }) {
             {t.surTitre.texte.toUpperCase()}
           </div>
         ) : null}
+      </div>
+    );
+  }
+  if (t.pictogramme) {
+    // Le logo Veolt : le V, puis VEOLT en Kanit Black argenté, la signature dessous.
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 * taille }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={t.pictogramme} alt="" width={78 * taille} height={78 * taille} style={{ marginLeft: -10 * taille }} />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div
+            style={{
+              display: 'flex',
+              fontFamily: 'Kanit',
+              fontWeight: 900,
+              fontSize: 36 * taille,
+              lineHeight: 1,
+              letterSpacing: -0.9 * taille,
+              backgroundImage: DEGRADE_MOT,
+              backgroundClip: 'text',
+              color: 'transparent',
+            }}
+          >
+            {t.marque.toUpperCase()}
+          </div>
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 16 * taille, color: t.encreDouce, marginTop: 4 * taille }}>
+            {t.signature}
+          </div>
+        </div>
       </div>
     );
   }
