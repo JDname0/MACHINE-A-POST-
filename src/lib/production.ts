@@ -22,6 +22,8 @@ import { TYPES_IMAGE, depotDirect, plafondDepotVideo } from './medias';
 import type { Montage, ThemeStudio } from './fabrique-video';
 import { marque, type EntiteSlug } from './marques';
 import { sujet } from './sujets';
+import { illustrationParNom, illustrationsDuSujet } from './illustrations-serveur';
+import { mentionDe } from './illustrations';
 
 /** Horizon de l'anticipation : ce qui sera dû dans les sept jours. */
 export const HORIZON_LOT_JOURS = 7;
@@ -150,7 +152,14 @@ export function clipsMemoire(entite: EntiteSlug): Array<{ id: number; nom: strin
 /** Les images et les clips proposés au studio, sous la forme qu'attend le rendu. */
 export function matiereStudio(entite: EntiteSlug, memoire: ImageMemoire[]) {
   return [
-    ...memoire.map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'image' as const })),
+    ...memoire.map((x) => ({
+      id: x.id,
+      url: `/${entite}/medias/${x.id}`,
+      nom: x.nom,
+      origine: x.origine,
+      type: 'image' as const,
+      ...(x.origine === 'illustration' ? { mention: mentionDe(x.nom.replace(/\.[a-z0-9]+$/i, '')) } : {}),
+    })),
     ...clipsMemoire(entite).map((x) => ({ id: x.id, url: `/${entite}/medias/${x.id}`, nom: x.nom, origine: x.origine, type: 'video' as const })),
   ];
 }
@@ -221,6 +230,39 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
     const pas = Math.max(1, Math.floor(milieu / matiere.length));
     for (let k = 0, i = 1; k < matiere.length && i < plans.length - 1; k++, i += pas) {
       plans[i] = { ...plans[i], source: { type: 'media', id: matiere[k].id } };
+    }
+  }
+
+  // Montrer, pas dire (25/11/2026) : les illustrations du pack. Celles que le
+  // script nomme d'abord ; puis, sur les plans du milieu restés en carte et
+  // sans scène, l'illustration dont le texte du plan reprend le début, puis
+  // les autres images du sujet dans l'ordre du registre — chacune une fois.
+  {
+    plans.forEach((x, i) => {
+      if (!x.illustration || x.source.type !== 'carte') return;
+      const m = illustrationParNom(p.entite, x.illustration);
+      if (m) plans[i] = { ...x, source: { type: 'media', id: m.id } };
+    });
+    const libres = (i: number) => {
+      const x = plans[i];
+      return i > 0 && i < plans.length - 1 && x.source.type === 'carte' && !x.clip && (!x.scene || x.scene.type === 'titre');
+    };
+    const dispo = illustrationsDuSujet(p.entite, p.sujet_ref).filter((x) => !plans.some((k) => k.source.type === 'media' && k.source.id === x.id));
+    const pris = new Set<number>();
+    const normal = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/^\s*\d+[.)]\s*/, '');
+    for (let i = 0; i < plans.length; i++) {
+      if (!libres(i)) continue;
+      const k = dispo.find((x) => !pris.has(x.id) && x.placement.debut && normal(plans[i].texte).startsWith(normal(x.placement.debut)));
+      if (k) {
+        pris.add(k.id);
+        plans[i] = { ...plans[i], source: { type: 'media', id: k.id }, ...(k.placement.cadrage ? { cadrage: k.placement.cadrage } : {}) };
+      }
+    }
+    const reste = dispo.filter((x) => !pris.has(x.id));
+    for (let i = 0; i < plans.length && reste.length; i++) {
+      if (!libres(i)) continue;
+      const k = reste.shift()!;
+      plans[i] = { ...plans[i], source: { type: 'media', id: k.id }, ...(k.placement.cadrage ? { cadrage: k.placement.cadrage } : {}) };
     }
   }
 
@@ -385,6 +427,33 @@ export function nomPilier(p: LignePublication): string {
 }
 
 /** Le montage complet d'un post, prêt à fabriquer dans le navigateur (studio, lot, boutons). */
+/**
+ * Le contrôle qualité d'un montage, avant fabrication (25/11/2026). Il ne
+ * bloque rien — la vidéo reste à valider par Jonathan — mais il dit, plan par
+ * plan, ce qui ferait une vidéo faible : texte trop long pour sa durée (lu
+ * sans le son, à 3 mots par seconde au plus), plan fixe qui dure, milieu de
+ * vidéo sans rien à voir que du texte, illustration nommée par le script mais
+ * pas encore importée. Chaque constat dit son remède.
+ */
+export function controleMontage(p: LignePublication, memoire: ImageMemoire[], scriptRef?: string): Array<{ niveau: 'alerte' | 'conseil'; message: string }> {
+  const md = montageParDefaut(p, memoire, scriptRef);
+  const sortie: Array<{ niveau: 'alerte' | 'conseil'; message: string }> = [];
+  const mots = (t: string) => t.split(/\s+/).filter(Boolean).length;
+  md.plans.forEach((x, i) => {
+    const n = mots(x.texte) + mots(x.chapitre ?? '');
+    if (x.duree > 0 && n / x.duree > 3.2 && !x.scene)
+      sortie.push({ niveau: 'alerte', message: `Plan ${i + 1} : ${n} mots en ${x.duree.toFixed(1)} s, illisible sans le son. Raccourcir le texte ou allonger le plan.` });
+    const montre = x.source.type === 'media' || !!x.scene || !!x.noyau || (x.fond && x.fond !== 'carte');
+    if (x.duree > 6 && !montre) sortie.push({ niveau: 'conseil', message: `Plan ${i + 1} : ${x.duree.toFixed(1)} s sur un fond fixe. Lui donner une image, une scène ou le couper.` });
+    if (x.illustration && x.source.type !== 'media')
+      sortie.push({ niveau: 'alerte', message: `Plan ${i + 1} : l’illustration « ${x.illustration} » n’est pas dans la médiathèque. Importer le pack (page Visuels).` });
+  });
+  const milieu = md.plans.slice(1, -1);
+  if (p.entite === 'veolt' && milieu.length && !milieu.some((x) => x.source.type === 'media' || (x.scene && x.scene.type !== 'titre')))
+    sortie.push({ niveau: 'conseil', message: 'Aucune image ni scène au milieu de la vidéo : elle dit sans montrer. Ajouter une illustration au sujet (registre) ou une scène au script.' });
+  return sortie;
+}
+
 export function montagePret(p: LignePublication, memoire: ImageMemoire[], scriptRef?: string): Montage {
   const e = p.entite as EntiteSlug;
   const md = montageParDefaut(p, memoire, scriptRef);

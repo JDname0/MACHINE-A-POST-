@@ -4,6 +4,7 @@ import { estEntite, type EntiteSlug } from '@/lib/marques';
 import { connecte } from '@/lib/auth';
 import { GABARITS, rendre, type GabaritSlug, type Contenu, type Variante } from '@/lib/visuels';
 import { photoEnDonnees } from '@/lib/medias';
+import { illustrationDuContenu } from '@/lib/illustrations-serveur';
 
 /**
  * Sert le visuel en PNG, aux dimensions exactes du réseau.
@@ -44,8 +45,10 @@ export async function GET(
   // La photo de fond ne vient que de la médiathèque de la même entité, par
   // son identifiant : jamais une adresse arbitraire passée dans l'URL.
   const photo = await photoEnDonnees(entite, url.searchParams.get('photo'));
+  // L'illustration du pack, même règle : par identifiant, dans la même entité.
+  const illu = await illustrationDuContenu(entite, { illu: url.searchParams.get('illu'), cadrage: url.searchParams.get('cadrage') });
 
-  return new ImageResponse(rendre(entite as EntiteSlug, gabarit as GabaritSlug, surcharge, variante, photo), {
+  return new ImageResponse(rendre(entite as EntiteSlug, gabarit as GabaritSlug, surcharge, variante, photo, illu), {
     width: g.largeur,
     height: g.hauteur,
     fonts: chargerPolices(),

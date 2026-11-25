@@ -36,6 +36,10 @@ export interface Plan {
   noyau?: Noyau3D;
   /** Clip vidéo de la médiathèque posé en fond (nom du fichier sans extension). */
   clip?: string;
+  /** Illustration du pack montrée dans le plan, dans son cadre de verre (nom du registre). */
+  illustration?: string;
+  /** Cadrage de cette illustration (point d'intérêt de 0 à 1, grossissement ≥ 1). */
+  cadrage?: import('./illustrations').Cadrage;
 }
 
 export interface ScriptVideo {
@@ -73,13 +77,13 @@ export const VIDEOS: ScriptVideo[] = [
     pilier: 'montrer-le-travail',
     duree: 18,
     tournage:
-      "Aucun tournage : capture d'écran du logiciel 3D pendant le rendu, plus le visuel final. Tout existe déjà si une modélisation est en cours.",
+      "Aucun tournage : les illustrations du pack (rendu 3D, studio et poste 3D, modèle décliné, courbes de coût) dans leur cadre de verre, puis le prix affiché. Une capture du logiciel pendant un rendu réel peut remplacer n'importe quel plan.",
     plans: [
-      { de: 0, a: 3, image: 'Le rendu 3D final, plein cadre, sans transition.', texte: 'Ce produit n’a jamais été photographié.' },
-      { de: 3, a: 7, image: 'Rotation lente du même modèle, fond qui change de couleur.', texte: 'Quatorze angles. Trois coloris. Zéro studio reloué.' },
-      { de: 7, a: 12, image: 'Grille de six déclinaisons qui apparaissent une à une.', texte: 'Le modèle est fait une fois. Les variantes sont gratuites.' },
-      { de: 12, a: 16, image: 'Retour au premier rendu, texte centré.', texte: 'Au-delà de 5 visuels par référence, la photo coûte plus cher.' },
-      { de: 16, a: 18, image: 'Le premier plan revient — la boucle se referme.', texte: 'À partir de 119 € HT.' },
+      { de: 0, a: 3, image: 'Le rendu 3D du flacon, seul dans le cadre.', texte: 'Ce produit n’a jamais été photographié.', illustration: 'illu-photo-ou-3d', cadrage: { x: 0.76, y: 0.5, zoom: 1.9 } },
+      { de: 3, a: 7, image: 'Le poste 3D, le même produit en quatre coloris à l’écran.', texte: 'Quatorze angles. Trois coloris. Zéro studio reloué.', illustration: 'illu-studio-et-poste-3d', cadrage: { x: 0.74, y: 0.62, zoom: 1.7 } },
+      { de: 7, a: 12, image: 'Un modèle au centre, dix rendus qui en partent.', texte: 'Le modèle est fait une fois. Les variantes ne coûtent presque plus rien.', illustration: 'illu-un-modele-dix-coloris' },
+      { de: 12, a: 16, image: 'Les deux courbes de coût qui se croisent.', texte: 'Au-delà de 5 visuels par référence, la photo coûte plus cher.', illustration: 'illu-courbes-cout' },
+      { de: 16, a: 18, image: 'Le prix, sur la carte de marque.', texte: 'À partir de 119 € HT.' },
     ],
     legende:
       "La 3D ne remplace pas la photo. Elle remplace la deuxième séance photo.\n\nCombien de visuels produisez-vous par référence et par an ? Le chiffre suffit à trancher.",
@@ -94,13 +98,35 @@ export const VIDEOS: ScriptVideo[] = [
     pilier: 'demonter-un-chiffre',
     duree: 20,
     tournage:
-      "Capture d'écran d'un tableur, trois lignes surlignées à l'écran l'une après l'autre. Aucune donnée de client réel — un prévisionnel d'exemple construit pour la vidéo, et le dire.",
+      "Tout est dessiné par le studio : le prévisionnel est un EXEMPLE aux chiffres fictifs, et l'écran le dit. Aucune donnée de client réel.",
     plans: [
-      { de: 0, a: 3, image: 'Le tableur, zoom serré sur une ligne de trésorerie négative.', texte: 'Il ne lit pas votre business plan en entier.' },
-      { de: 3, a: 8, image: 'Surlignage 1 : la trésorerie au point le plus bas.', texte: '1. La trésorerie au point le plus bas. Pas le résultat.' },
-      { de: 8, a: 13, image: 'Surlignage 2 : apport rapporté au besoin.', texte: '2. L’apport sur le besoin. C’est son risque à lui.' },
-      { de: 13, a: 18, image: 'Surlignage 3 : chiffre d’affaires vs capacité de production.', texte: '3. Vendez-vous plus que vous ne pouvez produire ?' },
-      { de: 18, a: 20, image: 'Les trois lignes ensemble, le reste du tableau grisé.', texte: 'Tout le reste sert à justifier ces trois lignes.' },
+      { de: 0, a: 3, image: 'Le prévisionnel imprimé sur le bureau du banquier, trois lignes surlignées.', texte: 'Il ne lit pas votre business plan en entier.', illustration: 'illu-previsionnel-banquier' },
+      {
+        de: 3,
+        a: 15,
+        image: 'Le tableur d’exemple : les trois lignes repérées une à une.',
+        texte: 'Il regarde trois lignes.',
+        chapitre: 'Prévisionnel d’exemple',
+        fond: 'horizon',
+        scene: {
+          type: 'tableur',
+          fenetre: 'Prévisionnel · EXEMPLE — chiffres fictifs',
+          colonnes: ['', 'An 1', 'An 2', 'An 3'],
+          lignes: [
+            { libelle: 'Chiffre d’affaires', valeurs: ['180 k€', '240 k€', '290 k€'] },
+            { libelle: 'Capacité de production', valeurs: ['200 k€', '220 k€', '260 k€'] },
+            { libelle: 'Apport sur le besoin', valeurs: ['22 %', '—', '—'] },
+            { libelle: 'Trésorerie au plus bas', valeurs: ['−8 k€', '12 k€', '31 k€'] },
+            { libelle: 'Résultat net', valeurs: ['4 k€', '38 k€', '61 k€'] },
+          ],
+          reperes: [
+            { ligne: 3, note: '1. Le point le plus bas, pas le résultat' },
+            { ligne: 2, note: '2. L’apport sur le besoin : son risque à lui' },
+            { ligne: 0, note: '3. Plus de ventes que de capacité ?' },
+          ],
+        },
+      },
+      { de: 15, a: 20, image: 'Titre centré, la sphère en fond.', texte: 'Tout le reste sert à justifier ces trois lignes.', centre: true, fond: 'rayons', noyau: { forme: 'galaxie', place: 'fond', intensite: 0.16 } },
     ],
     legende:
       "Un prévisionnel n’est pas un exercice d’optimisme. C’est une démonstration de capacité à rembourser.\n\nVotre point de trésorerie le plus bas, vous le connaissez ?",
@@ -113,15 +139,20 @@ export const VIDEOS: ScriptVideo[] = [
     entite: 'veolt',
     formatSlug: 'tiktok-video',
     pilier: 'coulisses-methode',
-    duree: 25,
+    duree: 28,
     tournage:
-      "Les sept étapes capturées dans le logiciel, deux à trois secondes chacune. C'est le script le plus simple à tourner : il suffit d'enregistrer son écran pendant une production réelle.",
+      "Une étape par plan, le même flacon d'un bout à l'autre (illustrations du pack, générées à partir d'une seule référence). Chaque plan peut être remplacé par la capture du logiciel pendant une production réelle, à la même étape.",
     plans: [
-      { de: 0, a: 3, image: 'Le rendu final, puis coupe nette vers le maillage brut.', texte: 'De ça… à ça. Sept étapes.' },
-      { de: 3, a: 9, image: 'Modélisation puis matériaux, en accéléré.', texte: '1. Modélisation  2. Matériaux' },
-      { de: 9, a: 15, image: 'Éclairage puis caméra.', texte: '3. Éclairage  4. Caméra' },
-      { de: 15, a: 21, image: 'Animation, rendu, étalonnage.', texte: '5. Animation  6. Rendu  7. Étalonnage' },
-      { de: 21, a: 25, image: 'Retour au rendu final.', texte: 'Les deux qui coûtent le plus cher ? Matériaux et éclairage.' },
+      { de: 0, a: 3, image: 'Le flacon mi-maillage, mi-rendu.', texte: 'De ça… à ça. Sept étapes.', illustration: 'illu-pipeline-3d' },
+      { de: 3, a: 5.5, image: 'Le maillage filaire.', chapitre: '01 / 07 · Modélisation', texte: 'La forme exacte, faite une fois.', illustration: 'illu-3d-modelisation' },
+      { de: 5.5, a: 8, image: 'L’argile et les sphères de matières.', chapitre: '02 / 07 · Matériaux', texte: 'Verre, chrome, laque : chaque surface se règle.', illustration: 'illu-3d-materiaux' },
+      { de: 8, a: 10.5, image: 'Les boîtes à lumière autour du flacon.', chapitre: '03 / 07 · Éclairage', texte: 'C’est la lumière qui fait premium.', illustration: 'illu-3d-eclairage' },
+      { de: 10.5, a: 13, image: 'La caméra virtuelle et son champ.', chapitre: '04 / 07 · Caméra', texte: 'On cadre comme un photographe.', illustration: 'illu-3d-camera' },
+      { de: 13, a: 15.5, image: 'Le flacon en rotation, traînées de lumière.', chapitre: '05 / 07 · Animation', texte: 'Quelques secondes bien rythmées.', illustration: 'illu-3d-animation' },
+      { de: 15.5, a: 18, image: 'L’image qui se résout tuile par tuile.', chapitre: '06 / 07 · Rendu', texte: 'Le calcul, image par image.', illustration: 'illu-3d-rendu' },
+      { de: 18, a: 20.5, image: 'Trois étalonnages côte à côte.', chapitre: '07 / 07 · Étalonnage', texte: 'Les couleurs de la marque.', illustration: 'illu-3d-etalonnage' },
+      { de: 20.5, a: 24, image: 'Le flacon fini, posé dans une vraie salle de bain.', chapitre: 'Le résultat', texte: 'Le produit fini, en situation.', illustration: 'illu-flacon-en-situation' },
+      { de: 24, a: 28, image: 'Titre centré, la sphère en fond.', texte: 'Les deux qui coûtent le plus cher ? Matériaux et éclairage.', centre: true, fond: 'rayons', noyau: { forme: 'sphere', place: 'fond', intensite: 0.18 } },
     ],
     legende:
       "En 3D, le premier visuel paie le modèle. Les suivants ne paient que le cadrage.\n\nQuelle étape vous paraît la plus floue ? On en fera le prochain carrousel.",

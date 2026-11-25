@@ -323,6 +323,24 @@ export async function remettreVisuelsAuLogo(fd: FormData) {
 }
 
 /**
+ * Le pack d'illustrations (Veolt) : copie dans la médiathèque les images du
+ * registre (`illustrations.ts`) qui manquent ou dont la génération a changé.
+ * Téléchargement côté serveur, sur une liste fermée d'hôtes. Préparer, pas
+ * publier : l'équipe peut le faire. Les visuels se refont ensuite par
+ * « Refaire les visuels » (même page), qui ne touche pas un post publié.
+ */
+export async function importerIllustrations(fd: FormData) {
+  await exigerSession();
+  const entite = String(fd.get('entite'));
+  if (entite !== 'veolt') redirect(`/${entite}/visuels`);
+  const { importerPack } = await import('@/lib/illustrations-serveur');
+  const r = await importerPack('veolt');
+  await sauvegarder();
+  revalidatePath('/veolt', 'layout');
+  redirect(`/veolt/visuels?illus=${r.importees.length}&deja=${r.deja}${r.echecs.length ? `&illusEchecs=${r.echecs.length}` : ''}#illustrations`);
+}
+
+/**
  * Vidéo à la demande : un nouveau post vidéo, hors calendrier, tiré du texte
  * d'un post existant (un LinkedIn, un carrousel…). Le calendrier n'est pas
  * touché : le post créé n'a pas de semaine, il garde la date du post source.

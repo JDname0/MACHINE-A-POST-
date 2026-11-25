@@ -56,7 +56,9 @@ async function memoriserUn(
   const g = GABARITS[v.slug];
   const { photoEnDonnees, effacer } = await import('./medias');
   const photo = await photoEnDonnees(p.entite, v.contenu.photo);
-  const reponse = new ImageResponse(rendre(p.entite as EntiteSlug, v.slug, v.contenu, 'clair', photo), {
+  const { illustrationDuContenu } = await import('./illustrations-serveur');
+  const illu = await illustrationDuContenu(p.entite, v.contenu);
+  const reponse = new ImageResponse(rendre(p.entite as EntiteSlug, v.slug, v.contenu, 'clair', photo, illu), {
     width: g.largeur,
     height: g.hauteur,
     fonts: chargerPolices(),

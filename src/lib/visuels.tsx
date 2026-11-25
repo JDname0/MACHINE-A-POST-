@@ -17,6 +17,17 @@ import type { EntiteSlug } from './marques';
 import { DEGRADE_MOT } from './logo-veolt';
 import { URL_PNG_V } from './logo-veolt-png';
 import { URL_PNG_SPHERE } from './sphere-veolt-png';
+import { cadrer, type Cadrage } from './illustrations';
+
+/** Une illustration du pack, prête pour Satori : octets en `data:`, dimensions, cadrage. */
+export interface ImageCadree {
+  donnees: string;
+  largeur: number;
+  hauteur: number;
+  cadrage?: Cadrage;
+  /** Ce qu'est l'image (« Illustration IA », « Concept Veolt · … »), dit dans le cadre. */
+  mention?: string;
+}
 
 export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel' | 'couverture';
 
@@ -246,6 +257,14 @@ export interface Contenu {
   fin?: string;
   /** Petite étiquette au-dessus du titre d'une page de carrousel (« À RETENIR », titre du sujet). */
   etiquette?: string;
+  /**
+   * Identifiant d'une illustration du pack (`illustrations.ts`), montrée dans
+   * un cadre au-dessus du texte : ce que la page dit, en image. Chargée par
+   * identifiant, dans la médiathèque de la même entité seulement.
+   */
+  illu?: string;
+  /** Cadrage de l'illustration : « x,y,zoom » (point d'intérêt de 0 à 1, grossissement ≥ 1). */
+  cadrage?: string;
 }
 
 export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
@@ -716,7 +735,15 @@ export function rendre(
   contenu?: Partial<Contenu>,
   variante: Variante = 'clair',
   photoDonnees?: string,
+  illu?: ImageCadree,
 ) {
+  // Une illustration du pack (sans photo de fond choisie à la main) : la page
+  // montre ce qu'elle dit, dans un cadre au-dessus du texte.
+  if (illu && !photoDonnees) {
+    const c = { ...CONTENUS[entite][gabarit], ...contenu };
+    const illustre = rendreIllustre(entite, gabarit, c, variante, illu);
+    if (illustre) return illustre;
+  }
   // Sur une photo, la sphère du kit n'est pas posée : la photo est le décor.
   const el = rendreSansPhoto(entite, gabarit, contenu, variante, !photoDonnees);
   if (!photoDonnees) return el;
@@ -740,6 +767,209 @@ export function rendre(
       />
       {t.halos ? <div style={{ ...plein, backgroundImage: t.halos }} /> : null}
       {props.children}
+    </div>
+  );
+}
+
+/**
+ * L'illustration dans son cadre de verre : l'image recadrée sur son point
+ * d'intérêt (`cadrer`, le même calcul que les vidéos), un fondu bas qui la
+ * pose sur la page, un filet lavande et une lueur magenta. Satori n'a ni flou
+ * ni masque : la profondeur vient de l'ombre portée et des dégradés.
+ */
+function CadreIllu({ t, illu, largeur, hauteur, rayon = 30 }: { t: ThemeVisuel; illu: ImageCadree; largeur: number; hauteur: number; rayon?: number }) {
+  const r = cadrer(largeur, hauteur, illu.largeur, illu.hauteur, illu.cadrage);
+  return (
+    <div
+      style={{
+        display: 'flex',
+        position: 'relative',
+        width: largeur,
+        height: hauteur,
+        borderRadius: rayon,
+        overflow: 'hidden',
+        border: `1.5px solid ${t.accentDoux}55`,
+        boxShadow: `0 30px 80px rgba(0,0,0,0.55), 0 0 60px ${t.accent}33`,
+        backgroundColor: '#050507',
+      }}
+    >
+      <img
+        src={illu.donnees}
+        alt=""
+        width={Math.round(r.w)}
+        height={Math.round(r.h)}
+        style={{ position: 'absolute', left: Math.round(r.gauche), top: Math.round(r.haut), width: Math.round(r.w), height: Math.round(r.h) }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: largeur,
+          height: hauteur,
+          display: 'flex',
+          backgroundImage: 'linear-gradient(180deg, rgba(0,0,0,0) 62%, rgba(8,6,12,0.55) 100%), linear-gradient(115deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 32%)',
+        }}
+      />
+      {illu.mention ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: 18,
+            bottom: 16,
+            display: 'flex',
+            fontFamily: 'Inter',
+            fontWeight: 600,
+            fontSize: 15,
+            letterSpacing: 2,
+            color: 'rgba(233,230,245,0.85)',
+            backgroundColor: 'rgba(8,6,12,0.55)',
+            border: '1px solid rgba(199,155,255,0.3)',
+            borderRadius: 999,
+            padding: '6px 14px',
+          }}
+        >
+          {illu.mention.toUpperCase()}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * Les gabarits illustrés (Veolt) : l'image d'abord, puis le texte qui la
+ * légende. `null` pour un gabarit qui n'a pas de version illustrée — le rendu
+ * habituel prend alors la main.
+ */
+function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, variante: Variante, illu: ImageCadree) {
+  const t = theme(entite, variante);
+  const g = GABARITS[gabarit];
+  if (!t.kit) return null;
+  if (gabarit === 'carrousel' && c.fin) return null;
+  if (!['carrousel', 'affirmation', 'chiffre', 'couverture'].includes(gabarit)) return null;
+  if (gabarit === 'couverture') {
+    // Couverture d'article (1,91:1) : le titre à gauche, l'image à droite.
+    const colonne = Math.round(g.largeur * 0.36);
+    // Chaque ligne du titre doit tenir d'un trait dans la colonne de gauche.
+    const largeurTexte = g.largeur - 104 - colonne - 40;
+    const plusLongue = Math.max(c.ligne1.length, ...c.ligne2.split('\n').map((l) => l.length), 1);
+    const taille = Math.max(40, Math.min(66, Math.floor(largeurTexte / (plusLongue * 0.43))));
+    return (
+      <div style={{ width: g.largeur, height: g.hauteur, display: 'flex', gap: 40, padding: '48px 52px', backgroundColor: t.fond, backgroundImage: t.trame ? `${t.halos},${t.trame}` : t.halos }}>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Identite t={t} taille={0.75} />
+            <div style={{ display: 'flex', fontFamily: 'Mono', fontSize: 15, letterSpacing: 4, color: t.surTitre?.couleur ?? t.accent }}>ARTICLE</div>
+          </div>
+          <Titre t={t} c={c} taille={taille} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {c.sousTitre ? <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 19, color: t.encreDouce, lineHeight: 1.4 }}>{c.sousTitre}</div> : null}
+            <Pastille t={t} taille={0.66} />
+          </div>
+        </div>
+        <CadreIllu t={t} illu={illu} largeur={colonne} hauteur={g.hauteur - 96} rayon={24} />
+      </div>
+    );
+  }
+  const marge = 72;
+  const interieur = g.largeur - marge * 2;
+  const base: React.CSSProperties = {
+    width: g.largeur,
+    height: g.hauteur,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    padding: marge,
+    backgroundColor: t.fond,
+    backgroundImage: t.trame ? `${t.halos},${t.trame}` : t.halos,
+    position: 'relative',
+  };
+  const longueurTitre = `${c.ligne1} ${c.ligne2}`.trim().length;
+  const entete = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Identite t={t} taille={0.9} />
+      {c.pagination ? (
+        <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 24, color: t.encreDouce, border: `1px solid ${t.encreDouce}`, borderRadius: 999, padding: '8px 20px' }}>
+          {c.pagination}
+        </div>
+      ) : (
+        <div style={{ display: 'flex' }} />
+      )}
+    </div>
+  );
+
+  if (gabarit === 'chiffre') {
+    // Carré : le chiffre et sa lecture à gauche, l'image en colonne à droite.
+    const colonne = 360;
+    return (
+      <div style={base}>
+        {entete}
+        <div style={{ display: 'flex', gap: 40, alignItems: 'stretch' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 16, width: interieur - colonne - 40 }}>
+            <div
+              style={{
+                display: 'flex',
+                fontFamily: t.policeTitre,
+                fontSize: c.chiffre && c.chiffre.length > 5 ? 120 : 160,
+                lineHeight: 1,
+                letterSpacing: 2,
+                ...(t.titreDegrade ? { backgroundImage: t.titreDegrade, backgroundClip: 'text', color: 'transparent' } : { color: t.accent }),
+              }}
+            >
+              {c.chiffre}
+            </div>
+            {c.legende ? <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 26, color: t.encreDouce, lineHeight: 1.35 }}>{c.legende}</div> : null}
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 30, color: t.encre, lineHeight: 1.38 }}>{c.sousTitre}</div>
+          </div>
+          <CadreIllu t={t} illu={illu} largeur={colonne} hauteur={500} rayon={26} />
+        </div>
+        {c.question ? <QuestionCarte t={t} question={c.question} taille={0.8} /> : <Pastille t={t} />}
+      </div>
+    );
+  }
+
+  // Portrait 4:5 : en-tête, image, texte. L'image prend la place que le texte lui laisse.
+  const avecQuestion = gabarit === 'affirmation' && !!c.question;
+  const tailleTitre = longueurTitre > 70 ? 70 : longueurTitre > 48 ? 80 : 92;
+  // La hauteur de l'image se règle sur le texte : estimer ce qu'il occupe
+  // (lignes probables à cette taille), donner le reste à l'image. Un texte court
+  // laisse une grande image ; un texte long garde au moins 420 px d'image.
+  const lignes = (texte: string, taille: number, chasse: number) =>
+    texte ? texte.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil((l.length * taille * chasse) / interieur)), 0) : 0;
+  const tailleSous = c.sousTitre && c.sousTitre.length > 150 ? 27 : 30;
+  const hTitre = (lignes(c.ligne1, tailleTitre, 0.43) + lignes(c.ligne2, tailleTitre, 0.43)) * tailleTitre;
+  const hEtiquette = c.etiquette ? 40 : 0;
+  const hSous = gabarit === 'carrousel' && c.sousTitre ? lignes(c.sousTitre, tailleSous, 0.52) * tailleSous * 1.42 + 22 : 0;
+  const hPied = avecQuestion ? 76 + lignes(c.question!, 24.6, 0.56) * 24.6 * 1.35 : gabarit === 'carrousel' ? 30 : 58;
+  const disponible = g.hauteur - marge * 2 - 60 - hPied - 3 * 40;
+  const hauteurImage = Math.round(Math.min(760, Math.max(420, disponible - hTitre - hEtiquette - hSous)));
+  return (
+    <div style={base}>
+      {entete}
+      <CadreIllu t={t} illu={illu} largeur={interieur} hauteur={hauteurImage} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {c.etiquette ? (
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 19, letterSpacing: 4, color: t.accentDoux }}>
+            {c.etiquette.toUpperCase()}
+          </div>
+        ) : null}
+        <Titre t={t} c={c} taille={tailleTitre} />
+        {gabarit === 'carrousel' && c.sousTitre ? (
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: c.sousTitre.length > 150 ? 27 : 30, color: t.encre, lineHeight: 1.42, marginTop: 6 }}>
+            {c.sousTitre}
+          </div>
+        ) : null}
+      </div>
+      {avecQuestion ? (
+        <QuestionCarte t={t} question={c.question!} taille={0.82} />
+      ) : gabarit === 'carrousel' ? (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 22, color: t.encreDouce }}>Faites défiler →</div>
+          <Signature t={t} taille={0.9} />
+        </div>
+      ) : (
+        <Pastille t={t} />
+      )}
     </div>
   );
 }

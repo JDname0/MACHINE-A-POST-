@@ -2,6 +2,7 @@ import { ImageResponse } from 'next/og';
 import { chargerPolices } from '@/lib/polices';
 import { GABARITS, rendre, type Contenu, type GabaritSlug } from '@/lib/visuels';
 import { photoEnDonnees } from '@/lib/medias';
+import { illustrationDuContenu } from '@/lib/illustrations-serveur';
 import type { EntiteSlug } from '@/lib/marques';
 
 /**
@@ -17,7 +18,8 @@ export async function pngVisuel(
   const { photo: idPhoto, ...contenu } = v.contenu;
   // Même règle que la route : la photo ne vient que de la médiathèque de l'entité.
   const photo = await photoEnDonnees(entite, idPhoto ?? null);
-  const reponse = new ImageResponse(rendre(entite, v.slug, contenu, 'clair', photo), {
+  const illu = await illustrationDuContenu(entite, contenu);
+  const reponse = new ImageResponse(rendre(entite, v.slug, contenu, 'clair', photo, illu), {
     width: g.largeur,
     height: g.hauteur,
     fonts: chargerPolices(),

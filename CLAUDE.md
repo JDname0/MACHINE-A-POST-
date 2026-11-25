@@ -463,3 +463,31 @@ pas de table de comptes.
   dans le navigateur puis envoyée au serveur** (H.264 1080 × 1920, 25 s).
   Le son est en AAC si le navigateur sait l'encoder (Chrome sur Mac /
   Windows), sinon en Opus : fabriquer les vidéos dans Chrome.
+
+## Montrer, pas dire : le pack d'illustrations (25/11/2026, fin de journée)
+
+Système complet dans **`STUDIO-QUALITE.md`** (chaîne de génération, contrôle,
+contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
+
+- **Registre** `src/lib/illustrations.ts` : `IMAGES_PACK` (job Higgsfield,
+  adresse, référence, prompt mot pour mot, `mention`), `PLACEMENTS` (couverture
+  d'un sujet, page repérée par le **début de son texte**, cadrage),
+  `FIGURES_ARTICLES` (3 à 5 par article). Charte de prompt : `promptVeolt()`.
+- **Import** : Visuels → « Importer les illustrations manquantes »
+  (`importerIllustrations`, `illustrations-serveur.ts`). Hôtes autorisés :
+  `HOTES_IMPORT` seulement ; médias d'origine `illustration`, empreinte = hachage
+  de l'adresse. `MAP_ILLUS_MIROIR` (développement seulement) sert l'essai sans réseau.
+- **Rendu** : `Contenu.illu` / `cadrage` → `rendreIllustre` (cadre de verre ;
+  carrousel, affirmation, chiffre, couverture d'article). Une photo posée à la
+  main (`photo`) passe avant. Les trois appels de `rendre` (route, mémoire, PDF)
+  chargent l'illustration par `illustrationDuContenu`.
+- **Vidéo** : `Plan.illustration` nommée par un script, sinon posée
+  automatiquement sur les plans du milieu (texte qui reprend le `debut`, puis
+  l'ordre du registre). `dessinerIllustration` (`fabrique-video.ts`).
+  `controleMontage` (`production.ts`) s'affiche sous « Générer la vidéo ».
+- **Version finale en situation** : `PAGES_FINALES_VEOLT`
+  (`carrousels-veolt.ts`), posée avant « À retenir » ; `poserPagesFinales`
+  (`db.ts`) l'a ajoutée aux brouillons non retouchés, tracé au journal.
+- **La mention ne s'enlève pas** (« Illustration IA », « Concept Veolt · mise en
+  situation IA ») : une image ne passe jamais pour un travail client (règle 2).
+- **1337 est exclu** (Tonic, Focus, Gélule, Film de marque, showreel) : client.

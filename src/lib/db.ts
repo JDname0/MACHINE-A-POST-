@@ -45,7 +45,8 @@ async function initialiser() {
   const aSeme = semer(d);
   const articlesPoses = poserArticles(d);
   const carrouselsApprofondis = approfondirCarrousels(d);
-  if (aSeme || articlesPoses || carrouselsApprofondis) await sauvegarder();
+  const pagesFinales = poserPagesFinales(d);
+  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales) await sauvegarder();
   return { d, niveau };
 }
 
@@ -399,6 +400,38 @@ function approfondirCarrousels(d: Base): number {
       'veolt',
       'carrousel approfondi',
       `publication ${p.id} (${p.date_prevue}) : ${n} pages écrites pour le format, au lieu du corps du sujet`,
+    );
+    faits++;
+  }
+  return faits;
+}
+
+/**
+ * Veolt (25/11/2026, suite) : la page « version finale, en situation » avant
+ * « À retenir » (`PAGES_FINALES_VEOLT`). Même règle que l'approfondissement :
+ * seulement les brouillons dont le texte est encore exactement celui du moule
+ * sans cette page. Un carrousel retouché garde son texte. Relancer ne refait rien.
+ */
+function poserPagesFinales(d: Base): number {
+  let faits = 0;
+  const posts = d
+    .prepare("SELECT * FROM publications WHERE entite='veolt' AND format_slug IN ('li-carrousel','ig-carrousel') AND statut='brouillon'")
+    .all() as Array<Record<string, string | null> & { id: number }>;
+  for (const p of posts) {
+    if (!p.sujet_ref) continue;
+    const s = sujet(p.sujet_ref);
+    if (!s) continue;
+    const fmt = p.format_slug as 'li-carrousel' | 'ig-carrousel';
+    const avant = fabriquer(s, fmt, 'veolt', { sansPageFinale: true });
+    const apres = fabriquer(s, fmt, 'veolt');
+    if (apres.corps === avant.corps || p.corps === apres.corps) continue;
+    const intact = [avant.accroche, avant.corps, avant.appel].join('\u0000') === [p.accroche, p.corps, p.appel].join('\u0000');
+    if (!intact) continue;
+    d.prepare("UPDATE publications SET corps=?, consignes_visuel=?, maj_le=datetime('now') WHERE id=?").run(apres.corps, apres.consignesVisuel.join('\n'), p.id);
+    d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+      'veolt',
+      'carrousel : version finale',
+      `publication ${p.id} (${p.date_prevue}) : page « en situation » ajoutée avant « À retenir »`,
     );
     faits++;
   }

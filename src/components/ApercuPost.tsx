@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import { format } from '@/lib/formats';
 import { formaterDate, LIBELLE_STATUT, livrablesDe, mediasDePublication, type LignePublication } from '@/lib/requetes';
-import { articleEnHtml, constatsDe, lienVisuel, pagesCarrousel, urlVisuel, texteAColler } from '@/lib/fiche';
+import { articleEnHtml, figuresArticle, constatsDe, lienVisuel, pagesCarrousel, urlVisuel, texteAColler } from '@/lib/fiche';
 import { attendu, controlerMedia } from '@/lib/conformite-media';
-import { DELAIS, imagesMemoire, montagePret, reglagesVideo } from '@/lib/production';
+import { DELAIS, controleMontage, imagesMemoire, montagePret, reglagesVideo } from '@/lib/production';
 import { trancher, memoriserVisuel, regenererTexte, deplacerLivrable, supprimerMedia } from '@/app/actions';
 import { depotDirect, estDocument, plafondDepotVideo, TAILLE_MAX_DOCUMENT, TAILLE_MAX_IMAGE, TAILLE_MAX_VIDEO } from '@/lib/medias';
 import { TeleverserLivrables } from './TeleverserLivrables';
@@ -284,6 +284,7 @@ export async function ApercuPost({ p, fermer, notice }: { p: LignePublication; f
                   </Link>
                 </div>
                 <p className="aide" style={{ marginTop: 6 }}>Régénérer remplace la vidéo actuelle (montage par défaut, mémoire à jour).</p>
+                <ControleMontage p={p} />
               </>
             ) : (
               <>
@@ -296,6 +297,7 @@ export async function ApercuPost({ p, fermer, notice }: { p: LignePublication; f
                     Ouvrir le studio →
                   </Link>
                 </div>
+                <ControleMontage p={p} />
               </>
             )}
           </div>
@@ -354,13 +356,33 @@ export async function ApercuPost({ p, fermer, notice }: { p: LignePublication; f
               <h3>Article · lecture</h3>
               <BoutonCopier texte={articleEnHtml(p)} libelle="Copier en HTML (site)" />
             </div>
-            <style>{`.article-lecture h1{font-size:22px;margin:4px 0 12px}.article-lecture h2{font-size:16px;margin:18px 0 6px}.article-lecture p{margin:0 0 10px;line-height:1.6}.article-lecture ul{margin:0 0 10px 18px;line-height:1.6}`}</style>
+            <style>{`.article-lecture h1{font-size:22px;margin:4px 0 12px}.article-lecture h2{font-size:16px;margin:18px 0 6px}.article-lecture p{margin:0 0 10px;line-height:1.6}.article-lecture ul{margin:0 0 10px 18px;line-height:1.6}.article-lecture figure{margin:14px 0 16px}.article-lecture figure img{width:100%;height:auto;border-radius:10px;display:block}.article-lecture figcaption{font-size:12px;color:var(--encre-dim);margin-top:6px}.article-lecture figcaption small{margin-left:6px;text-transform:uppercase;letter-spacing:.08em;font-size:10px}`}</style>
             <div
               className="article-lecture"
-              style={{ marginTop: 8, maxHeight: 520, overflow: 'auto', paddingRight: 6 }}
+              style={{ marginTop: 8, maxHeight: 640, overflow: 'auto', paddingRight: 6 }}
               // Le HTML vient de articleEnHtml, qui échappe tout le texte.
-              dangerouslySetInnerHTML={{ __html: articleEnHtml(p) }}
+              dangerouslySetInnerHTML={{ __html: articleEnHtml(p, (f) => `/${p.entite}/medias/${f.id}`) }}
             />
+            {(() => {
+              const figures = figuresArticle(p);
+              return figures.length ? (
+                <p className="aide" style={{ marginTop: 8 }}>
+                  {figures.length} images dans l’article. Pour le site : déposer chaque fichier dans <code>/blog/images/</code> sous
+                  son nom —{' '}
+                  {figures.map((f, i) => (
+                    <span key={f.nom}>
+                      {i ? ', ' : ''}
+                      <a href={`/${p.entite}/medias/${f.id}`} download={`${f.nom}.png`}>
+                        {f.nom}.png
+                      </a>
+                    </span>
+                  ))}
+                  .
+                </p>
+              ) : (
+                <p className="aide" style={{ marginTop: 8 }}>Aucune image du pack pour cet article : importer le pack (page Visuels).</p>
+              );
+            })()}
           </div>
         ) : null}
 
@@ -464,5 +486,21 @@ function Repli({ actif, children }: { actif: boolean; children: ReactNode }) {
       </summary>
       <div style={{ marginTop: 10 }}>{children}</div>
     </details>
+  );
+}
+
+/** Le contrôle qualité du montage par défaut, sous le bouton de fabrication. */
+function ControleMontage({ p }: { p: LignePublication }) {
+  const constats = controleMontage(p, imagesMemoire(p.entite as EntiteSlug));
+  if (!constats.length) return <p className="aide" style={{ marginTop: 6 }}>Contrôle qualité du montage : rien à signaler.</p>;
+  return (
+    <ul className="aide" style={{ marginTop: 6, paddingLeft: 18 }}>
+      {constats.map((c, i) => (
+        <li key={i} style={{ color: c.niveau === 'alerte' ? 'var(--attention)' : undefined }}>
+          {c.niveau === 'alerte' ? '⚠ ' : ''}
+          {c.message}
+        </li>
+      ))}
+    </ul>
   );
 }

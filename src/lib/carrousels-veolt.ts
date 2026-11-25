@@ -106,3 +106,21 @@ export const PAGES_CARROUSEL_VEOLT: Record<string, string[]> = {
     "Ce que ce n'est pas. Un fait sur notre structure, pas une promesse de résultat.",
   ],
 };
+
+/**
+ * La dernière étape, montrée en situation réelle (25/11/2026) : le produit fini
+ * dans un vrai décor, le site en main. Posée juste avant « À retenir », avec son
+ * image du pack (`illustrations.ts`). Le texte ne dit jamais qu'il s'agit d'un
+ * travail client : l'image porte sa mention (« Illustration IA », « Concept
+ * Veolt »). Ajoutée aux brouillons non retouchés par `poserPagesFinales` (`db.ts`).
+ */
+export const PAGES_FINALES_VEOLT: Record<string, string> = {
+  'v-mt-3':
+    "Le produit fini, en situation. Le même modèle, éclairé et étalonné, se pose dans un vrai décor. C'est cette image-là que voit le client final.",
+  'v-mt-2':
+    'Le site refait, en main. La promesse et le bouton tiennent sur un écran de téléphone, sans défiler : c’est là que se joue la première visite.',
+  'v-dc-1':
+    'À l’arrivée, un site en ligne. Exemple : Atelier Noir, concept de parfumerie conçu par Veolt, sur ordinateur et sur mobile. Le devis décrit ce chemin-là, ligne par ligne.',
+  'v-dc-3':
+    'Le visuel fini, en situation. Une fois le modèle fait, le même produit se pose dans une scène de vie sans nouvelle séance photo.',
+};

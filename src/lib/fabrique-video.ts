@@ -18,6 +18,7 @@
  */
 
 import { dessinerV } from './logo-veolt';
+import { cadrer } from './illustrations';
 import type { PlanMontage, Scene } from './montage';
 import {
   dessinerFond,
@@ -50,6 +51,8 @@ export interface ImageDispo {
   origine: string;
   /** Un clip vidéo (Higgsfield, Blender…) plutôt qu'une image. */
   type?: 'image' | 'video';
+  /** Illustration du pack : ce qu'elle est, dit dans le cadre (« Illustration IA »…). */
+  mention?: string;
 }
 
 export interface ThemeStudio {
@@ -879,6 +882,127 @@ async function preparerRendu(m: Montage) {
   tmp.height = H;
   const tctx = tmp.getContext('2d')!;
 
+  /**
+   * Une illustration du pack, mise en scène (Veolt, 25/11/2026) : l'image
+   * floutée et assombrie en fond (calculée une fois par plan, en petit, pour
+   * ne pas ralentir l'encodage), puis l'image nette dans un cadre de verre qui
+   * entre en douceur, avance lentement, et qu'un reflet traverse une fois.
+   * Le titre se pose dessous, comme la légende d'une page de carrousel.
+   */
+  const fondsFlous = new Map<number, HTMLCanvasElement>();
+  const fondFlou = (i: number, img: HTMLImageElement) => {
+    let f = fondsFlous.get(i);
+    if (!f) {
+      f = document.createElement('canvas');
+      f.width = Math.round(L / 4);
+      f.height = Math.round(H / 4);
+      const fx = f.getContext('2d')!;
+      if (filtreDisponible()) fx.filter = 'blur(9px) brightness(0.34) saturate(1.25)';
+      couvrir(fx, img, f.width, f.height, 1.2);
+      fx.filter = 'none';
+      if (!filtreDisponible()) {
+        fx.fillStyle = 'rgba(8,6,12,0.7)';
+        fx.fillRect(0, 0, f.width, f.height);
+      }
+      fondsFlous.set(i, f);
+    }
+    return f;
+  };
+  const cadreIllustration = () => {
+    const x = marge;
+    const w = L - marge * 2;
+    const haut = Math.round(vertical ? marge + 150 : marge + 100);
+    const h = Math.round(vertical ? H * 0.5 : H * 0.47);
+    return { x, y: haut, w, h };
+  };
+  const dessinerIllustration = (cx: CanvasRenderingContext2D, i: number, img: HTMLImageElement, tl: number, duree: number, punch: number) => {
+    const u = Math.min(1, tl / Math.max(0.1, duree));
+    // Instants sonores : le cadre qui se pose, le reflet qui passe sur le verre.
+    env.repere('pop', 0.08);
+    env.repere('scintille', 0.45, 1.5);
+    const f = fondFlou(i, img);
+    const zf = 1.04 + 0.04 * u + punch * 0.5;
+    cx.imageSmoothingQuality = 'high';
+    cx.drawImage(f, (L - L * zf) / 2, (H - H * zf) / 2, L * zf, H * zf);
+    const voile = cx.createLinearGradient(0, H * 0.45, 0, H);
+    voile.addColorStop(0, `${th.fond}00`);
+    voile.addColorStop(1, `${th.fond}F0`);
+    cx.fillStyle = voile;
+    cx.fillRect(0, H * 0.45, L, H * 0.55);
+
+    const c = cadreIllustration();
+    const e = 1 - Math.pow(1 - Math.min(1, tl / 0.7), 3);
+    const dy = (1 - e) * 70;
+    const s = 0.94 + 0.06 * e;
+    cx.save();
+    cx.globalAlpha = e;
+    cx.translate(c.x + c.w / 2, c.y + c.h / 2 + dy);
+    cx.scale(s, s);
+    cx.translate(-(c.x + c.w / 2), -(c.y + c.h / 2));
+    const r = Math.round(Math.min(L, H) * 0.03);
+    // Lueur et ombre portée sous le cadre.
+    cx.save();
+    cx.shadowColor = `${th.accent}70`;
+    cx.shadowBlur = 70;
+    cx.shadowOffsetY = 24;
+    cx.fillStyle = '#050507';
+    cx.beginPath();
+    cx.roundRect(c.x, c.y, c.w, c.h, r);
+    cx.fill();
+    cx.restore();
+    // L'image, recadrée comme sur la page de carrousel, qui avance lentement.
+    cx.save();
+    cx.beginPath();
+    cx.roundRect(c.x, c.y, c.w, c.h, r);
+    cx.clip();
+    const pl = plans[i];
+    const base = pl.cadrage ?? { x: 0.5, y: 0.5, zoom: 1 };
+    const k = cadrer(c.w, c.h, img.naturalWidth, img.naturalHeight, { ...base, zoom: base.zoom * (1.02 + 0.07 * u) });
+    cx.drawImage(img, c.x + k.gauche, c.y + k.haut, k.w, k.h);
+    // Fondu bas dans le cadre, et reflet qui traverse le verre une fois.
+    const fb = cx.createLinearGradient(0, c.y + c.h * 0.6, 0, c.y + c.h);
+    fb.addColorStop(0, 'rgba(8,6,12,0)');
+    fb.addColorStop(1, 'rgba(8,6,12,0.5)');
+    cx.fillStyle = fb;
+    cx.fillRect(c.x, c.y, c.w, c.h);
+    const ps = (tl - 0.45) / 1.1;
+    if (ps > 0 && ps < 1) {
+      const bx = c.x - c.w * 0.4 + ps * c.w * 1.8;
+      const g = cx.createLinearGradient(bx - c.w * 0.18, c.y, bx + c.w * 0.18, c.y + c.h);
+      g.addColorStop(0, 'rgba(255,255,255,0)');
+      g.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      cx.fillStyle = g;
+      cx.fillRect(c.x, c.y, c.w, c.h);
+    }
+    cx.restore();
+    // Ce qu'est l'image, dit dans le cadre (règle 2 : rien ne passe pour un travail client).
+    const mention = m.images.find((k) => pl.source.type === 'media' && k.id === pl.source.id)?.mention;
+    if (mention) {
+      const tm = Math.round(Math.min(L, H) * 0.016);
+      cx.font = `${corps.poids} ${tm}px "${corps.famille}", sans-serif`;
+      const texte = mention.toUpperCase();
+      const lw = cx.measureText(texte).width + tm * 2.2;
+      const mx = c.x + tm * 1.3;
+      const my = c.y + c.h - tm * 3.1;
+      cx.fillStyle = 'rgba(8,6,12,0.6)';
+      cx.beginPath();
+      cx.roundRect(mx, my, lw, tm * 2.1, tm * 1.05);
+      cx.fill();
+      cx.fillStyle = 'rgba(233,230,245,0.88)';
+      cx.textBaseline = 'middle';
+      cx.fillText(texte, mx + tm * 1.1, my + tm * 1.08);
+      cx.textBaseline = 'alphabetic';
+    }
+    // Filet de verre.
+    cx.strokeStyle = 'rgba(199,155,255,0.42)';
+    cx.lineWidth = 2;
+    cx.beginPath();
+    cx.roundRect(c.x + 1, c.y + 1, c.w - 2, c.h - 2, r);
+    cx.stroke();
+    cx.restore();
+  };
+
   const dessinerPlan = (cx: CanvasRenderingContext2D, i: number, t: number) => {
     const x = plans[i];
     const img = sources[i];
@@ -894,8 +1018,10 @@ async function preparerRendu(m: Montage) {
     cx.fillRect(0, 0, L, H);
     // Coupe sèche (Veolt) : un léger « punch » d'entrée, comme un raccord de montage.
     const punch = m.rythme === 'sec' ? 0.06 * Math.pow(1 - borne(tl / 0.22), 2) : 0;
-    const genere = x.source.type === 'media' && m.images.find((k) => x.source.type === 'media' && k.id === x.source.id)?.origine === 'genere';
+    const origineMedia = x.source.type === 'media' ? m.images.find((k) => x.source.type === 'media' && k.id === x.source.id)?.origine : undefined;
+    const genere = origineMedia === 'genere';
     const clip = img instanceof HTMLVideoElement;
+    const illustre = origineMedia === 'illustration' && !clip;
 
     const decor = x.source.type === 'carte' ? (x.fond ?? th.fondDefaut ?? 'carte') : 'carte';
     if (x.source.type === 'carte' && decor !== 'carte') {
@@ -908,6 +1034,8 @@ async function preparerRendu(m: Montage) {
       cx.restore();
     } else if (x.source.type === 'carte') {
       couvrir(cx, img, L, H, 1 + 0.03 * u + punch);
+    } else if (illustre) {
+      dessinerIllustration(cx, i, img as HTMLImageElement, tl, b - a, punch);
     } else if (genere) {
       // Un visuel généré porte déjà son texte à la charte : il passe tel quel.
       couvrir(cx, img, L, H, 1 + 0.04 * u + punch);
@@ -969,7 +1097,7 @@ async function preparerRendu(m: Montage) {
 
     if (!genere) {
       if (x.scene && x.scene.type !== 'titre') dessinerScene(cx, i, tl, t, x.scene, b - a);
-      else dessinerTitre(cx, i, tl, t, x.source.type === 'media' && !x.centre ? 'bas' : 'centre');
+      else dessinerTitre(cx, i, tl, t, x.source.type === 'media' && (!x.centre || illustre) ? 'bas' : 'centre');
       if (x.annotation) {
         // La note manuscrite en bas à droite de la scène, et sa flèche qui
         // remonte vers ce qu'elle désigne.

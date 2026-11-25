@@ -9,7 +9,7 @@
 import { format, type FormatSlug } from './formats';
 import { serieDe, type Sujet } from './sujets';
 import { marque, type EntiteSlug } from './marques';
-import { PAGES_CARROUSEL_VEOLT } from './carrousels-veolt';
+import { PAGES_CARROUSEL_VEOLT, PAGES_FINALES_VEOLT } from './carrousels-veolt';
 
 export interface Brouillon {
   accroche: string;
@@ -59,9 +59,9 @@ export function fabriquer(
   s: Sujet,
   formatSlug: FormatSlug,
   entite: EntiteSlug,
-  options: { sansPagesEcrites?: boolean } = {},
+  options: { sansPagesEcrites?: boolean; sansPageFinale?: boolean } = {},
 ): Brouillon {
-  const b = tailler(s, formatSlug, entite, options.sansPagesEcrites ?? false);
+  const b = tailler(s, formatSlug, entite, options.sansPagesEcrites ?? false, options.sansPageFinale ?? false);
   b.consignesVisuel = [
     s.source ? `SOURCE DU FAIT AVANCÉ — ${s.source}` : 'SOURCE DU FAIT AVANCÉ — [?] non renseignée. À nommer avant de passer en « validé ».',
     ...b.consignesVisuel,
@@ -69,7 +69,7 @@ export function fabriquer(
   return b;
 }
 
-function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPagesEcrites: boolean): Brouillon {
+function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPagesEcrites: boolean, sansPageFinale: boolean): Brouillon {
   const f = format(formatSlug);
   const m = marque(entite);
   const hashtags = HASHTAGS[entite][s.pilier] ?? '';
@@ -113,6 +113,9 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPages
       // explication) quand elles existent ; sinon le corps du sujet, une phrase par page.
       const ecrites = entite === 'veolt' && !sansPagesEcrites ? PAGES_CARROUSEL_VEOLT[s.ref] : undefined;
       (ecrites ?? s.corps).forEach((p, i) => pages.push(`PAGE ${i + 2} — ${p}`));
+      // Veolt : la version finale, en situation réelle, avant « À retenir ».
+      const finale = entite === 'veolt' && !sansPagesEcrites && !sansPageFinale ? PAGES_FINALES_VEOLT[s.ref] : undefined;
+      if (finale) pages.push(`PAGE ${pages.length + 1} — ${finale}`);
       pages.push(`PAGE ${pages.length + 1} — À RETENIR : ${s.enseignement}`);
       pages.push(`PAGE ${pages.length + 1} — ${s.appel}\n${m.nom} · ${m.signature}`);
       const texteCourt = `${s.accroche}\n\n${s.enseignement}`;

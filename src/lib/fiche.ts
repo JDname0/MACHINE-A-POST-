@@ -14,6 +14,14 @@ import { gabaritPour, deuxLignes, type GabaritSlug, type Contenu } from './visue
 import { sousForums, joursDepuis, type LignePublication } from './requetes';
 import { attendu } from './conformite-media';
 import { aUneVideo, photoDuPost } from './production';
+import { couvertureDuSujet, illustrationParNom, illustrationPourTexte, type IllustrationPosee } from './illustrations-serveur';
+import { cadrageEnTexte, FIGURES_ARTICLES, imagePack, mentionDe } from './illustrations';
+
+/** Les paramètres de visuel d'une illustration du pack (identifiant + cadrage). */
+function paramsIllu(x: IllustrationPosee | undefined): Partial<Contenu> {
+  if (!x) return {};
+  return { illu: String(x.id), ...(x.placement.cadrage ? { cadrage: cadrageEnTexte(x.placement.cadrage) } : {}) };
+}
 
 export function constatsDe(p: LignePublication): { constats: Constat[]; validable: boolean } {
   const sf = sousForums().find((x) => x.nom === p.sous_forum);
@@ -58,6 +66,14 @@ export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; cont
   const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) };
   const photo = photoDuPost(p);
   if (photo) contenu.photo = String(photo);
+  // Sans photo choisie à la main : l'illustration de couverture du sujet, si
+  // le pack en a une (gabarits illustrés seulement — la vidéo a son propre montage).
+  else if (['affirmation', 'chiffre', 'carrousel'].includes(slug)) Object.assign(contenu, paramsIllu(couvertureDuSujet(p.entite, p.sujet_ref)));
+  // La couverture d'un article montre sa première figure.
+  else if (slug === 'couverture') {
+    const f = figuresArticle(p)[0];
+    if (f) contenu.illu = String(f.id);
+  }
   // Veolt, LinkedIn (codes 2026) : la question du post est posée dans l'image.
   // Elle appelle une réponse argumentée sans la réclamer (pas de « likez »).
   const q = questionDuPost(p);
@@ -134,8 +150,12 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
         sousTitre: borner([suite, ...reste].filter(Boolean).join(' '), 230),
         pagination: `${i + 1} / ${pages.length}`,
         ...(p.entite === 'veolt' && i > 0 && p.titre ? { etiquette: p.titre.length > 48 ? `${p.titre.slice(0, p.titre.lastIndexOf(' ', 46))}…` : p.titre } : {}),
-        // La couverture du carrousel porte la photo ; les pages restent nettes, pour la lecture.
+        // La couverture du carrousel porte la photo ; sans photo, l'illustration
+        // du sujet. Une page intérieure montre l'image de son étape quand le
+        // pack en a une (repérée par le début du texte), sinon elle reste nette.
         ...(i === 0 && photo ? { photo: String(photo) } : {}),
+        ...(i === 0 && !photo ? paramsIllu(couvertureDuSujet(p.entite, p.sujet_ref)) : {}),
+        ...(i > 0 ? paramsIllu(illustrationPourTexte(p.entite, p.sujet_ref, texte)) : {}),
       },
     };
   });
@@ -196,14 +216,39 @@ export function texteAColler(p: LignePublication): string {
   return [p.accroche, corps, p.appel, p.hashtags].filter(Boolean).join('\n\n');
 }
 
+/** Les figures d'un article : les images du registre prévues pour lui, déjà importées. */
+export function figuresArticle(p: LignePublication): Array<{ nom: string; id: number; largeur: number; hauteur: number; montre: string; mention: string }> {
+  const noms = FIGURES_ARTICLES[p.sujet_ref ?? ''] ?? [];
+  return noms.flatMap((nom) => {
+    const m = illustrationParNom(p.entite, nom);
+    const img = imagePack(nom);
+    return m && img ? [{ nom, ...m, montre: img.montre, mention: mentionDe(nom) }] : [];
+  });
+}
+
 /**
  * Un article de blog en HTML, prêt à coller dans l'éditeur du site : titre,
- * sections (« ## »), listes (« - »), paragraphes, appel final. Tout le texte
- * est échappé — le HTML ne vient que de cette conversion, jamais du contenu.
+ * sections (« ## »), listes (« - »), paragraphes, figures, appel final. Tout
+ * le texte est échappé — le HTML ne vient que de cette conversion, jamais du
+ * contenu. Les figures (3 au moins) se posent après la réponse en bref, puis
+ * avant chaque section ; `srcImage` dit où les trouver : la médiathèque pour
+ * la lecture dans l'outil, `/blog/images/<nom>.png` pour le site.
  */
-export function articleEnHtml(p: LignePublication): string {
+export function articleEnHtml(
+  p: LignePublication,
+  srcImage: (f: { nom: string; id: number }) => string = (f) => `/blog/images/${f.nom}.png`,
+): string {
   const echapper = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const sortie: string[] = [`<h1>${echapper(p.titre ?? p.accroche)}</h1>`];
+  const figures = p.format_slug === 'blog-article' ? figuresArticle(p) : [];
+  const figure = () => {
+    const f = figures.shift();
+    if (!f) return;
+    sortie.push(
+      `<figure><img src="${echapper(srcImage(f))}" alt="${echapper(f.montre)}" width="${f.largeur}" height="${f.hauteur}" loading="lazy" />` +
+        `<figcaption>${echapper(f.montre)} <small>${echapper(f.mention)}</small></figcaption></figure>`,
+    );
+  };
   let liste = false;
   const fermer = () => {
     if (liste) sortie.push('</ul>');
@@ -215,6 +260,10 @@ export function articleEnHtml(p: LignePublication): string {
       fermer();
     } else if (t.startsWith('## ')) {
       fermer();
+      // Une figure avant chaque section, sauf avant la toute première (la
+      // réponse en bref d'abord) et avant les rubriques de fin.
+      const fin = /^(à retenir|dans la même série|sources?)\b/i.test(t.slice(3).trim());
+      if (sortie.some((x) => x.startsWith('<p>')) && !fin) figure();
       sortie.push(`<h2>${echapper(t.slice(3))}</h2>`);
     } else if (t.startsWith('- ')) {
       if (!liste) sortie.push('<ul>');
@@ -226,6 +275,7 @@ export function articleEnHtml(p: LignePublication): string {
     }
   }
   fermer();
+  while (figures.length) figure();
   if (p.appel.trim()) sortie.push(`<p><strong>${echapper(p.appel.trim())}</strong></p>`);
   return sortie.join('\n');
 }

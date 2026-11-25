@@ -7,19 +7,23 @@ import { videosDe } from '@/lib/videos';
 import { format } from '@/lib/formats';
 import { Medias } from '@/components/Medias';
 import { Sons } from '@/components/Sons';
-import { remettreVisuelsAuLogo } from '@/app/actions';
+import { remettreVisuelsAuLogo, importerIllustrations } from '@/app/actions';
+import { etatPack } from '@/lib/illustrations-serveur';
+import { CHARTE_PROMPT_VEOLT } from '@/lib/illustrations';
 
 export default async function Visuels({
   params,
   searchParams,
 }: {
   params: Promise<{ entite: string }>;
-  searchParams: Promise<{ variante?: string; posees?: string; refus?: string; logo?: string; echecs?: string }>;
+  searchParams: Promise<{ variante?: string; posees?: string; refus?: string; logo?: string; echecs?: string; illus?: string; deja?: string; illusEchecs?: string }>;
 }) {
   const { entite } = await params;
-  const { variante: v, posees, refus, logo, echecs } = await searchParams;
+  const { variante: v, posees, refus, logo, echecs, illus, deja, illusEchecs } = await searchParams;
   const variante = v === 'sombre' ? 'sombre' : 'clair';
   const e = entite as EntiteSlug;
+  const pack = etatPack(e);
+  const manquantes = pack.filter((x) => !x.aJour).length;
   const m = marque(e);
   const t = theme(e, variante);
   const videos = videosDe(e);
@@ -65,6 +69,63 @@ export default async function Visuels({
                 {logo === '0' ? ' Tout était déjà à jour.' : ''}
               </p>
             ) : null}
+          </div>
+          <div className="encart" id="illustrations" style={{ marginBottom: 14 }}>
+            <strong>Montrer, pas dire : le pack d&apos;illustrations.</strong> Chaque sujet a son image, et chaque étape
+            d&apos;un processus la sienne (le pipeline 3D : un même flacon, de la modélisation à l&apos;étalonnage).
+            Elles se posent seules : en couverture des posts et des carrousels, dans un cadre au-dessus du texte des
+            pages qu&apos;elles illustrent, et en plans dans les vidéos. Aucune lettre dans l&apos;image (le texte reste
+            posé par la machine), aucun client, aucune donnée lisible. Chaque image garde ici sa source et son prompt.
+            <div className="rang" style={{ marginTop: 10, gap: 10, alignItems: 'center' }}>
+              <form action={importerIllustrations}>
+                <input type="hidden" name="entite" value="veolt" />
+                <button type="submit" disabled={!manquantes}>
+                  {manquantes ? `Importer les ${manquantes} illustration(s) manquante(s)` : 'Pack importé, à jour'}
+                </button>
+              </form>
+              <span className="aide" style={{ marginTop: 0 }}>
+                {pack.length - manquantes} / {pack.length} dans la médiathèque. Ensuite : « Remettre les visuels au logo »
+                refait les visuels concernés.
+              </span>
+            </div>
+            {illus !== undefined ? (
+              <p className="aide" style={{ marginTop: 8 }}>
+                ✓ {illus} illustration(s) importée(s){deja ? `, ${deja} déjà là` : ''}
+                {illusEchecs ? ` — ${illusEchecs} échec(s), détail au journal` : ''}.
+              </p>
+            ) : null}
+            <details style={{ marginTop: 10 }}>
+              <summary>Le registre : {pack.length} images, leur source et leur prompt</summary>
+              <p className="aide">
+                Charte de génération ajoutée à chaque scène : <code>{CHARTE_PROMPT_VEOLT}</code>
+              </p>
+              <div className="grille" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', marginTop: 10 }}>
+                {pack.map(({ image, id, aJour, sujets }) => (
+                  <div key={image.nom} className="carte" style={{ padding: 10 }}>
+                    {id ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={`/veolt/medias/${id}`} alt={image.montre} style={{ width: '100%', aspectRatio: image.ratio === '4:5' ? '4 / 5' : '4 / 3', objectFit: 'cover', borderRadius: 8 }} />
+                    ) : (
+                      <div className="aide" style={{ aspectRatio: '4 / 3', display: 'grid', placeItems: 'center', border: '1px dashed var(--ligne-forte)', borderRadius: 8 }}>
+                        à importer
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12, fontWeight: 650, marginTop: 6 }}>
+                      {image.nom} {id && !aJour ? '· nouvelle version à importer' : ''}
+                    </div>
+                    <div className="aide" style={{ marginTop: 2 }}>{image.montre}</div>
+                    <div className="aide" style={{ marginTop: 2 }}>
+                      Sujets : {sujets.join(', ') || '—'} · {image.outil}, {image.modele} · job {image.job.slice(0, 8)}
+                      {image.reference ? ` · réf. ${image.reference.slice(0, 8)}` : ''}
+                    </div>
+                    <details>
+                      <summary className="aide">Prompt</summary>
+                      <p className="aide" style={{ whiteSpace: 'pre-wrap' }}>{image.prompt}</p>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            </details>
           </div>
           <div className="encart" style={{ marginBottom: 22 }}>
             <strong>Veolt peut y aller.</strong> Le site assume déjà le fond quasi noir et le dégradé magenta → violet →

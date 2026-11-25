@@ -8,6 +8,7 @@
  * (`StudioVideo`) : aucune limite de durée de fonction, aucun serveur vidéo.
  */
 
+import type { Cadrage } from './illustrations';
 import type { ScriptVideo } from './videos';
 import type { Forme3D, Place3D } from './scene3d';
 
@@ -163,6 +164,13 @@ export interface PlanMontage {
    * nom de fichier sans extension. Résolu au montage ; introuvable : la carte.
    */
   clip?: string;
+  /**
+   * Illustration du pack (`illustrations.ts`) à montrer dans le plan, par son
+   * nom : le cadre de verre au-dessus du titre. Résolue au montage.
+   */
+  illustration?: string;
+  /** Cadrage de l'illustration dans son cadre (point d'intérêt, grossissement). */
+  cadrage?: Cadrage;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
@@ -189,6 +197,8 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     ...(p.sousTitre ? { sousTitre: p.sousTitre } : {}),
     ...(p.noyau ? { noyau: p.noyau } : {}),
     ...(p.clip ? { clip: p.clip } : {}),
+    ...(p.illustration ? { illustration: p.illustration } : {}),
+    ...(p.cadrage ? { cadrage: p.cadrage } : {}),
   }));
 }
 
