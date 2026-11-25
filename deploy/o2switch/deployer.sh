@@ -40,6 +40,22 @@ RACINE="$(cd "$(dirname "$0")/../.." && pwd)"
 DIST="$RACINE/.deploiement-o2switch"
 cd "$RACINE"
 
+# Copies « … 2 » que macOS / iCloud laissent sur le Bureau (relevé le
+# 25/11/2026 : `node_modules/@types/better-sqlite3 2` faisait échouer le
+# build). Dans `node_modules/@types`, elles sont devenues sans effet : le
+# tsconfig nomme ses types implicites. Dans `src/` ou `public/`, une copie
+# serait compilée ou servie avec l'application : s'arrêter et les montrer,
+# sans rien effacer soi-même.
+echo "▸ Copies en double (« … 2 ») dans src/ et public/"
+DOSSIERS_VUS=""; for d in src public deploy; do [ -d "$d" ] && DOSSIERS_VUS="$DOSSIERS_VUS $d"; done
+# shellcheck disable=SC2086 # la liste de dossiers est voulue en mots séparés
+DOUBLONS="$(find $DOSSIERS_VUS \( -name '* [0-9]' -o -name '* [0-9].*' \) -print 2>/dev/null | head -20 || true)"
+if [ -n "$DOUBLONS" ]; then
+  echo "✖ Copies en double trouvées : les supprimer (ou les renommer) avant de déployer." >&2
+  printf '%s\n' "$DOUBLONS" | sed 's/^/    /' >&2
+  exit 1
+fi
+
 echo "▸ Build standalone"
 rm -rf .next "$DIST"
 MAP_BUILD_STANDALONE=1 npm run build
