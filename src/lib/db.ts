@@ -49,8 +49,9 @@ async function initialiser() {
   const pagesFinales = poserPagesFinales(d);
   const voix = poserVoixVeolt(d);
   const series = poserSeriesVeolt(d) + appliquerRevisions(d);
+  const courts = raccourcirCarrousels(d);
   const recales = recalerMardiJeudiVeolt(d);
-  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales || voix || series || recales) await sauvegarder();
+  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales || voix || series || courts || recales) await sauvegarder();
   return { d, niveau };
 }
 
@@ -474,6 +475,40 @@ function poserVoixVeolt(d: Base): number {
 }
 
 /**
+ * Carrousels Veolt raccourcis (25/11/2026, 22 h 30) : 7 pages au plus, une
+ * image par page, sous-textes réécrits. Un brouillon (ou un post « à relire »)
+ * dont le texte est encore celui de la première version — avec ou sans la voix
+ * — prend la version courte. Un post retouché, validé ou publié garde le sien ;
+ * le superviseur qualité le signale alors (page Qualité).
+ */
+function raccourcirCarrousels(d: Base): number {
+  let faits = 0;
+  const posts = d
+    .prepare("SELECT * FROM publications WHERE entite='veolt' AND statut IN ('brouillon','a-relire') AND format_slug IN ('li-carrousel','ig-carrousel')")
+    .all() as Array<Record<string, string | null> & { id: number }>;
+  const cle = (b: { accroche: string | null; corps: string | null; appel: string | null }) => [b.accroche, b.corps, b.appel].join('\u0000');
+  for (const p of posts) {
+    if (!p.sujet_ref) continue;
+    const s = sujet(p.sujet_ref);
+    if (!s) continue;
+    const fmt = p.format_slug as Parameters<typeof fabriquer>[1];
+    const anciens = [fabriquer(s, fmt, 'veolt', { carrouselV1: true }), fabriquer(s, fmt, 'veolt', { carrouselV1: true, sansVoix: true })].map(cle);
+    if (!anciens.includes(cle(p as never))) continue;
+    const b = fabriquer(s, fmt, 'veolt');
+    if (cle(b) === cle(p as never)) continue;
+    d.prepare("UPDATE publications SET accroche=?, corps=?, appel=?, maj_le=datetime('now') WHERE id=?").run(b.accroche, b.corps, b.appel, p.id);
+    const n = (b.corps.match(/^PAGE \d+/gm) ?? []).length;
+    d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+      'veolt',
+      'carrousel : version courte',
+      `publication ${p.id} (${p.format_slug}, ${p.date_prevue}) : ${n} pages, une image par page, sous-textes réécrits`,
+    );
+    faits++;
+  }
+  return faits;
+}
+
+/**
  * Un sujet réécrit (`sujets-revisions.ts` garde l'ancienne version) : les
  * brouillons dont le texte est encore celui de l'ancienne version, avec ou
  * sans la voix, prennent la nouvelle. Un post retouché garde son texte.
@@ -528,9 +563,11 @@ function poserSeriesVeolt(d: Base): number {
     if (!ancien || !s) continue;
     if (!avant.get(p.sujet_ref, p.format_slug, p.date_prevue, p.id)) continue; // pas un doublon : on garde
     const fmt = p.format_slug as Parameters<typeof fabriquer>[1];
-    const moule = fabriquer(ancien, fmt, 'veolt');
     const cle = (b: { accroche: string | null; corps: string | null; appel: string | null }) => [b.accroche, b.corps, b.appel].join('\u0000');
-    if (cle(p as never) !== cle(moule)) continue; // retouché : on garde
+    // Le texte de la machine, quelle que soit la version : courte ou première
+    // version des carrousels (`carrouselV1`), avec ou sans la voix.
+    const moules = [{}, { sansVoix: true }, { carrouselV1: true }, { carrouselV1: true, sansVoix: true }].map((o) => cle(fabriquer(ancien, fmt, 'veolt', o)));
+    if (!moules.includes(cle(p as never))) continue; // retouché : on garde
     const b = fabriquer(s, fmt, 'veolt');
     d.prepare(
       `UPDATE publications SET sujet_ref=?, persona=?, titre=?, accroche=?, corps=?, appel=?, hashtags=?, consignes_visuel=?,

@@ -84,7 +84,23 @@ export const CHARTE_PROMPT_VEOLT =
   'Dark studio, black background, lit with magenta (#B600A8) and violet (#7621B0) light, lavender (#C79BFF) highlights. ' +
   'Premium, cinematic, sharp, editorial. No readable text, no letters, no numbers, no logo, no watermark.';
 
+/**
+ * Charte de prompt v2 (25/11/2026, 22 h 30) : l'image est **déclarative** — elle
+ * montre l'action exacte de la page — et **moins « IA »** : photographie
+ * éditoriale, matières et outils réels, mains au travail, couleur d'accent
+ * seulement. Les consignes du studio (`consignes-studio.ts`, domaine « Image »)
+ * en sont la version lisible. Les images d'avant gardent leur prompt mot pour mot.
+ */
+export const CHARTE_PROMPT_VEOLT_V2 =
+  'Photorealistic editorial photograph with natural imperfections, real materials and real tools; when people appear, only their hands mid-gesture, never faces. ' +
+  'Calm dark interior, practical lighting with a single magenta (#B600A8) or violet (#7621B0) accent light and soft lavender (#C79BFF) highlights: colour is an accent, not a wash. ' +
+  'One clear subject showing exactly the action described, readable at phone size, generous negative space, shallow depth of field. ' +
+  'Screens and paper documents show abstract grey blocks and bars instead of words. Avoid holograms, glowing particles, futuristic HUD, plastic CGI look, stock-photo poses. ' +
+  'No readable text, no letters, no numbers, no logo, no watermark.';
+
 export const promptVeolt = (scene: string) => `${scene.trim().replace(/\.?$/, '.')} ${CHARTE_PROMPT_VEOLT}`;
+/** Le prompt d'une image du studio, version déclarative (charte v2). */
+export const promptDeclaratif = (scene: string) => `${scene.trim().replace(/\.?$/, '.')} ${CHARTE_PROMPT_VEOLT_V2}`;
 
 const CDN = 'https://d8j0ntlcm91z4.cloudfront.net/user_3FPgRQCspY9X5oV5hVaU8GSp8Z7/';
 const G = { outil: 'Higgsfield' as const, modele: 'gpt_image_2_6 · medium · 1k', date: '2026-11-25' };
@@ -769,6 +785,253 @@ export const IMAGES_PACK: ImagePack[] = [
     prompt:
       '(Prompt d’origine non recopié — génération du 25/11/2026, 19:51.) Scène : un couloir sombre aux portes fermées, une seule porte ouverte au fond sur une lumière magenta ; charte Veolt, sans texte lisible ni logo.',
   },
+
+  // ── Images déclaratives (25/11/2026, 22 h 30, charte v2 « promptDeclaratif ») ──
+  // Une par page des carrousels courts. Format 4:3, mieux taillé pour les cadres de page.
+  {
+    ...G,
+    nom: 'illu-accueil-avant',
+    montre: "Avant : une page d’accueil chargée sur un portable — un slogan vague, un carrousel, deux boutons qui se disputent ; la main hésite.",
+    ratio: '4:3',
+    job: '280bb9d3-534d-4668-b30f-9b4ae095b9fb',
+    url: `${CDN}hf_20261125_213243_280bb9d3-534d-4668-b30f-9b4ae095b9fb.png`,
+    prompt: promptDeclaratif(
+      "A laptop on a dark desk showing a cluttered, outdated homepage: a huge vague hero photo with a decorative slogan line, an auto-sliding carousel, no visible offer above the fold, and two competing buttons of the same size side by side; a hand hesitates over the trackpad. The page clearly feels confusing",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-accueil-apres',
+    montre: "Après : la même page, nette — une promesse en haut, une ligne, un seul bouton magenta.",
+    ratio: '4:3',
+    job: '880fe7ba-b28c-43f4-afd5-9897bfe01a2c',
+    url: `${CDN}hf_20261125_213007_880fe7ba-b28c-43f4-afd5-9897bfe01a2c.png`,
+    prompt: promptDeclaratif(
+      "The same laptop on the same dark desk now showing a clean redesigned homepage: one bold headline block at the very top, a short line under it, a small price tag block, and one single glowing magenta button, lots of breathing room; a hand rests calmly next to the trackpad. The page clearly feels obvious",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-blocs-reordonnes',
+    montre: "La page en blocs de papier : deux mains remontent le bloc de l’offre tout en haut. Mêmes blocs, nouvel ordre.",
+    ratio: '4:3',
+    job: 'ebe46ed8-b8e0-49e9-a4d5-64c6a3ce9060',
+    url: `${CDN}hf_20261125_213006_ebe46ed8-b8e0-49e9-a4d5-64c6a3ce9060.png`,
+    prompt: promptDeclaratif(
+      "Top-down view of a dark table: a website page laid out as paper cut-out blocks (header, image, offer, button, footer); two hands lift the 'offer' paper block and move it to the very top of the stack, a magenta highlighter mark on it. Same blocks, new order",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-textes-a-ecrire',
+    montre: "Une maquette aux textes encore gris, et une main qui écrit les vrais titres au stylo, ratures comprises.",
+    ratio: '4:3',
+    job: '2c9dc5a3-f8ce-4dbe-baba-a27b0c434da1',
+    url: `${CDN}hf_20261125_213239_2c9dc5a3-f8ce-4dbe-baba-a27b0c434da1.png`,
+    prompt: promptDeclaratif(
+      "A website mock-up printed on paper on a dark desk, its text areas still filled with grey placeholder lines; beside it a writer's hand with a fountain pen drafting real headlines in a notebook, crossed-out attempts visible as scribbles, a cup of coffee. Writing the words is real work",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-fonctions-site',
+    montre: "Du plus simple au plus lourd : un formulaire, un espace client sur tablette, une facturation sur portable.",
+    ratio: '4:3',
+    job: '2d04802a-bd26-4507-b237-70a555657ea4',
+    url: `${CDN}hf_20261125_213242_2d04802a-bd26-4507-b237-70a555657ea4.png`,
+    prompt: promptDeclaratif(
+      "Three objects lined up on a dark workbench from small to large, like a scale: a single paper contact-form card, then a tablet showing a client dashboard with progress blocks, then a laptop showing an invoicing screen with table rows; a hand points at the gap between them. Each step is a different amount of work",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-devis-coche',
+    montre: "Un devis de site relu ligne par ligne, chaque poste coché au stylo magenta, la règle en guide.",
+    ratio: '4:3',
+    job: '05f743da-db71-4fbb-9b62-628ce3a4315f',
+    url: `${CDN}hf_20261125_213239_05f743da-db71-4fbb-9b62-628ce3a4315f.png`,
+    prompt: promptDeclaratif(
+      "A printed website quote lying on a dark desk, with a hand ticking each line with a magenta pen in one of three small columns of checkboxes; a ruler guides the pen line by line. Careful line-by-line reading",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-seance-photo',
+    montre: "Une vraie séance photo produit : boîtes à lumière, appareil sur pied, poste de retouche — à refaire à chaque série.",
+    ratio: '4:3',
+    job: '17ab7d18-b512-4028-bd00-8d1879ecd484',
+    url: `${CDN}hf_20261125_213436_17ab7d18-b512-4028-bd00-8d1879ecd484.png`,
+    prompt: promptDeclaratif(
+      "A real product photo shoot in progress in a dark studio: a perfume bottle on a white sweep table, two softboxes, a photographer's hands adjusting the camera on a tripod, a retouching laptop on a cart, cables on the floor. Every new series means setting all this up again",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-bp-deja-vendu',
+    montre: "Les factures réellement encaissées, surlignées, devant une épaisse étude de marché laissée de côté.",
+    ratio: '4:3',
+    job: 'db212741-7f21-457a-bcd3-2727f44c17c7',
+    url: `${CDN}hf_20261125_213007_db212741-7f21-457a-bcd3-2727f44c17c7.png`,
+    prompt: promptDeclaratif(
+      "On a dark desk, a small neat stack of real paid invoices and receipts held by a binder clip, highlighted with a magenta marker, placed in front of a thick heavy market-study binder pushed aside out of focus. Proof of real sales over theory",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-bp-capacite',
+    montre: "Un établi d’artisan : une pièce finie, un sablier, et le planning mural déjà plein.",
+    ratio: '4:3',
+    job: '9c1061d9-52b0-4257-861e-329e5bdaba4b',
+    url: `${CDN}hf_20261125_213436_9c1061d9-52b0-4257-861e-329e5bdaba4b.png`,
+    prompt: promptDeclaratif(
+      "A craftsman's workbench at night: one finished product unit in the centre, a sand hourglass beside it, and behind it a wall planner whose time slots are all filled with magenta sticky notes. Production time is the ceiling",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-bp-scenario',
+    montre: "Au mur, la frise du projet, puis la même frise deux fois plus longue en ruban magenta ; un bocal vide en dessous.",
+    ratio: '4:3',
+    job: '2233eb93-a761-4388-9913-95e47a3a66e1',
+    url: `${CDN}hf_20261125_213435_2233eb93-a761-4388-9913-95e47a3a66e1.png`,
+    prompt: promptDeclaratif(
+      "A wall timeline made of tape and cards on a dark wall: a project bar drawn once, then the same bar stretched to twice its length in magenta tape below it, a hand pinning the end of the longer bar; an empty glass jar labelled with an abstract coin symbol on the shelf below. What if everything takes twice as long",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-bp-decideur',
+    montre: "Une table de réunion : une main signe le contrat, une autre tient le portefeuille et le bon de commande. Deux rôles.",
+    ratio: '4:3',
+    job: 'f90ffcfb-39d6-4674-817e-2b7202434d19',
+    url: `${CDN}hf_20261125_213006_f90ffcfb-39d6-4674-817e-2b7202434d19.png`,
+    prompt: promptDeclaratif(
+      "A B2B meeting table seen from above: on one side a hand holding a pen over a contract (the decision maker), on the other side a different hand holding a company card wallet and a purchase order (the payer), a gap between them with a calendar page. Two different people, two roles",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-capacite-mois',
+    montre: "Un tableau mural à huit casiers : six dossiers, une main pose le septième, un casier reste libre.",
+    ratio: '4:3',
+    job: '387a70dc-ce8e-453e-b195-7119074d56e8',
+    url: `${CDN}hf_20261125_213436_387a70dc-ce8e-453e-b195-7119074d56e8.png`,
+    prompt: promptDeclaratif(
+      "A dark wall month planner with exactly eight large slots: six slots hold project folders with magenta tabs, two slots are empty and lit by a soft spotlight; a hand places a seventh folder. Deliberately limited capacity",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-metiers-separes',
+    montre: "Trois bureaux vitrés, portes fermées — un site, un montage vidéo, un tableau financier — et un document resté par terre entre deux portes.",
+    ratio: '4:3',
+    job: 'a59a77a3-bf3a-437b-9ba1-4d01f98f989b',
+    url: `${CDN}hf_20261125_213950_a59a77a3-bf3a-437b-9ba1-4d01f98f989b.png`,
+    prompt: promptDeclaratif(
+      "Three separate glass-walled offices side by side in an empty dark building at night, no people at all: the first office has a website layout on its screen, the second a video editing timeline, the third a financial spreadsheet; all three glass doors are closed, and a single paper document lies on the floor in the corridor between two doors, never delivered. Disconnected teams",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-page-prix-rature',
+    montre: "Une page de prix raturée au stylo magenta, à côté de la calculette et du calcul de marge.",
+    ratio: '4:3',
+    job: '8d243167-9901-48ed-9f93-204c4dbadf84',
+    url: `${CDN}hf_20261125_213621_8d243167-9901-48ed-9f93-204c4dbadf84.png`,
+    prompt: promptDeclaratif(
+      "A printed pricing page on a dark desk, its price blocks crossed out by hand in magenta, next to a calculator and a margin calculation sheet with grey bars; a hand holds the pen above it. The prices did not match the real margins",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-ordre-travail',
+    montre: "Trois marches : le prévisionnel en bas, le site au milieu, la caméra en haut. D’abord les chiffres.",
+    ratio: '4:3',
+    job: '2a45732c-65b3-480c-9f99-628e3a172177',
+    url: `${CDN}hf_20261125_213623_2a45732c-65b3-480c-9f99-628e3a172177.png`,
+    prompt: promptDeclaratif(
+      "Three stacked steps rising like a staircase on a dark table, each a real object: at the bottom a printed financial forecast, in the middle a laptop showing a website, at the top a small cinema camera; a magenta light grazes the steps from the side. First the numbers, then the site, then the video",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-ia-script',
+    montre: "Le script imprimé, ses vignettes de storyboard, les temps et les flèches ajoutés au stylo.",
+    ratio: '4:3',
+    job: 'df781ecf-70d2-4013-80cb-196ccf6f6b4a',
+    url: `${CDN}hf_20261125_213622_df781ecf-70d2-4013-80cb-196ccf6f6b4a.png`,
+    prompt: promptDeclaratif(
+      "A video script printed on paper with a row of hand-drawn storyboard thumbnails, timing marks and arrows added in magenta pen, a hand writing on it, a laptop asleep in the background. Everything is written before any image is generated",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-ia-formats',
+    montre: "La même vidéo sur trois écrans : téléphone en vertical, tablette en carré, portable en horizontal.",
+    ratio: '4:3',
+    job: 'a4752250-9483-4103-aa4c-d28e3ad25f69',
+    url: `${CDN}hf_20261125_213826_a4752250-9483-4103-aa4c-d28e3ad25f69.png`,
+    prompt: promptDeclaratif(
+      "The same short video playing on three screens lined up on a dark desk: a smartphone in vertical format, a tablet in square format, a laptop in horizontal format, all showing the same product shot with subtitle bars as grey blocks. One video, three formats",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-an-etapes',
+    montre: "Atelier Noir en quatre tirages sur la table : le zoning, le fil de fer, la maquette, le site final.",
+    ratio: '4:3',
+    job: '9fb7f2c2-2d61-4c55-9516-8a6dac7a3717',
+    url: `${CDN}hf_20261125_213825_9fb7f2c2-2d61-4c55-9516-8a6dac7a3717.png`,
+    reference: 'Atelier Noir (veolt.fr) — 2d52582a-7064-4a63-b18d-0028e98def28',
+    prompt: promptDeclaratif(
+      "A long dark table with four printouts of the same luxury perfume web page laid left to right, showing its evolution: grey zoning blocks, a black-and-white wireframe, a typographic mock-up with the bottle, and the final dark website with a black bottle on stone; a hand slides the last one into place",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-an-direction-artistique',
+    montre: "La planche d’ambiance d’Atelier Noir : pierre noire, lumière rasante, flacon, nuancier ; une main épingle le dernier échantillon.",
+    ratio: '4:3',
+    job: '704f5c54-c0f0-49dc-a693-171bb6a6b494',
+    url: `${CDN}hf_20261125_213825_704f5c54-c0f0-49dc-a693-171bb6a6b494.png`,
+    reference: 'Atelier Noir (veolt.fr) — 2d52582a-7064-4a63-b18d-0028e98def28',
+    prompt: promptDeclaratif(
+      "A mood board pinned on a dark wall for a luxury perfume website: a black stone sample, a strip of raking light on rough stone, a black perfume bottle photo, black and warm-stone colour swatches, typography specimen cards; a hand pins a final swatch. The art direction of a boutique",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-canette-etapes',
+    montre: "La même canette en quatre étapes : l’esquisse, le maillage, l’étiquette qu’on enroule, la canette finie.",
+    ratio: '4:3',
+    job: 'c0d5a339-e196-4673-a5b5-f82edbc0f261',
+    url: `${CDN}hf_20261125_213825_c0d5a339-e196-4673-a5b5-f82edbc0f261.png`,
+    prompt: promptDeclaratif(
+      "Four slim drink cans standing in a row on a dark workbench showing the stages of the same design left to right: a paper sketch wrapped around a can shape, a grey wireframe 3D-printed can, a can with a flat label being wrapped, and the final glossy can with a magenta and violet abstract label and condensation droplets",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-plan-action',
+    montre: "Un plan d’action imprimé remis de la main à la main : trois étapes repérées, une frise ; le message reçu sur le téléphone.",
+    ratio: '4:3',
+    job: '5759ded9-6065-4db2-8e56-6c80b3827dfb',
+    url: `${CDN}hf_20261125_213950_5759ded9-6065-4db2-8e56-6c80b3827dfb.png`,
+    prompt: promptDeclaratif(
+      "A printed action plan handed over on a dark table: three prioritised steps marked with magenta tabs, a short timeline strip, check boxes; one hand presents it, a phone next to it shows a received-message notification as an abstract shape. Concrete and ready to use",
+    ),
+  },
+  {
+    ...G,
+    nom: 'illu-trois-concepts',
+    montre: "Trois concepts de sites sur trois écrans : la vitrine sombre, le catalogue e-commerce, la page animée.",
+    ratio: '4:3',
+    job: '80e75888-eacf-458f-be99-9ccd8ea09a43',
+    url: `${CDN}hf_20261125_213950_80e75888-eacf-458f-be99-9ccd8ea09a43.png`,
+    prompt: promptDeclaratif(
+      "Three devices side by side on a dark desk, each showing a different website concept: a minimal dark showcase page on a laptop, an e-commerce product grid on a tablet, and an animated page with a sweeping curve of light on a phone",
+    ),
+  },
 ];
 
 /** Où chaque image sert. L'ordre compte : il est repris dans les vidéos. */
@@ -807,7 +1070,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-dc-2', image: 'illu-previsionnel-banquier', role: 'couverture' },
 
   // Le coût réel d'un visuel produit
-  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-studio-et-poste-3d', role: 'couverture' },
   { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout', role: 'page', debut: 'Deux courbes qui se croisent', cadrage: { x: 0.55, y: 0.22, zoom: 1.35 } },
   { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-matieres-photo', role: 'page', debut: 'Ce qui déplace ce point' },
   { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-studio-et-poste-3d', role: 'page', debut: 'La 3D, un coût par produit' },
@@ -865,7 +1128,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-en-situation', role: 'page', debut: 'Le résultat, en situation' },
 
   // Atelier Noir, décortiqué
-  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-atelier-noir-en-boutique', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-etapes', role: 'couverture' },
   { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-zoning', role: 'page', debut: 'Le zoning' },
   { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-maquette', role: 'page', debut: 'La maquette' },
   { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-developpement', role: 'page', debut: 'Le développement' },
@@ -873,7 +1136,7 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-atelier-noir-en-boutique', role: 'page', debut: 'Le site, en situation' },
 
   // Une canette, de l'esquisse à la pub
-  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-coloris', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-etapes', role: 'couverture' },
   { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-esquisse', role: 'page', debut: 'L’esquisse' },
   { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-modele', role: 'page', debut: 'Le modèle 3D' },
   { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-etiquette', role: 'page', debut: 'L’étiquette' },
@@ -886,15 +1149,82 @@ export const PLACEMENTS: Placement[] = [
   { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, votre secteur', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
   { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, où en est le projet', cadrage: { x: 0.5, y: 0.33, zoom: 1 } },
   { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-3', role: 'page', debut: 'Étape 3, vos besoins', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
-  { entite: 'veolt', sujet: 'v-vf-6', image: 'illu-analyse-remise', role: 'page', debut: 'Ce que vous recevez' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'illu-plan-action', role: 'page', debut: 'Ce que vous recevez' },
   { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-demarrage', role: 'page', debut: 'Sur veolt.fr, en vrai', cadrage: { x: 0.5, y: 0.2, zoom: 1 } },
 
   // Trois concepts Veolt décortiqués
-  { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-elysia-en-situation', role: 'couverture' },
+  { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-trois-concepts', role: 'couverture' },
   { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-novo-en-situation', role: 'page', debut: 'Novo, la vitrine' },
   { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-elysia-en-situation', role: 'page', debut: 'Elysia, l’e-commerce' },
   { entite: 'veolt', sujet: 'v-vf-7', image: 'veolt-wealth', role: 'page', debut: 'Wealth, le site animé' },
   { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-atelier-noir-en-boutique', role: 'page', debut: 'À l’arrivée, un site en ligne' },
+
+  // ── Carrousels courts (25/11/2026, 22 h 30) : une image par page ─────────
+  // Les débuts de page ci-dessous sont ceux de `carrousels-veolt.ts` (version
+  // courte) ; ceux de la première version restent plus haut, pour les posts
+  // retouchés qui l'ont gardée.
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-matieres-photo', role: 'page', debut: 'La photo capte la matière' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-studio-et-poste-3d', role: 'page', debut: 'La 3D, elle, se décline' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-courbes-cout', role: 'page', debut: 'Tout se joue sur le nombre' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'Un modèle, dix coloris' },
+  { entite: 'veolt', sujet: 'v-mt-1', image: 'illu-flacon-en-situation', role: 'page', debut: 'Et à la fin, la vraie scène' },
+
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-a-refaire', role: 'page', debut: 'Trois secondes pour comprendre' },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-avant', role: 'page', debut: 'Avant, le slogan' },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-accueil-apres', role: 'page', debut: 'Après, la promesse' },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-blocs-reordonnes', role: 'page', debut: 'Rien n’a été réécrit' },
+  { entite: 'veolt', sujet: 'v-mt-2', image: 'illu-site-en-main', role: 'page', debut: 'Sur le téléphone, ça tient' },
+
+  { entite: 'veolt', sujet: 'v-mt-3', image: 'illu-3d-modelisation', role: 'page', debut: 'Modéliser' },
+  { entite: 'veolt', sujet: 'v-mt-3', image: 'illu-3d-eclairage', role: 'page', debut: 'Habiller, puis éclairer' },
+  { entite: 'veolt', sujet: 'v-mt-3', image: 'illu-3d-animation', role: 'page', debut: 'Cadrer, puis animer' },
+  { entite: 'veolt', sujet: 'v-mt-3', image: 'illu-3d-etalonnage', role: 'page', debut: 'Calculer, puis étalonner' },
+
+  { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-pages-gabarit', role: 'page', debut: 'Les pages uniques' },
+  { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-textes-a-ecrire', role: 'page', debut: 'Qui écrit les textes' },
+  { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-fonctions-site', role: 'page', debut: 'Les fonctions, la 3D' },
+  { entite: 'veolt', sujet: 'v-dc-1', image: 'illu-devis-coche', role: 'page', debut: 'Ligne par ligne' },
+
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-seance-photo', role: 'page', debut: 'La photo se paie à la séance' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'La 3D se paie au produit' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-courbes-cout', role: 'page', debut: 'Les courbes se croisent' },
+  { entite: 'veolt', sujet: 'v-dc-3', image: 'illu-matieres-photo', role: 'page', debut: 'La matière déplace' },
+
+  { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-deja-vendu', role: 'page', debut: 'Qu’est-ce qui est déjà vendu' },
+  { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-capacite', role: 'page', debut: 'Combien de temps pour une unité' },
+  { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-scenario', role: 'page', debut: 'Et si tout prenait' },
+  { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-bp-decideur', role: 'page', debut: 'Qui décide, et qui paie' },
+  { entite: 'veolt', sujet: 'v-cm-1', image: 'illu-previsionnel-banquier', role: 'page', debut: 'Ensuite seulement, le tableur' },
+
+  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-un-modele-dix-coloris', role: 'page', debut: 'On refuse la vidéo' },
+  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-textes-a-ecrire', role: 'page', debut: 'On refuse le site sans textes' },
+  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-previsionnel-banquier', role: 'page', debut: 'On refuse le prévisionnel' },
+  { entite: 'veolt', sujet: 'v-cm-2', image: 'illu-capacite-mois', role: 'page', debut: 'Pourquoi on peut choisir' },
+
+  { entite: 'veolt', sujet: 'v-cm-3', image: 'illu-metiers-separes', role: 'page', debut: 'Quand les métiers sont séparés' },
+  { entite: 'veolt', sujet: 'v-cm-3', image: 'illu-page-prix-rature', role: 'page', debut: 'Le symptôme' },
+  { entite: 'veolt', sujet: 'v-cm-3', image: 'illu-ordre-travail', role: 'page', debut: 'Notre ordre de travail' },
+  { entite: 'veolt', sujet: 'v-cm-3', image: 'illu-ia-montage', role: 'page', debut: 'La vidéo en dernier' },
+
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-1', role: 'page', debut: 'Dix questions, quelques minutes', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-3', role: 'page', debut: 'Vos besoins, cochés', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'illu-espace-client', role: 'page', debut: 'Votre espace client' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'page', debut: 'Le devis sous 24 h', cadrage: { x: 0.5, y: 0.72, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-2', role: 'page', debut: 'Rien ne démarre sans votre accord' },
+
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-script', role: 'page', debut: 'Le script avant tout' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-tri', role: 'page', debut: 'Générer, puis trier' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-montage', role: 'page', debut: 'Le montage et le son' },
+  { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-formats', role: 'page', debut: 'Un format par réseau' },
+
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-zoning', role: 'page', debut: 'Une promesse, puis des blocs' },
+  { entite: 'veolt', sujet: 'v-vf-4', image: 'illu-an-direction-artistique', role: 'page', debut: 'La direction artistique' },
+
+  { entite: 'veolt', sujet: 'v-vf-5', image: 'illu-canette-coloris', role: 'page', debut: 'Quatre coloris, zéro photo' },
+
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-1', role: 'page', debut: 'Votre secteur, d’un clic', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-2', role: 'page', debut: 'Où en est le projet', cadrage: { x: 0.5, y: 0.33, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-3', role: 'page', debut: 'Vos besoins, puis le reste', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
 ];
 
 /**

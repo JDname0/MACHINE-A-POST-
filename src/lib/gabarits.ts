@@ -10,6 +10,7 @@ import { format, type FormatSlug } from './formats';
 import { serieDe, type Sujet } from './sujets';
 import { marque, type EntiteSlug } from './marques';
 import { PAGES_CARROUSEL_VEOLT, PAGES_FINALES_VEOLT } from './carrousels-veolt';
+import { PAGES_CARROUSEL_VEOLT_V1, PAGES_FINALES_VEOLT_V1 } from './carrousels-veolt-v1';
 
 export interface Brouillon {
   accroche: string;
@@ -59,9 +60,9 @@ export function fabriquer(
   s: Sujet,
   formatSlug: FormatSlug,
   entite: EntiteSlug,
-  options: { sansPagesEcrites?: boolean; sansPageFinale?: boolean; sansVoix?: boolean } = {},
+  options: { sansPagesEcrites?: boolean; sansPageFinale?: boolean; sansVoix?: boolean; carrouselV1?: boolean } = {},
 ): Brouillon {
-  const b = tailler(s, formatSlug, entite, options.sansPagesEcrites ?? false, options.sansPageFinale ?? false);
+  const b = tailler(s, formatSlug, entite, options.sansPagesEcrites ?? false, options.sansPageFinale ?? false, options.carrouselV1 ?? false);
   if (entite === 'veolt' && !options.sansVoix) voixVeolt(b, s, formatSlug);
   b.consignesVisuel = [
     s.source ? `SOURCE DU FAIT AVANCÉ — ${s.source}` : 'SOURCE DU FAIT AVANCÉ — [?] non renseignée. À nommer avant de passer en « validé ».',
@@ -108,7 +109,7 @@ function voixVeolt(b: Brouillon, s: Sujet, formatSlug: FormatSlug) {
   if (b.accroche.includes(s.enseignement)) b.accroche = marquer(b.accroche);
 }
 
-function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPagesEcrites: boolean, sansPageFinale: boolean): Brouillon {
+function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPagesEcrites: boolean, sansPageFinale: boolean, carrouselV1 = false): Brouillon {
   const f = format(formatSlug);
   const m = marque(entite);
   const hashtags = HASHTAGS[entite][s.pilier] ?? '';
@@ -150,12 +151,17 @@ function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPages
       pages.push(`PAGE 1 — ${tronquer(s.titre, 80)}`);
       // Veolt : les pages écrites pour le carrousel (une idée par page, titre +
       // explication) quand elles existent ; sinon le corps du sujet, une phrase par page.
-      const ecrites = entite === 'veolt' && !sansPagesEcrites ? PAGES_CARROUSEL_VEOLT[s.ref] : undefined;
+      // Version courte (25/11, 22 h 30) : 7 pages au plus, sans « À retenir »
+      // (l'enseignement est dans la légende). `carrouselV1` refait la première
+      // version, pour reconnaître un brouillon non retouché (`db.ts`).
+      const ecrites = entite === 'veolt' && !sansPagesEcrites ? (carrouselV1 ? PAGES_CARROUSEL_VEOLT_V1 : PAGES_CARROUSEL_VEOLT)[s.ref] : undefined;
       (ecrites ?? s.corps).forEach((p, i) => pages.push(`PAGE ${i + 2} — ${p}`));
-      // Veolt : la version finale, en situation réelle, avant « À retenir ».
-      const finale = entite === 'veolt' && !sansPagesEcrites && !sansPageFinale ? PAGES_FINALES_VEOLT[s.ref] : undefined;
+      // Veolt : la version finale, en situation réelle, avant la page de fin.
+      const finale =
+        entite === 'veolt' && !sansPagesEcrites && !sansPageFinale ? (carrouselV1 ? PAGES_FINALES_VEOLT_V1 : PAGES_FINALES_VEOLT)[s.ref] : undefined;
       if (finale) pages.push(`PAGE ${pages.length + 1} — ${finale}`);
-      pages.push(`PAGE ${pages.length + 1} — À RETENIR : ${s.enseignement}`);
+      const court = entite === 'veolt' && !!ecrites && !carrouselV1;
+      if (!court) pages.push(`PAGE ${pages.length + 1} — À RETENIR : ${s.enseignement}`);
       pages.push(`PAGE ${pages.length + 1} — ${s.appel}\n${m.nom} · ${m.signature}`);
       const texteCourt = `${s.accroche}\n\n${s.enseignement}`;
       return {

@@ -14,6 +14,7 @@
  *    jamais `NEXT_PUBLIC_*`, jamais affichée.
  */
 
+import { consignesPourIA } from './consignes-studio';
 import Anthropic from '@anthropic-ai/sdk';
 import { marque, JARGON_BANNI, type EntiteSlug } from './marques';
 import { format } from './formats';
@@ -81,6 +82,7 @@ function cadreEntite(entite: EntiteSlug): string {
           '',
         ]
       : []),
+    ...consignesPourIA(entite),
     'Contraintes de la marque :',
     ...m.contraintes.map((x) => `- ${x}`),
     '',

@@ -183,8 +183,12 @@ export function cadreVideo(formatSlug: string, impose?: '9:16' | '4:5'): { large
 }
 
 export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
+  // L'écran de fin tient 3 s au plus (veille du 25/11/2026 : les fins de 4 à
+  // 7 s de texte seul font décrocher avant la boucle). Veolt seulement :
+  // MagistrIA garde ses durées.
+  const finCourte = s.entite === 'veolt';
   return s.plans.map((p) => ({
-    duree: Math.max(1, p.a - p.de),
+    duree: Math.max(1, finCourte && p.scene?.type === 'fin' ? Math.min(3, p.a - p.de) : p.a - p.de),
     texte: p.texte,
     image: p.image,
     source: { type: 'carte' },

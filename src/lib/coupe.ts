@@ -28,14 +28,20 @@ export function deuxLignes(titre: string): { ligne1: string; ligne2: string } {
     return { ligne1: s.slice(0, meilleure).trim(), ligne2: s.slice(meilleure).trim() };
   }
 
-  // 2. Sinon, la frontière de mot la plus proche du milieu.
+  // 2. Sinon, la frontière de mot la plus proche du milieu — mais jamais
+  //    après un petit mot (« le », « de », « pour »…) : « Avant, le / slogan »
+  //    laisse l'article en l'air. Une virgule proche du début vaut mieux.
   const cible = s.length / 2;
+  const petit = /^(le|la|les|l’|l'|un|une|des|de|du|d’|d'|et|à|au|aux|en|sur|pour|par|qui|que|ce|se|ne|on|nous|vous|son|sa|ses|votre|vos|notre|nos)$/i;
   let coupe = 1;
   let ecart = Infinity;
   for (let i = 1; i < mots.length; i++) {
+    if (petit.test(mots[i - 1]) && mots.length > 3) continue;
     const g = mots.slice(0, i).join(' ').length;
-    if (Math.abs(g - cible) < ecart) {
-      ecart = Math.abs(g - cible);
+    // Une virgule en fin de première ligne est une pause naturelle : elle gagne à écart presque égal.
+    const d = Math.abs(g - cible) - (/[,;:]$/.test(mots[i - 1]) ? 6 : 0);
+    if (d < ecart) {
+      ecart = d;
       coupe = i;
     }
   }

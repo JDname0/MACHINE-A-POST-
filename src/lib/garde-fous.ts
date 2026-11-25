@@ -309,6 +309,34 @@ export function controler(b: BrouillonAControler): Constat[] {
     });
   }
 
+  // ─── 15. Tics d'écriture « IA » (consignes du studio, 25/11/2026) ─────────
+  // Le lecteur repère en deux lignes les structures que les générateurs
+  // répètent : il décroche, et LinkedIn freine le contenu générique. Alerte,
+  // pas blocage : le tic se réécrit en une phrase simple.
+  if (b.entite === 'veolt') {
+    const tics: Array<[RegExp, string]> = [
+      [/\b(?:le|la|les)\s+(?:vrai|vraie|vrais|véritable)s?\s+[\p{L}’'-]+(?:\s+[\p{L}’'-]+){0,3}\s+n[’']est\s+pas\b/iu, '« le vrai X n’est pas Y »'],
+      [/\bce n[’']est pas (?:seulement |juste |qu[’']une? )?[^.\n]{2,40}, c[’']est\b/i, '« ce n’est pas X, c’est Y »'],
+      [/(?:^|\n)\s*Et si\b/i, '« Et si… ? » en ouverture'],
+      [/\bdans un monde où\b/i, '« Dans un monde où »'],
+      [/\b(?:véritable(?:ment)?|incontournable|révolutionn\w+|game[- ]changer|à l[’']ère de|plus que jamais|sans plus attendre|n[’']attendez plus|libérez|boostez|propulsez)\b/i, 'formule d’emphase'],
+      [/\b(?:en somme|en définitive|pour conclure|en conclusion)\b/i, 'formule de conclusion scolaire'],
+      [/\bimaginez\b/i, '« Imaginez… »'],
+    ];
+    for (const [motif, libelle] of tics) {
+      const t = texte.match(motif);
+      if (t) {
+        out.push({
+          niveau: 'alerte',
+          regle: 'Texte — tic d’écriture « IA »',
+          message: `${libelle} : « ${t[0].trim()} ».`,
+          remede: 'Réécrire comme on le dirait à un client, en une phrase simple et concrète (consignes du studio, page Qualité).',
+        });
+        break;
+      }
+    }
+  }
+
   return out;
 }
 

@@ -675,6 +675,62 @@ function SceneMagistria({ t }: { t: ThemeVisuel }) {
   );
 }
 
+/** Les marques de mise en valeur (`*mot*`) retirées, pour un texte affiché nu. */
+export const nu = (t: string | undefined | null) => (t ?? '').replace(/\*/g, '');
+
+/** Découpe « texte *mis en valeur* suite » en mots, chacun marqué fort ou non. */
+export function motsRiches(texte: string): Array<{ mot: string; fort: boolean }> {
+  const sortie: Array<{ mot: string; fort: boolean }> = [];
+  texte.split(/(\*[^*]+\*)/).forEach((morceau) => {
+    const fort = /^\*[^*]+\*$/.test(morceau);
+    morceau
+      .replace(/\*/g, '')
+      .split(/\s+/)
+      .filter(Boolean)
+      .forEach((mot) => sortie.push({ mot, fort }));
+  });
+  return sortie;
+}
+
+/**
+ * Le sous-texte d'une page, mis en forme : les mots entre astérisques ressortent
+ * (lavande, demi-gras, souligné d'un trait d'accent). Mot à mot, en flex qui
+ * passe à la ligne : Satori ne sait pas mêler les styles dans une même ligne de texte.
+ */
+function TexteRiche({ t, texte, taille, interligne = 1.42, style }: { t: ThemeVisuel; texte: string; taille: number; interligne?: number; style?: React.CSSProperties }) {
+  const mots = motsRiches(texte);
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', fontFamily: 'Inter', fontSize: taille, color: t.encre, lineHeight: interligne, ...style }}>
+      {mots.map((m, i) => {
+        const suivantFort = mots[i + 1]?.fort ?? false;
+        return (
+          <span
+            key={i}
+            style={{
+              display: 'flex',
+              // L'espace après le mot ; dans un groupe mis en valeur, le soulignement le traverse.
+              paddingRight: taille * 0.27,
+              ...(m.fort
+                ? {
+                    color: t.accentDoux,
+                    fontWeight: 600,
+                    backgroundImage: `linear-gradient(0deg, ${t.accent}66 0%, ${t.accent}66 100%)`,
+                    backgroundSize: `100% ${Math.max(3, Math.round(taille * 0.12))}px`,
+                    backgroundPosition: `0 ${Math.round(taille * interligne * 0.88)}px`,
+                    backgroundRepeat: 'no-repeat',
+                    ...(suivantFort ? {} : { paddingRight: 0, marginRight: taille * 0.27 }),
+                  }
+                : {}),
+            }}
+          >
+            {m.mot}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function Titre({
   t,
   c,
@@ -701,7 +757,7 @@ function Titre({
             letterSpacing: t.policeTitre === 'Bebas' ? 1 : -2,
           }}
         >
-          {c.ligne1}
+          {nu(c.ligne1)}
         </div>
       ) : null}
       {ligne2.map((l, i) => (
@@ -718,7 +774,7 @@ function Titre({
               : { color: t.encre }),
           }}
         >
-          {l}
+          {nu(l)}
         </div>
       ))}
       {!t.titreDegrade ? (
@@ -1004,7 +1060,7 @@ function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, va
           </div>
           <Titre t={t} c={c} taille={taille} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {c.sousTitre ? <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 19, color: t.encreDouce, lineHeight: 1.4 }}>{c.sousTitre}</div> : null}
+            {c.sousTitre ? <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 19, color: t.encreDouce, lineHeight: 1.4 }}>{nu(c.sousTitre)}</div> : null}
             <Pastille t={t} taille={0.66} />
           </div>
         </div>
@@ -1060,7 +1116,7 @@ function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, va
               {c.chiffre}
             </div>
             {c.legende ? <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 26, color: t.encreDouce, lineHeight: 1.35 }}>{c.legende}</div> : null}
-            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 30, color: t.encre, lineHeight: 1.38 }}>{c.sousTitre}</div>
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 30, color: t.encre, lineHeight: 1.38 }}>{nu(c.sousTitre)}</div>
           </div>
           <CadreIllu t={t} illu={illu} largeur={colonne} hauteur={500} rayon={26} />
         </div>
@@ -1087,9 +1143,7 @@ function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, va
               <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 18, letterSpacing: 4, color: t.accentDoux }}>{c.etiquette.toUpperCase()}</div>
             ) : null}
             <Titre t={t} c={c} taille={taille} />
-            {gabarit === 'carrousel' && c.sousTitre ? (
-              <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 27, color: t.encre, lineHeight: 1.42 }}>{c.sousTitre}</div>
-            ) : null}
+            {gabarit === 'carrousel' && c.sousTitre ? <TexteRiche t={t} texte={c.sousTitre} taille={27} /> : null}
             {gabarit === 'affirmation' && c.question ? <QuestionCarte t={t} question={c.question} taille={0.7} /> : null}
           </div>
         </div>
@@ -1131,11 +1185,7 @@ function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, va
           </div>
         ) : null}
         <Titre t={t} c={c} taille={tailleTitre} />
-        {gabarit === 'carrousel' && c.sousTitre ? (
-          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: c.sousTitre.length > 150 ? 27 : 30, color: t.encre, lineHeight: 1.42, marginTop: 6 }}>
-            {c.sousTitre}
-          </div>
-        ) : null}
+        {gabarit === 'carrousel' && c.sousTitre ? <TexteRiche t={t} texte={c.sousTitre} taille={c.sousTitre.length > 150 ? 27 : 30} style={{ marginTop: 6 }} /> : null}
       </div>
       {avecQuestion ? (
         <QuestionCarte t={t} question={c.question!} taille={0.82} />
@@ -1200,7 +1250,7 @@ function rendreSansPhoto(
           </div>
           <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 34, color: t.encreDouce }}>{c.legende}</div>
           <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 36, color: t.encre, lineHeight: 1.4, maxWidth: 840 }}>
-            {c.sousTitre}
+            {nu(c.sousTitre)}
           </div>
         </div>
         {c.question ? (
@@ -1232,7 +1282,7 @@ function rendreSansPhoto(
         <Titre t={t} c={c} taille={taille} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 28 }}>
           <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 22, color: t.encreDouce, lineHeight: 1.4, maxWidth: 720 }}>
-            {c.sousTitre}
+            {nu(c.sousTitre)}
           </div>
           <Pastille t={t} taille={0.72} />
         </div>
@@ -1251,7 +1301,7 @@ function rendreSansPhoto(
             <QuestionCarte t={t} question={c.question} />
           ) : (
             <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 28, color: t.encreDouce, lineHeight: 1.45 }}>
-              {c.sousTitre}
+              {nu(c.sousTitre)}
             </div>
           )}
           <Pastille t={t} />
@@ -1327,16 +1377,12 @@ function rendreSansPhoto(
           ) : null}
           <Titre t={t} c={c} taille={entite === 'veolt' ? 104 : 84} />
           {/* Veolt : l'explication suit son titre, au lieu d'attendre en pied de page. */}
-          {t.kit && c.sousTitre ? (
-            <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 36, color: t.encre, lineHeight: 1.45, marginTop: 16, maxWidth: 900 }}>
-              {c.sousTitre}
-            </div>
-          ) : null}
+          {t.kit && c.sousTitre ? <TexteRiche t={t} texte={c.sousTitre} taille={36} interligne={1.45} style={{ marginTop: 16, maxWidth: 900 }} /> : null}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 30 }}>
           {!t.kit ? (
             <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 32, color: t.encre, lineHeight: 1.4 }}>
-              {c.sousTitre}
+              {nu(c.sousTitre)}
             </div>
           ) : null}
           <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 24, color: t.encreDouce }}>
@@ -1355,7 +1401,7 @@ function rendreSansPhoto(
         <div style={{ display: 'flex', flexDirection: 'column', gap: 44 }}>
           <Titre t={t} c={c} taille={entite === 'veolt' ? 136 : 106} />
           <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 40, color: t.encreDouce, lineHeight: 1.4 }}>
-            {c.sousTitre}
+            {nu(c.sousTitre)}
           </div>
         </div>
         <Pastille t={t} taille={1.15} />
@@ -1381,7 +1427,7 @@ function rendreSansPhoto(
               lineHeight: 1.4,
             }}
           >
-            {c.sousTitre.split('\n').map((l, i) => (
+            {nu(c.sousTitre).split('\n').map((l, i) => (
               <div key={i} style={{ display: 'flex' }}>
                 {l}
               </div>

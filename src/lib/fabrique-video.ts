@@ -949,6 +949,20 @@ async function preparerRendu(m: Montage) {
     const s = 0.94 + 0.06 * e;
     cx.save();
     cx.globalAlpha = e;
+    // Capture réelle avec un cadrage (prix, question) : une fois le téléphone
+    // posé, la caméra avance vers le bloc utile — le contenu réel, animé, au
+    // lieu d'un texte qui défile. Le point visé glisse vers le centre du cadre.
+    const cad = plans[i].cadrage;
+    if (telephone && cad && cad.zoom > 1) {
+      const v = Math.max(0, Math.min(1, (tl - 0.9) / Math.max(0.6, duree - 1.5)));
+      const ev = v * v * (3 - 2 * v);
+      const pz = 1 + (Math.min(2.2, cad.zoom) - 1) * ev;
+      const fx = c.x + c.w * cad.x;
+      const fy = c.y + c.h * cad.y;
+      cx.translate(fx + (L / 2 - fx) * ev, fy + (c.y + c.h * 0.5 - fy) * ev);
+      cx.scale(pz, pz);
+      cx.translate(-fx, -fy);
+    }
     cx.translate(c.x + c.w / 2, c.y + c.h / 2 + dy);
     cx.scale(s, s);
     cx.translate(-(c.x + c.w / 2), -(c.y + c.h / 2));
