@@ -257,7 +257,7 @@ async function preparerRendu(m: Montage) {
         return charger(media?.url ?? carteDe(i));
       }
       const u = new URL(carteDe(i), window.location.origin);
-      for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'legende', 'pagination', 'chiffre', 'question', 'fin', 'etiquette']) u.searchParams.set(cle, '');
+      for (const cle of ['ligne1', 'ligne2', 'sousTitre', 'legende', 'pagination', 'chiffre', 'question', 'fin', 'etiquette', 'pack', 'illu', 'cadrage']) u.searchParams.set(cle, '');
       if (m.variante === 'sombre') u.searchParams.set('variante', 'sombre');
       return charger(u.pathname + u.search);
     }),
@@ -938,7 +938,8 @@ async function preparerRendu(m: Montage) {
     // Une capture mobile se montre dans un téléphone, centré dans la zone du cadre.
     const c = telephone
       ? (() => {
-          const h = cl.h;
+          // Vertical : le téléphone prend plus de hauteur, pour que l'écran se lise.
+          const h = vertical ? Math.round(H * 0.6) : cl.h;
           const w = Math.round(h * (img.naturalWidth / img.naturalHeight));
           return { x: Math.round((L - w) / 2), y: cl.y, w, h };
         })()

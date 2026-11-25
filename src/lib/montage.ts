@@ -207,6 +207,9 @@ const MAX_TEXTE_PLAN = 70;
 /** Coupe un texte en phrases courtes, lisibles en incrustation (≤ `max` caractères, souplement). */
 function phrases(texte: string, max = MAX_TEXTE_PLAN): string[] {
   return texte
+    // Les emojis de la légende (voix Veolt) ne passent pas à l'image : les
+    // polices de titre ne les ont pas, ils sortiraient en « �� ».
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]/gu, '')
     .replace(/PAGE\s+\d+\s*[—–-]\s*/g, ' ')
     .replace(/À RETENIR\s*:\s*/g, '')
     .replace(/\s+/g, ' ')

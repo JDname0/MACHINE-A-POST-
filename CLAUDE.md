@@ -539,3 +539,13 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
   799 € HT est l'ajout de Jonathan ; veolt.fr affiche « sites dès 1 490 € HT »).
 - Les premières versions des étapes du pipeline (l'objet seul) restent au
   registre sous `illu-3d-*-objet`, en appoint.
+- **Lisibilité des captures** : dans un carrousel, une capture qui a un
+  `cadrage` passe en grand cadre zoomé sur le bloc utile (question, prix) ;
+  sans cadrage, le téléphone entier. Les **pages de packs** (`v-vf-2`) ne
+  montrent pas de capture : la carte du pack est **recomposée en entier**
+  (`pagePack`, `visuels.tsx`) depuis `offres-veolt.ts`, copie mot pour mot de
+  veolt.fr/price.html — à tenir à jour avec le site. Vidéo verticale : le
+  téléphone fait 60 % de la hauteur.
+- **Pas d'emoji à l'image** : ni dans les visuels (`sousTitre` nettoyé), ni dans
+  le texte des plans vidéo (`phrases()`, `montage.ts`) — les polices de titre
+  n'ont pas les glyphes, ils sortaient en « �� ».

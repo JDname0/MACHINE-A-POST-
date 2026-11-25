@@ -839,19 +839,20 @@ export const PLACEMENTS: Placement[] = [
 
   // ── Séries du 25/11/2026 (sujets-series-veolt.ts) ──────────────────────────
   // De la demande au devis — captures réelles de veolt.fr
-  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'couverture' },
-  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, le questionnaire' },
-  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, vos objectifs' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'couverture', cadrage: { x: 0.5, y: 0.2, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, le questionnaire', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, vos objectifs', cadrage: { x: 0.5, y: 0.33, zoom: 1 } },
   { entite: 'veolt', sujet: 'v-vf-1', image: 'illu-espace-client', role: 'page', debut: 'Étape 4, votre espace client' },
-  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'page', debut: 'Étape 5, le devis' },
-  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-3', role: 'page', debut: 'De votre côté, en vrai' },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-demarrage', role: 'page', debut: 'Étape 5, le devis', cadrage: { x: 0.5, y: 0.72, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-1', image: 'veolt-questionnaire-3', role: 'page', debut: 'De votre côté, en vrai', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
 
   // Nos packs vidéo — captures réelles de veolt.fr
-  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'couverture' },
-  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-starter', role: 'page', debut: 'Starter, 499' },
-  { entite: 'veolt', sujet: 'v-vf-2', image: 'illu-ia-montage', role: 'page', debut: 'Creator, 899' },
-  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'page', debut: 'Business, 1 799' },
-  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-tarifs', role: 'page', debut: 'Sur veolt.fr, en vrai' },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'couverture', cadrage: { x: 0.5, y: 0.2, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-starter', role: 'page', debut: 'Starter, 499', cadrage: { x: 0.5, y: 0.19, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'page', debut: 'Business, 1 799', cadrage: { x: 0.5, y: 0.2, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-business', role: 'page', debut: 'Premium, 2 499', cadrage: { x: 0.5, y: 0.8, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-packs-starter', role: 'page', debut: 'Creator, 899', cadrage: { x: 0.5, y: 0.78, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-2', image: 'veolt-tarifs', role: 'page', debut: 'Sur veolt.fr, en vrai', cadrage: { x: 0.5, y: 0.22, zoom: 1 } },
 
   // Une vidéo fabriquée avec l'IA
   { entite: 'veolt', sujet: 'v-vf-3', image: 'illu-ia-prompt', role: 'couverture' },
@@ -882,11 +883,11 @@ export const PLACEMENTS: Placement[] = [
 
   // L'analyse gratuite — captures réelles
   { entite: 'veolt', sujet: 'v-vf-6', image: 'illu-analyse-remise', role: 'couverture' },
-  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, votre secteur' },
-  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, où en est le projet' },
-  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-3', role: 'page', debut: 'Étape 3, vos besoins' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-1', role: 'page', debut: 'Étape 1, votre secteur', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-2', role: 'page', debut: 'Étape 2, où en est le projet', cadrage: { x: 0.5, y: 0.33, zoom: 1 } },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-questionnaire-3', role: 'page', debut: 'Étape 3, vos besoins', cadrage: { x: 0.5, y: 0.3, zoom: 1 } },
   { entite: 'veolt', sujet: 'v-vf-6', image: 'illu-analyse-remise', role: 'page', debut: 'Ce que vous recevez' },
-  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-demarrage', role: 'page', debut: 'Sur veolt.fr, en vrai' },
+  { entite: 'veolt', sujet: 'v-vf-6', image: 'veolt-demarrage', role: 'page', debut: 'Sur veolt.fr, en vrai', cadrage: { x: 0.5, y: 0.2, zoom: 1 } },
 
   // Trois concepts Veolt décortiqués
   { entite: 'veolt', sujet: 'v-vf-7', image: 'illu-elysia-en-situation', role: 'couverture' },

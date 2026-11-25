@@ -16,6 +16,7 @@ import { attendu } from './conformite-media';
 import { aUneVideo, photoDuPost } from './production';
 import { couvertureDuSujet, illustrationParNom, illustrationPourTexte, type IllustrationPosee } from './illustrations-serveur';
 import { cadrageEnTexte, FIGURES_ARTICLES, imagePack, mentionDe } from './illustrations';
+import { packDePage } from './offres-veolt';
 
 /** Les paramètres de visuel d'une illustration du pack (identifiant + cadrage). */
 function paramsIllu(x: IllustrationPosee | undefined): Partial<Contenu> {
@@ -63,7 +64,9 @@ export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; cont
   // tiret, ou pire un nombre d'exemple : on passe à l'affirmation.
   if (slug === 'chiffre' && !trouve) slug = 'affirmation';
   const { ligne1, ligne2 } = deuxLignes(p.titre ?? '');
-  const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: p.accroche.slice(0, 160) };
+  // Pas d'emoji dans les images (axe visuel) : ceux de la légende (👇…) sont retirés.
+  const sansEmoji = (t: string) => t.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}\u{20E3}]/gu, '').replace(/\s{2,}/g, ' ').trim();
+  const contenu: Partial<Contenu> = { ligne1, ligne2, sousTitre: sansEmoji(p.accroche).slice(0, 160) };
   const photo = photoDuPost(p);
   if (photo) contenu.photo = String(photo);
   // Sans photo choisie à la main : l'illustration de couverture du sujet, si
@@ -94,7 +97,7 @@ export function parametresVisuel(p: LignePublication): { slug: GabaritSlug; cont
     // première référence d'article trouvée dans l'accroche.
     contenu.chiffre = trouve[0].trim();
     contenu.legende = p.preuve ?? '';
-    contenu.sousTitre = p.accroche.slice(0, 180);
+    contenu.sousTitre = sansEmoji(p.accroche).slice(0, 180);
   }
   return { slug, contenu };
 }
@@ -156,6 +159,8 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
         ...(i === 0 && photo ? { photo: String(photo) } : {}),
         ...(i === 0 && !photo ? paramsIllu(couvertureDuSujet(p.entite, p.sujet_ref)) : {}),
         ...(i > 0 ? paramsIllu(illustrationPourTexte(p.entite, p.sujet_ref, texte)) : {}),
+        // Une page de pack (série « Nos packs vidéo ») : la carte recomposée, en entier.
+        ...(i > 0 && p.entite === 'veolt' && p.sujet_ref === 'v-vf-2' && packDePage(texte) ? { pack: packDePage(texte) } : {}),
       },
     };
   });

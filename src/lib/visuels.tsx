@@ -18,6 +18,7 @@ import { DEGRADE_MOT } from './logo-veolt';
 import { URL_PNG_V } from './logo-veolt-png';
 import { URL_PNG_SPHERE } from './sphere-veolt-png';
 import { cadrer, type Cadrage } from './illustrations';
+import { PACKS_VEOLT, type PackVeolt } from './offres-veolt';
 
 /** Une illustration du pack, prête pour Satori : octets en `data:`, dimensions, cadrage. */
 export interface ImageCadree {
@@ -267,6 +268,8 @@ export interface Contenu {
   illu?: string;
   /** Cadrage de l'illustration : « x,y,zoom » (point d'intérêt de 0 à 1, grossissement ≥ 1). */
   cadrage?: string;
+  /** Page d'un pack (`offres-veolt.ts`) : la carte du pack, recomposée en entier et lisible. */
+  pack?: string;
 }
 
 export const CONTENUS: Record<EntiteSlug, Record<GabaritSlug, Contenu>> = {
@@ -739,6 +742,11 @@ export function rendre(
   photoDonnees?: string,
   illu?: ImageCadree,
 ) {
+  // Une page de pack (Veolt) : la carte de l'abonnement, en entier, à la charte.
+  if (entite === 'veolt' && contenu?.pack && PACKS_VEOLT[contenu.pack]) {
+    const c = { ...CONTENUS[entite][gabarit], ...contenu };
+    return pagePack(theme(entite, variante), GABARITS[gabarit], c, PACKS_VEOLT[contenu.pack]);
+  }
   // Une illustration du pack (sans photo de fond choisie à la main) : la page
   // montre ce qu'elle dit, dans un cadre au-dessus du texte.
   if (illu && !photoDonnees) {
@@ -817,8 +825,8 @@ function CadreIllu({ t, illu, largeur, hauteur, rayon = 30 }: { t: ThemeVisuel; 
         <div
           style={{
             position: 'absolute',
-            left: 18,
-            bottom: 16,
+            // Sur une capture d'écran, en haut à droite : en bas, elle masquerait une ligne du site.
+            ...(illu.forme === 'telephone' ? { right: 18, top: 16 } : { left: 18, bottom: 16 }),
             display: 'flex',
             fontFamily: 'Inter',
             fontWeight: 600,
@@ -862,6 +870,109 @@ function Telephone({ t, illu, largeur }: { t: ThemeVisuel; illu: ImageCadree; la
       {illu.mention ? (
         <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 15, letterSpacing: 2, color: t.encreDouce }}>{illu.mention.toUpperCase()}</div>
       ) : null}
+    </div>
+  );
+}
+
+/** Coche lavande dessinée (la police n'a pas forcément le glyphe ✓). */
+function Coche({ couleur, taille }: { couleur: string; taille: number }) {
+  return (
+    <svg width={taille} height={taille} viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: taille * 0.12 }}>
+      <path d="M4 12.5l5 5L20 6.5" fill="none" stroke={couleur} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
+ * La page d'un pack vidéo : la carte entière, comme sur veolt.fr, mais à la
+ * taille d'une page de carrousel — nom, format, prix, prix par vidéo, phrase,
+ * et chaque ligne du pack. Les données sont celles du site (`offres-veolt.ts`).
+ */
+function pagePack(t: ThemeVisuel, g: Gabarit, c: Contenu, pk: PackVeolt) {
+  const marge = 72;
+  return (
+    <div
+      style={{
+        width: g.largeur,
+        height: g.hauteur,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: marge,
+        backgroundColor: t.fond,
+        backgroundImage: t.trame ? `${t.halos},${t.trame}` : t.halos,
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Identite t={t} taille={0.9} />
+        {c.pagination ? (
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 24, color: t.encreDouce, border: `1px solid ${t.encreDouce}`, borderRadius: 999, padding: '8px 20px' }}>
+            {c.pagination}
+          </div>
+        ) : (
+          <div style={{ display: 'flex' }} />
+        )}
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
+        {c.etiquette ? (
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 19, letterSpacing: 4, color: t.accentDoux }}>{c.etiquette.toUpperCase()}</div>
+        ) : null}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+            padding: '54px 58px',
+            borderRadius: 38,
+            backgroundColor: 'rgba(20,18,26,0.92)',
+            border: pk.recommande ? `2px solid ${t.accent}` : '1.5px solid rgba(215,226,234,0.18)',
+            boxShadow: pk.recommande ? `0 0 80px ${t.accent}55, 0 30px 80px rgba(0,0,0,0.5)` : '0 30px 80px rgba(0,0,0,0.5)',
+          }}
+        >
+          {pk.recommande ? (
+            <div
+              style={{
+                position: 'absolute',
+                top: -24,
+                left: 0,
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 700, fontSize: 20, letterSpacing: 3, color: '#FFFFFF', backgroundImage: `linear-gradient(90deg, ${t.accent}, #7621B0)`, borderRadius: 999, padding: '10px 26px' }}>
+                RECOMMANDÉ
+              </div>
+            </div>
+          ) : null}
+          <div style={{ display: 'flex', fontFamily: 'Kanit', fontWeight: 900, fontSize: 62, color: t.encre, letterSpacing: 1 }}>{pk.nom.toUpperCase()}</div>
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 30, color: t.encreDouce, marginTop: 4 }}>{pk.format}</div>
+          {pk.aPartirDe ? (
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 22, letterSpacing: 3, color: t.accentDoux, marginTop: 30 }}>À PARTIR DE</div>
+          ) : null}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginTop: pk.aPartirDe ? 4 : 30 }}>
+            <div style={{ display: 'flex', fontFamily: 'Kanit', fontWeight: 900, fontSize: 150, lineHeight: 0.95, letterSpacing: -2, backgroundImage: 'linear-gradient(180deg, #F4F4F8 0%, #A9A7B6 100%)', backgroundClip: 'text', color: 'transparent' }}>
+              {pk.prix}
+            </div>
+            <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 700, fontSize: 40, color: t.encreDouce, marginBottom: 14 }}>€ HT</div>
+          </div>
+          {pk.parVideo ? <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 28, color: t.encreDouce, marginTop: 8 }}>{pk.parVideo}</div> : null}
+          <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 31, color: t.encre, lineHeight: 1.35, marginTop: 26 }}>{pk.pitch}</div>
+          <div style={{ display: 'flex', height: 1, backgroundColor: 'rgba(215,226,234,0.14)', marginTop: 30, marginBottom: 26 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {pk.points.map((x) => (
+              <div key={x} style={{ display: 'flex', gap: 18, alignItems: 'flex-start' }}>
+                <Coche couleur={t.accentDoux} taille={32} />
+                <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 31, color: t.encre, lineHeight: 1.3 }}>{x}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', fontFamily: 'Inter', fontSize: 21, color: t.encreDouce }}>Prix affichés sur veolt.fr · Faites défiler →</div>
+        <Signature t={t} taille={0.9} />
+      </div>
     </div>
   );
 }
@@ -959,7 +1070,9 @@ function rendreIllustre(entite: EntiteSlug, gabarit: GabaritSlug, c: Contenu, va
   }
 
   // Capture mobile réelle : le téléphone à gauche, le texte à droite.
-  if (illu.forme === 'telephone' && (gabarit === 'carrousel' || gabarit === 'affirmation')) {
+  // Sans cadrage, le téléphone entier ; avec un cadrage, la capture passe en
+  // grand cadre, zoomée sur le bloc utile (prix, question) : plus lisible.
+  if (illu.forme === 'telephone' && !illu.cadrage && (gabarit === 'carrousel' || gabarit === 'affirmation')) {
     const tel = 400;
     const colonne = interieur - tel - 44;
     const long = `${c.ligne1} ${c.ligne2}`.trim().length;
