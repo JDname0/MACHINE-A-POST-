@@ -83,7 +83,7 @@ export const VIDEOS: ScriptVideo[] = [
       { de: 3, a: 7, image: 'Le poste 3D, le même produit en quatre coloris à l’écran.', texte: 'Quatorze angles. Trois coloris. Zéro studio reloué.', illustration: 'illu-studio-et-poste-3d-reel', cadrage: { x: 0.74, y: 0.62, zoom: 1.7 } },
       { de: 7, a: 12, image: 'Un modèle au centre, dix rendus qui en partent.', texte: 'Le modèle est fait une fois. Les variantes ne coûtent presque plus rien.', illustration: 'illu-un-modele-dix-coloris-reel' },
       { de: 12, a: 16, image: 'Les deux courbes de coût qui se croisent.', texte: 'Au-delà de 5 visuels par référence, la photo coûte plus cher.', illustration: 'illu-courbes-cout-reel' },
-      { de: 16, a: 18, image: 'Le prix, sur la carte de marque.', texte: 'À partir de 119 € HT.' },
+      { de: 16, a: 18, image: 'Le flacon fini, en affiche dans un abribus.', texte: 'À partir de 119 € HT.', illustration: 'illu-flacon-publicite' },
     ],
     legende:
       "La 3D ne remplace pas la photo. Elle remplace la deuxième séance photo.\n\nCombien de visuels produisez-vous par référence et par an ? Le chiffre suffit à trancher.",
@@ -126,7 +126,7 @@ export const VIDEOS: ScriptVideo[] = [
           ],
         },
       },
-      { de: 15, a: 20, image: 'Titre centré, la sphère en fond.', texte: 'Tout le reste sert à justifier ces trois lignes.', centre: true, fond: 'rayons', noyau: { forme: 'galaxie', place: 'fond', intensite: 0.16 } },
+      { de: 15, a: 19, image: 'Le dossier ouvert, la loupe sur une seule ligne.', texte: 'Tout le reste sert à justifier ces trois lignes.', illustration: 'illu-dossier-loupe-reel' },
     ],
     legende:
       "Un prévisionnel n’est pas un exercice d’optimisme. C’est une démonstration de capacité à rembourser.\n\nVotre point de trésorerie le plus bas, vous le connaissez ?",
@@ -152,7 +152,7 @@ export const VIDEOS: ScriptVideo[] = [
       { de: 15.5, a: 18, image: 'L’image qui se résout tuile par tuile.', chapitre: '06 / 07 · Rendu', texte: 'Le calcul, image par image.', illustration: 'illu-3d-rendu' },
       { de: 18, a: 20.5, image: 'Trois étalonnages côte à côte.', chapitre: '07 / 07 · Étalonnage', texte: 'Les couleurs de la marque.', illustration: 'illu-3d-etalonnage' },
       { de: 20.5, a: 24, image: 'Le flacon fini, posé dans une vraie salle de bain.', chapitre: 'Le résultat', texte: 'Le produit fini, en situation.', illustration: 'illu-flacon-en-situation' },
-      { de: 24, a: 28, image: 'Titre centré, la sphère en fond.', texte: 'Les deux qui coûtent le plus cher ? Matériaux et éclairage.', centre: true, fond: 'rayons', noyau: { forme: 'sphere', place: 'fond', intensite: 0.18 } },
+      { de: 24, a: 28, image: 'Les matières et la lumière, côte à côte.', texte: 'Les deux qui coûtent le plus cher ? Matériaux et éclairage.', illustration: 'illu-3d-materiaux', cadrage: { x: 0.5, y: 0.5, zoom: 1.3 } },
     ],
     legende:
       "En 3D, le premier visuel paie le modèle. Les suivants ne paient que le cadrage.\n\nQuelle étape vous paraît la plus floue ? On en fera le prochain carrousel.",
