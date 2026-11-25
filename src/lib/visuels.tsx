@@ -14,7 +14,8 @@
  */
 
 import type { EntiteSlug } from './marques';
-import { urlV, DEGRADE_MOT } from './logo-veolt';
+import { DEGRADE_MOT } from './logo-veolt';
+import { URL_PNG_V } from './logo-veolt-png';
 
 export type GabaritSlug = 'lancement' | 'affirmation' | 'chiffre' | 'carrousel' | 'reel' | 'couverture';
 
@@ -163,7 +164,7 @@ export const THEMES: Record<EntiteSlug, Record<Variante, ThemeVisuel>> = {
       titreDegrade: 'linear-gradient(100deg, #B600A8 0%, #C79BFF 100%)',
       marque: 'Veolt',
       signature: 'Studio Créatif',
-      pictogramme: urlV(),
+      pictogramme: URL_PNG_V,
       services: 'Business plan  •  Sites & web 3D  •  Vidéo & 3D',
       adresse: 'veolt.fr',
       surface: 'rgba(237,235,242,0.06)',

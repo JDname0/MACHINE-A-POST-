@@ -233,7 +233,9 @@ le logo figure sur chaque post Veolt.** MagistrIA n'est pas touché (rendu
 identique à l'octet, vérifié).
 
 - **Visuels** (`visuels.tsx`) : `ThemeVisuel.pictogramme` ; `Identite` pose
-  le V puis VEOLT en Kanit Black (`Kanit-Black.woff`, poids 900, déclaré dans
+  le V (**en PNG**, `logo-veolt-png.ts` : en build de production, Satori
+  réserve la place d'un SVG `data:` sans le dessiner — constaté sur
+  post.veolt.fr le 25/11, alors que `next dev` l'affichait) puis VEOLT en Kanit Black (`Kanit-Black.woff`, poids 900, déclaré dans
   `polices.ts`) au dégradé argenté. Tous les gabarits, pages de carrousel et
   couvertures d'article en héritent.
 - **Vidéos** : le V devant VEOLT sur l'écran de marque et l'écran de fin
