@@ -28,7 +28,7 @@ export const PAGES_CARROUSEL_VEOLT: Record<string, string[]> = {
     "La photo capte la matière. Un lin, un grain de chêne, une goutte sur du verre : pour *un seul visuel*, elle reste imbattable.",
     'La 3D, elle, se décline. Quatorze angles, trois coloris, un autre fond. *Sans relouer le studio*, sans refaire la retouche.',
     'Tout se joue sur le nombre. Sous *cinq visuels par référence*, la photo coûte moins cher. Au-delà, la courbe s’inverse.',
-    'Un modèle, dix coloris. Le modèle se fait une fois, les variantes ne coûtent presque plus rien. Le rendu démarre *à 119 € HT*.',
+    'Un modèle, toutes les teintes. Le modèle se fait une fois, les variantes ne coûtent presque plus rien. Le rendu démarre *à 119 € HT*.',
   ],
 
   // Avant / après sur une page d'accueil
@@ -67,13 +67,13 @@ export const PAGES_CARROUSEL_VEOLT: Record<string, string[]> = {
   'v-cm-1': [
     'Qu’est-ce qui est déjà vendu ? Premier entretien. *Un euro encaissé* pèse plus que dix pages de marché.',
     'Combien de temps pour une unité ? Deuxième entretien. C’est la capacité qui plafonne le chiffre, *bien avant la demande*.',
-    'Et si tout prenait deux fois plus de temps ? Troisième entretien. La réponse fixe *le besoin de financement*.',
+    'Le temps double, on tient ? Troisième entretien. La réponse fixe *le besoin de financement*.',
     'Qui décide, et qui paie ? Quatrième entretien. En B2B, rarement la même personne. *Le délai de vente en dépend.*',
   ],
 
   // Ce qu'on refuse de faire, et pourquoi
   'v-cm-2': [
-    'On refuse la vidéo à l’unité. Sur un seul visuel, on n’est pas compétitifs. *À la place, une série* : le modèle se fait une fois.',
+    'On déconseille le visuel isolé. Sur une seule image, on n’est pas les moins chers. *Une série coûte moins cher par image* : le modèle se fait une fois.',
     'On refuse le site sans textes. Sans contenu, c’est une maquette. *Les textes entrent dans le périmètre*, avant le design.',
     'On refuse le prévisionnel à l’envers. Partir du montant qu’on veut emprunter *ne passe pas en banque*.',
     'Pourquoi on peut choisir. *6 à 8 dossiers par mois*, pas plus. Le dire fait gagner du temps à tout le monde.',
@@ -84,7 +84,23 @@ export const PAGES_CARROUSEL_VEOLT: Record<string, string[]> = {
     'Quand les métiers sont séparés. L’agence fait le site, le cabinet fait le prévisionnel. *Le site part avant le modèle économique.*',
     'Le symptôme. Une page de prix *qui ne colle pas aux marges réelles*, à refaire six mois plus tard.',
     'Notre ordre de travail. D’abord le prévisionnel. *Ensuite le site*, qui raconte un modèle qui tient.',
-    'La vidéo en dernier. Quand on sait quoi montrer, et à qui. C’est un fait sur notre structure, *pas une promesse de résultat*.',
+    'La vidéo en dernier. Quand on sait quoi montrer, et à qui. *Un visuel sans message ne vend rien.*',
+  ],
+
+  // Nos prix sont bas. Voilà pourquoi
+  'v-pp-1': [
+    'On démarre. Un studio récent n’a *pas d’historique à faire payer*, ni de structure commerciale à financer.',
+    '6 à 8 dossiers par mois. À ce volume, *vous payez le travail*, pas la machine autour.',
+    'Ce que ça implique. Des prix bas, et *pas de référence client à montrer*. On l’assume.',
+    'D’où l’analyse gratuite. *Vous jugez sur pièce* avant de payer quoi que ce soit.',
+  ],
+
+  // Pourquoi nous donnons l'analyse avant de vendre
+  'v-pp-2': [
+    'Pas de plaquette. Vous jugez *le travail*, pas la promesse.',
+    'Dix questions sur veolt.fr. Quelques minutes, *surtout des cases à cocher*.',
+    'Une réponse sous 24 h. Des recommandations et *un plan d’action*, par écrit.',
+    'Et si elle ne vous sert pas ? *Vous ne nous devez rien.*',
   ],
 
   // ── Séries tirées de veolt.fr (sujets-series-veolt.ts) ──
@@ -101,9 +117,9 @@ export const PAGES_CARROUSEL_VEOLT: Record<string, string[]> = {
   'v-vf-2': [
     'Starter, 499 € HT. Cinq vidéos de 15 secondes, soit 99,80 € la vidéo.',
     'Creator, 899 € HT. Dix vidéos de 15 secondes, des accroches différentes.',
+    'Pro, 999 € HT. Cinq vidéos de 30 secondes, voix off et deux variantes à tester.',
     'Business, 1 799 € HT. Dix vidéos de 30 secondes. Le pack qu’on recommande aux entreprises.',
     'Premium, 2 499 € HT. Cinq vidéos de 60 secondes, narration cinéma.',
-    'À l’unité, dès 119 € HT. 15 secondes à 119 €, 30 secondes à 199 €, 60 secondes à 399 €.',
   ],
 
   // Une vidéo fabriquée avec l'IA
@@ -156,12 +172,11 @@ export const PAGES_FINALES_VEOLT: Record<string, string> = {
   'v-mt-1': 'Et à la fin, la vraie scène. Le même flacon posé dans une salle de bain, *sans séance photo*.',
   'v-mt-2': 'Sur le téléphone, ça tient. La promesse et le bouton se lisent *sans défiler*, là où se joue la première visite.',
   'v-mt-3': 'Le produit fini, en situation. Le même modèle se pose dans un vrai décor. *C’est cette image que voit votre client.*',
-  'v-dc-1': 'À l’arrivée, un site en ligne. Atelier Noir, concept de parfumerie de Veolt, *sur ordinateur et sur mobile*.',
-  'v-dc-3': 'Le visuel fini, en situation. Le même produit dans une scène de vie, *sans nouvelle séance photo*.',
+  'v-dc-1': 'À l’arrivée, un site en ligne. Vitrine, catalogue ou site animé : *le devis décrit ce chemin-là*, ligne par ligne.',
+  'v-dc-3': 'Le visuel fini, en situation. Le même casque dans une scène de vie, *sans nouvelle séance photo*.',
   'v-cm-1': 'Ensuite seulement, le tableur. Chaque chiffre renvoie à une réponse. Nos business plans démarrent *à 490 € HT*.',
   'v-vf-1': 'Rien ne démarre sans votre accord. Le questionnaire sur votre téléphone, une réponse écrite, *un espace pour suivre*.',
   'v-vf-3': 'Le résultat, en situation. La vidéo dans le fil, *sur le téléphone de vos clients*.',
   'v-vf-4': 'Le site, en situation. Atelier Noir sur un portable et un téléphone, *comme dans une vraie boutique*.',
   'v-vf-5': 'La canette, en situation. Posée dans une scène de vie, *sans aucune séance photo*.',
-  'v-vf-7': 'À l’arrivée, un site en ligne. Atelier Noir, un autre concept Veolt, *sur ordinateur et sur mobile*.',
 };

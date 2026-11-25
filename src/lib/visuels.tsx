@@ -679,16 +679,30 @@ function SceneMagistria({ t }: { t: ThemeVisuel }) {
 export const nu = (t: string | undefined | null) => (t ?? '').replace(/\*/g, '');
 
 /** Découpe « texte *mis en valeur* suite » en mots, chacun marqué fort ou non. */
-export function motsRiches(texte: string): Array<{ mot: string; fort: boolean }> {
-  const sortie: Array<{ mot: string; fort: boolean }> = [];
-  texte.split(/(\*[^*]+\*)/).forEach((morceau) => {
-    const fort = /^\*[^*]+\*$/.test(morceau);
-    morceau
-      .replace(/\*/g, '')
-      .split(/\s+/)
-      .filter(Boolean)
-      .forEach((mot) => sortie.push({ mot, fort }));
-  });
+export function motsRiches(texte: string): Array<{ mot: string; fort: boolean; suite?: string }> {
+  const sortie: Array<{ mot: string; fort: boolean; suite?: string }> = [];
+  texte
+    .replace(/'/g, '’')
+    .split(/(\*[^*]+\*)/)
+    .forEach((morceau) => {
+      const fort = /^\*[^*]+\*$/.test(morceau);
+      morceau
+        .replace(/\*/g, '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .forEach((mot) => {
+          // La ponctuation qui suit un mot reste collée à lui (jamais seule en
+          // début de ligne, jamais d'espace avant « . , ») : « délai. », pas « délai . ».
+          const prec = sortie[sortie.length - 1];
+          const ponct = mot.match(/^([.,…)»;:!?]+)(.*)$/);
+          if (prec && ponct) {
+            prec.suite = (prec.suite ?? '') + (/^[;:!?]/.test(ponct[1]) ? '\u202F' : '') + ponct[1];
+            if (ponct[2]) sortie.push({ mot: ponct[2], fort });
+            return;
+          }
+          sortie.push({ mot, fort });
+        });
+    });
   return sortie;
 }
 
@@ -699,32 +713,26 @@ export function motsRiches(texte: string): Array<{ mot: string; fort: boolean }>
  */
 function TexteRiche({ t, texte, taille, interligne = 1.42, style }: { t: ThemeVisuel; texte: string; taille: number; interligne?: number; style?: React.CSSProperties }) {
   const mots = motsRiches(texte);
+  const esp = taille * 0.27;
+  const fort: React.CSSProperties = {
+    display: 'flex',
+    color: t.accentDoux,
+    fontWeight: 600,
+    backgroundImage: `linear-gradient(0deg, ${t.accent}66 0%, ${t.accent}66 100%)`,
+    backgroundSize: `100% ${Math.max(3, Math.round(taille * 0.12))}px`,
+    backgroundPosition: `0 ${Math.round(taille * interligne * 0.88)}px`,
+    backgroundRepeat: 'no-repeat',
+  };
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', fontFamily: 'Inter', fontSize: taille, color: t.encre, lineHeight: interligne, ...style }}>
       {mots.map((m, i) => {
-        const suivantFort = mots[i + 1]?.fort ?? false;
+        // Dans un groupe mis en valeur, le soulignement traverse l'espace entre les mots.
+        const lie = m.fort && !m.suite && (mots[i + 1]?.fort ?? false);
         return (
-          <span
-            key={i}
-            style={{
-              display: 'flex',
-              // L'espace après le mot ; dans un groupe mis en valeur, le soulignement le traverse.
-              paddingRight: taille * 0.27,
-              ...(m.fort
-                ? {
-                    color: t.accentDoux,
-                    fontWeight: 600,
-                    backgroundImage: `linear-gradient(0deg, ${t.accent}66 0%, ${t.accent}66 100%)`,
-                    backgroundSize: `100% ${Math.max(3, Math.round(taille * 0.12))}px`,
-                    backgroundPosition: `0 ${Math.round(taille * interligne * 0.88)}px`,
-                    backgroundRepeat: 'no-repeat',
-                    ...(suivantFort ? {} : { paddingRight: 0, marginRight: taille * 0.27 }),
-                  }
-                : {}),
-            }}
-          >
-            {m.mot}
-          </span>
+          <div key={i} style={{ display: 'flex', marginRight: lie ? 0 : esp }}>
+            <div style={m.fort ? { ...fort, paddingRight: lie ? esp : 0 } : { display: 'flex' }}>{m.mot}</div>
+            {m.suite ? <div style={{ display: 'flex' }}>{m.suite}</div> : null}
+          </div>
         );
       })}
     </div>
@@ -757,7 +765,7 @@ function Titre({
             letterSpacing: t.policeTitre === 'Bebas' ? 1 : -2,
           }}
         >
-          {nu(c.ligne1)}
+          {nu(c.ligne1).replace(/'/g, '’')}
         </div>
       ) : null}
       {ligne2.map((l, i) => (
@@ -774,7 +782,7 @@ function Titre({
               : { color: t.encre }),
           }}
         >
-          {nu(l)}
+          {nu(l).replace(/'/g, '’')}
         </div>
       ))}
       {!t.titreDegrade ? (
@@ -882,7 +890,7 @@ function CadreIllu({ t, illu, largeur, hauteur, rayon = 30 }: { t: ThemeVisuel; 
           style={{
             position: 'absolute',
             // Sur une capture d'écran, en haut à droite : en bas, elle masquerait une ligne du site.
-            ...(illu.forme === 'telephone' ? { right: 18, top: 16 } : { left: 18, bottom: 16 }),
+            ...(illu.forme === 'telephone' ? { right: 18, bottom: 16 } : { left: 18, bottom: 16 }),
             display: 'flex',
             fontFamily: 'Inter',
             fontWeight: 600,
@@ -980,6 +988,7 @@ function pagePack(t: ThemeVisuel, g: Gabarit, c: Contenu, pk: PackVeolt) {
             position: 'relative',
             padding: '54px 58px',
             borderRadius: 38,
+            marginTop: pk.recommande ? 22 : 0,
             backgroundColor: 'rgba(20,18,26,0.92)',
             border: pk.recommande ? `2px solid ${t.accent}` : '1.5px solid rgba(215,226,234,0.18)',
             boxShadow: pk.recommande ? `0 0 80px ${t.accent}55, 0 30px 80px rgba(0,0,0,0.5)` : '0 30px 80px rgba(0,0,0,0.5)',
@@ -1007,8 +1016,13 @@ function pagePack(t: ThemeVisuel, g: Gabarit, c: Contenu, pk: PackVeolt) {
             <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 600, fontSize: 22, letterSpacing: 3, color: t.accentDoux, marginTop: 30 }}>À PARTIR DE</div>
           ) : null}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginTop: pk.aPartirDe ? 4 : 30 }}>
-            <div style={{ display: 'flex', fontFamily: 'Kanit', fontWeight: 900, fontSize: 150, lineHeight: 0.95, letterSpacing: -2, backgroundImage: 'linear-gradient(180deg, #F4F4F8 0%, #A9A7B6 100%)', backgroundClip: 'text', color: 'transparent' }}>
-              {pk.prix}
+            {/* Les milliers séparés par un vrai blanc (« 1 799 »), dessiné, pas confié à la police. */}
+            <div style={{ display: 'flex', gap: 38 }}>
+              {pk.prix.split(' ').map((g, k) => (
+                <div key={k} style={{ display: 'flex', fontFamily: 'Kanit', fontWeight: 900, fontSize: 150, lineHeight: 0.95, letterSpacing: -2, backgroundImage: 'linear-gradient(180deg, #F4F4F8 0%, #A9A7B6 100%)', backgroundClip: 'text', color: 'transparent' }}>
+                  {g}
+                </div>
+              ))}
             </div>
             <div style={{ display: 'flex', fontFamily: 'Inter', fontWeight: 700, fontSize: 40, color: t.encreDouce, marginBottom: 14 }}>€ HT</div>
           </div>

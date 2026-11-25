@@ -582,3 +582,13 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
   tics « IA »), montre les rendus semaine par semaine. Lecture seule.
 - **Garde-fou 15** : tics d'écriture « IA » (alerte).
 - Veille et propositions classées : `PROPOSITIONS-TENDANCES-2026.md`.
+- **Relecture indépendante (23 h 40)** : 21 images de plus — 12 illustrations
+  de concept refaites en photographie réaliste (`*-reel`, les originales
+  restent au registre) et 9 images propres à un carrousel, pour supprimer les
+  doublons d'un carrousel à l'autre. Pack Pro ajouté au carrousel des packs ;
+  « On refuse la vidéo à l'unité » (contredisait les tarifs) devient « On
+  déconseille le visuel isolé ». Ponctuation collée au mot mis en valeur
+  (`motsRiches`), couverture sans « : » final, étiquette courte
+  (`etiquetteCourte`). **Satori refuse `backgroundImage: 'none'`** : ne pas
+  l'utiliser pour « annuler » un fond. La version courte de 22 h 30 est gardée
+  (`PAGES_CARROUSEL_VEOLT_V1B`) : `raccourcirCarrousels` reconnaît les deux.

@@ -37,6 +37,8 @@ export function deuxLignes(titre: string): { ligne1: string; ligne2: string } {
   let ecart = Infinity;
   for (let i = 1; i < mots.length; i++) {
     if (petit.test(mots[i - 1]) && mots.length > 3) continue;
+    // Au moins deux mots par ligne dès quatre mots : « Ce / que vous recevez » se lit mal.
+    if (mots.length >= 4 && (i < 2 || mots.length - i < 2)) continue;
     const g = mots.slice(0, i).join(' ').length;
     // Une virgule en fin de première ligne est une pause naturelle : elle gagne à écart presque égal.
     const d = Math.abs(g - cible) - (/[,;:]$/.test(mots[i - 1]) ? 6 : 0);

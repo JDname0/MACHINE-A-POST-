@@ -116,6 +116,20 @@ export function lienVisuel(p: LignePublication): string | null {
  * rendue avec le gabarit carrousel : la première phrase en titre, le reste en
  * sous-titre, la pagination en pied. `[]` si le post n'est pas un carrousel.
  */
+/**
+ * L'étiquette d'une page intérieure : le sujet, court. La partie avant « : »
+ * s'il y en a une ; sinon coupé entre deux mots, sans finir sur un nombre ni un
+ * petit mot (« …varie de 1 500 à 10… » se lisait « 10 € »).
+ */
+function etiquetteCourte(titre: string): string {
+  const avant = titre.split(/\s+:\s+/)[0];
+  if (avant.length <= 46) return avant;
+  const mots = avant.split(/\s+/);
+  while (mots.length > 2 && mots.join(' ').length > 44) mots.pop();
+  while (mots.length > 2 && /(^\d|^(de|du|des|à|au|en|et|le|la|les|un|une|pour|par|sur)$)/i.test(mots[mots.length - 1])) mots.pop();
+  return `${mots.join(' ')}…`;
+}
+
 export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; contenu: Partial<Contenu> }> {
   if (!/carrousel/.test(p.format_slug)) return [];
   const pages = [...p.corps.matchAll(/PAGE\s+(\d+)\s*[—–-]\s*([\s\S]*?)(?=\n\s*PAGE\s+\d+\s*[—–-]|$)/g)].map((m) => m[2].trim());
@@ -140,6 +154,22 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
         return { slug: 'carrousel' as GabaritSlug, contenu: { ligne1, ligne2, sousTitre: '', pagination: `${i + 1} / ${pages.length}`, etiquette: 'À retenir' } };
       }
     }
+    // Couverture : le titre du sujet entier, sans coupe au « : » (sinon le titre
+    // finit sur « : » et la suite tombe en sous-titre). « A : b » devient deux lignes, A puis B.
+    if (i === 0) {
+      const [a, b] = texte.split(/\s+:\s+/);
+      const { ligne1, ligne2 } = b ? { ligne1: a, ligne2: b.charAt(0).toUpperCase() + b.slice(1) } : deuxLignes(texte);
+      return {
+        slug: 'carrousel' as GabaritSlug,
+        contenu: {
+          ligne1,
+          ligne2,
+          sousTitre: '',
+          pagination: `1 / ${pages.length}`,
+          ...(photo ? { photo: String(photo) } : paramsIllu(couvertureDuSujet(p.entite, p.sujet_ref))),
+        },
+      };
+    }
     const [premiere, ...reste] = texte.split(/(?<=[.:!?])\s+/);
     // Une première phrase trop longue pour le titre se coupe à une pause
     // (virgule, deux-points, tiret) ou entre deux mots — jamais dans un mot.
@@ -153,7 +183,7 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
         ligne2,
         sousTitre: borner([suite, ...reste].filter(Boolean).join(' '), 230),
         pagination: `${i + 1} / ${pages.length}`,
-        ...(p.entite === 'veolt' && i > 0 && p.titre ? { etiquette: p.titre.length > 48 ? `${p.titre.slice(0, p.titre.lastIndexOf(' ', 46))}…` : p.titre } : {}),
+        ...(p.entite === 'veolt' && i > 0 && p.titre ? { etiquette: etiquetteCourte(p.titre) } : {}),
         // La couverture du carrousel porte la photo ; sans photo, l'illustration
         // du sujet. Une page intérieure montre l'image de son étape quand le
         // pack en a une (repérée par le début du texte), sinon elle reste nette.

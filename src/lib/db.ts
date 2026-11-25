@@ -495,7 +495,9 @@ function raccourcirCarrousels(d: Base): number {
     // La première version du carrousel, écrite sur le sujet actuel ou sur sa
     // version précédente (`sujets-revisions.ts`, ex. un titre corrigé).
     const sujets = [s, REVISIONS_SUJETS[p.sujet_ref]].filter((x): x is NonNullable<typeof x> => !!x);
-    const anciens = sujets.flatMap((x) => [fabriquer(x, fmt, 'veolt', { carrouselV1: true }), fabriquer(x, fmt, 'veolt', { carrouselV1: true, sansVoix: true })]).map(cle);
+    const anciens = sujets
+      .flatMap((x) => ([true, 'b'] as const).flatMap((v) => [fabriquer(x, fmt, 'veolt', { carrouselV1: v }), fabriquer(x, fmt, 'veolt', { carrouselV1: v, sansVoix: true })]))
+      .map(cle);
     if (!anciens.includes(cle(p as never))) continue;
     const b = fabriquer(s, fmt, 'veolt');
     if (cle(b) === cle(p as never)) continue;
@@ -576,7 +578,7 @@ function poserSeriesVeolt(d: Base): number {
     const cle = (b: { accroche: string | null; corps: string | null; appel: string | null }) => [b.accroche, b.corps, b.appel].join('\u0000');
     // Le texte de la machine, quelle que soit la version : courte ou première
     // version des carrousels (`carrouselV1`), avec ou sans la voix.
-    const moules = [{}, { sansVoix: true }, { carrouselV1: true }, { carrouselV1: true, sansVoix: true }].map((o) => cle(fabriquer(ancien, fmt, 'veolt', o)));
+    const moules = [{}, { sansVoix: true }, { carrouselV1: true }, { carrouselV1: true, sansVoix: true }, { carrouselV1: 'b' as const }, { carrouselV1: 'b' as const, sansVoix: true }].map((o) => cle(fabriquer(ancien, fmt, 'veolt', o)));
     if (!moules.includes(cle(p as never))) continue; // retouché : on garde
     const b = fabriquer(s, fmt, 'veolt');
     d.prepare(

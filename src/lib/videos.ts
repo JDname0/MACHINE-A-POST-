@@ -326,7 +326,7 @@ export const VIDEOS: ScriptVideo[] = [
       { de: 0, a: 3, image: 'Elysia sur une tablette, au salon.', texte: 'Trois sites, trois objectifs.', illustration: 'illu-elysia-en-situation' },
       { de: 3, a: 7, image: 'Novo sur un portable.', chapitre: '01 · Novo, la vitrine', texte: 'On comprend l’offre sans défiler.', illustration: 'illu-novo-en-situation' },
       { de: 7, a: 11, image: 'Elysia, le catalogue.', chapitre: '02 · Elysia, l’e-commerce', texte: 'Le parcours suit le panier.', illustration: 'illu-elysia-en-situation', cadrage: { x: 0.5, y: 0.72, zoom: 1.4 } },
-      { de: 11, a: 15, image: 'Wealth, image tirée de sa vidéo.', chapitre: '03 · Wealth, le site animé', texte: 'Le mouvement guide l’œil.', illustration: 'veolt-wealth' },
+      { de: 11, a: 15, image: 'Wealth, le site animé, sur un portable.', chapitre: '03 · Wealth, le site animé', texte: 'Le mouvement guide l’œil.', illustration: 'illu-wealth-en-situation' },
       { de: 15, a: 18, image: 'Les trois concepts côte à côte : portable, tablette, téléphone.', texte: 'Le choix se fait sur l’objectif.', illustration: 'illu-trois-concepts' },
       { de: 18, a: 22, image: 'Écran de fin.', texte: '', fond: 'horizon', scene: { type: 'fin', action: 'Demander l’analyse gratuite', note: 'Sites web dès 1 490 € HT' } },
     ],
