@@ -33,7 +33,7 @@ export interface IllustrationPosee {
   hauteur: number;
 }
 
-const empreinteDe = (url: string) => `illu:${createHash('sha1').update(url).digest('hex')}`;
+export const empreinteDe = (url: string) => `illu:${createHash('sha1').update(url).digest('hex')}`;
 
 /** Les images du registre présentes dans la médiathèque de l'entité, par nom. */
 function presentes(entite: string): Map<string, { id: number; largeur: number; hauteur: number; empreinte: string | null }> {
@@ -83,6 +83,7 @@ export function etatPack(entite: string) {
     const m = p.get(image.nom);
     return {
       image,
+      source: miroir(image.url),
       id: m?.id ?? null,
       aJour: !!m && m.empreinte === empreinteDe(image.url),
       sujets: [...new Set(placementsDeImage(entite, image.nom))],
@@ -144,7 +145,7 @@ const PLAFOND_ILLUSTRATION = 15 * 1024 * 1024;
 
 /** Télécharge une image autorisée : pas de redirection suivie, type et signature vérifiés, taille bornée. */
 async function telecharger(u: URL, url: string): Promise<{ octets: Buffer; type: string }> {
-  const r = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(45_000) });
+  const r = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(12_000) });
   if (!r.ok) throw new Error(`réponse ${r.status}`);
   const type = (r.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
   const annonce = Number(r.headers.get('content-length') ?? 0);
@@ -155,6 +156,34 @@ async function telecharger(u: URL, url: string): Promise<{ octets: Buffer; type:
   if (!typeReel) throw new Error(`ce n'est pas une image PNG ou JPEG (${type || 'type inconnu'}, ${u.hostname})`);
   return { octets, type: typeReel };
 }
+
+/**
+ * Range une image du registre dans la médiathèque : fichier écrit, ancienne
+ * version du même nom retirée, fiche d'origine `illustration` avec l'empreinte
+ * de son adresse. Le type a déjà été vérifié par signature.
+ */
+export async function inscrireIllustration(entite: string, image: ImagePack, octets: Buffer, type: string): Promise<void> {
+  const dim = dimensions(octets, type);
+  const cle = nouvelleCle(type);
+  await ecrire(cle, octets, type);
+  const d = db();
+  const anciennes = d
+    .prepare("SELECT id, cle FROM medias WHERE entite=? AND origine='illustration' AND (nom=? OR nom=?)")
+    .all(entite, `${image.nom}.png`, `${image.nom}.jpg`) as Array<{ id: number; cle: string }>;
+  for (const a of anciennes) {
+    d.prepare('DELETE FROM medias WHERE id=?').run(a.id);
+    await effacer(a.cle).catch(() => undefined);
+  }
+  d.prepare(
+    `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, legende, publication_id, origine, empreinte)
+     VALUES (?,?,?,?,?,?,?,?, NULL, 'illustration', ?)`,
+  ).run(entite, cle, `${image.nom}.${type === 'image/png' ? 'png' : 'jpg'}`, type, octets.length, dim?.largeur ?? null, dim?.hauteur ?? null, image.montre, empreinteDe(image.url));
+}
+
+/** Le type d'une image reçue (PNG ou JPEG), lu à sa signature ; `null` sinon. */
+export const typeIllustration = (octets: Buffer) => ['image/png', 'image/jpeg'].find((t) => signatureConforme(octets.subarray(0, 16), t)) ?? null;
+
+export const PLAFOND_ILLU = 15 * 1024 * 1024;
 
 /**
  * Importe dans la médiathèque les images du registre manquantes ou périmées.
@@ -180,22 +209,14 @@ export async function importerPack(entite: 'veolt'): Promise<{ importees: string
     }
     try {
       const { octets, type } = await telecharger(u, source);
-      const dim = dimensions(octets, type);
-      const cle = nouvelleCle(type);
-      await ecrire(cle, octets, type);
-      const d = db();
-      if (existante) {
-        const ancienne = d.prepare('SELECT cle FROM medias WHERE id=?').get(existante.id) as { cle: string } | undefined;
-        d.prepare('DELETE FROM medias WHERE id=?').run(existante.id);
-        if (ancienne) await effacer(ancienne.cle).catch(() => undefined);
-      }
-      d.prepare(
-        `INSERT INTO medias (entite, cle, nom, type_mime, octets, largeur, hauteur, legende, publication_id, origine, empreinte)
-         VALUES (?,?,?,?,?,?,?,?, NULL, 'illustration', ?)`,
-      ).run(entite, cle, `${image.nom}.${type === 'image/png' ? 'png' : 'jpg'}`, type, octets.length, dim?.largeur ?? null, dim?.hauteur ?? null, image.montre, empreinte);
+      await inscrireIllustration(entite, image, octets, type);
       importees.push(image.nom);
     } catch (e) {
       echecs.push({ nom: image.nom, raison: e instanceof Error ? e.message : String(e) });
+      // Deux échecs réseau d'affilée : le serveur n'atteint pas l'hôte. On
+      // s'arrête au lieu de faire attendre la page 28 fois (o2switch, 25/11/2026) :
+      // l'import par le navigateur prend le relais.
+      if (echecs.length >= 2 && !importees.length) break;
     }
   }
   if (importees.length) tracer('illustrations importées', `${importees.length} : ${importees.join(', ')}`, entite);

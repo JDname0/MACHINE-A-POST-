@@ -341,6 +341,33 @@ export async function importerIllustrations(fd: FormData) {
 }
 
 /**
+ * Une illustration du pack apportée par le navigateur (25/11/2026) : le
+ * serveur o2switch n'atteint pas le CDN de Higgsfield, le navigateur si. Le
+ * nom doit être celui du registre ; le fichier est vérifié par sa signature
+ * (PNG ou JPEG) et sa taille, puis rangé comme par l'import serveur.
+ */
+export async function deposerIllustration(fd: FormData) {
+  await exigerSession();
+  const entite = String(fd.get('entite'));
+  const nom = String(fd.get('illustration') ?? '');
+  const f = fd.get('fichier');
+  const { imagePack } = await import('@/lib/illustrations');
+  const image = imagePack(nom);
+  if (entite !== 'veolt' || !image) return { ok: false as const, raison: 'Illustration inconnue du registre.' };
+  if (!(f instanceof File) || f.size === 0) return { ok: false as const, raison: 'Fichier vide.' };
+  const { inscrireIllustration, typeIllustration, PLAFOND_ILLU } = await import('@/lib/illustrations-serveur');
+  if (f.size > PLAFOND_ILLU) return { ok: false as const, raison: 'Fichier trop lourd.' };
+  const octets = Buffer.from(await f.arrayBuffer());
+  const type = typeIllustration(octets);
+  if (!type) return { ok: false as const, raison: 'Ce n’est pas une image PNG ou JPEG.' };
+  await inscrireIllustration(entite, image, octets, type);
+  tracer('illustration importée', `${nom} (par le navigateur)`, entite);
+  await sauvegarder();
+  revalidatePath(`/${entite}/visuels`);
+  return { ok: true as const };
+}
+
+/**
  * Vidéo à la demande : un nouveau post vidéo, hors calendrier, tiré du texte
  * d'un post existant (un LinkedIn, un carrousel…). Le calendrier n'est pas
  * touché : le post créé n'a pas de semaine, il garde la date du post source.

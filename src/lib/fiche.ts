@@ -169,7 +169,8 @@ export function pagesCarrousel(p: LignePublication): Array<{ slug: GabaritSlug; 
  */
 export function questionDuPost(p: LignePublication): string | null {
   if (p.entite !== 'veolt') return null;
-  const a = (p.appel ?? '').trim();
+  // L'emoji de la légende (👉) ne passe pas dans l'image (axe visuel : pas d'emoji dans les visuels).
+  const a = (p.appel ?? '').trim().replace(/^[\p{Extended_Pictographic}\u{FE0F}\u{200D}→\s]+/u, '');
   if (!a.endsWith('?') || /\[(?:\?|à compléter)\]/i.test(a)) return null;
   return a.length > 150 ? `${a.slice(0, a.lastIndexOf(' ', 146))}… ?` : a;
 }

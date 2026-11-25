@@ -24,14 +24,19 @@ export interface Creneau {
 
 /** Semaine type, une fois le lancement passé. Cadrage §9. */
 export const SEMAINE_TYPE: Record<EntiteSlug, Creneau[]> = {
+  // Veolt publie sur les réseaux le mardi, le mercredi et le jeudi, et
+  // l'article de blog le lundi (décidé le 25/11/2026) :
+  // le milieu de semaine porte les pics d'engagement LinkedIn les plus réguliers
+  // (Sprout Social 2026), et le mercredi vers 16 h est le meilleur créneau
+  // relevé (Buffer 2026, 4,8 M de posts). Un seul post LinkedIn par jour.
   veolt: [
-    { jour: 1, formatSlug: 'li-texte-image', pilier: 'demonter-un-chiffre', raison: 'Ouvrir la semaine sur un chiffre : c\'est le pilier qui tient le plus longtemps en lecture.' },
+    { jour: 2, formatSlug: 'li-texte-image', pilier: 'demonter-un-chiffre', raison: 'Mardi : ouvrir la semaine sur un chiffre, le pilier qui tient le plus longtemps en lecture.' },
     { jour: 2, formatSlug: 'ig-reel', pilier: 'montrer-le-travail', raison: 'Un rendu 3D est un Reel tout fait. Coût de production marginal.' },
-    { jour: 3, formatSlug: 'blog-article', pilier: 'pedagogie-dirigeant', raison: 'Le seul actif qu\'on possède. Rythme non négociable.' },
+    { jour: 1, formatSlug: 'blog-article', pilier: 'pedagogie-dirigeant', raison: 'Lundi : l\'article de la semaine, le seul actif qu\'on possède. Il nourrit les posts du mardi au jeudi.' },
     { jour: 3, formatSlug: 'ig-carrousel', pilier: 'coulisses-methode', raison: 'La méthode se montre mieux en carrousel qu\'en vidéo.' },
-    { jour: 4, formatSlug: 'li-carrousel', pilier: 'montrer-le-travail', raison: 'Le format le plus performant, et le seul où une page tient face à un profil.' },
-    { jour: 5, formatSlug: 'tiktok-video', pilier: 'montrer-le-travail', raison: 'Secondaire. On y va avec le montage déjà fait pour le Reel, remonté — pas réemployé brut.' },
-    { jour: 6, formatSlug: 'li-texte-image', pilier: 'pedagogie-dirigeant', raison: 'Le samedi est peu concurrencé en B2B, et la pédagogie s\'y lit bien.' },
+    { jour: 3, formatSlug: 'li-carrousel', pilier: 'montrer-le-travail', raison: 'Mercredi, vers 16 h : le format le plus performant le jour le plus fort.' },
+    { jour: 4, formatSlug: 'tiktok-video', pilier: 'montrer-le-travail', raison: 'Secondaire. On y va avec le montage déjà fait pour le Reel, remonté — pas réemployé brut.' },
+    { jour: 4, formatSlug: 'li-texte-image', pilier: 'pedagogie-dirigeant', raison: 'Jeudi : la pédagogie, quand on prépare la semaine suivante.' },
   ],
   magistria: [
     { jour: 1, formatSlug: 'li-texte-image', pilier: 'arret-consequence', raison: 'Un arrêt commenté le lundi : c\'est le contenu le plus partagé par les juristes.' },

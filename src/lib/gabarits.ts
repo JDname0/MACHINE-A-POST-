@@ -59,14 +59,53 @@ export function fabriquer(
   s: Sujet,
   formatSlug: FormatSlug,
   entite: EntiteSlug,
-  options: { sansPagesEcrites?: boolean; sansPageFinale?: boolean } = {},
+  options: { sansPagesEcrites?: boolean; sansPageFinale?: boolean; sansVoix?: boolean } = {},
 ): Brouillon {
   const b = tailler(s, formatSlug, entite, options.sansPagesEcrites ?? false, options.sansPageFinale ?? false);
+  if (entite === 'veolt' && !options.sansVoix) voixVeolt(b, s, formatSlug);
   b.consignesVisuel = [
     s.source ? `SOURCE DU FAIT AVANCÉ — ${s.source}` : 'SOURCE DU FAIT AVANCÉ — [?] non renseignée. À nommer avant de passer en « validé ».',
     ...b.consignesVisuel,
   ];
   return b;
+}
+
+/**
+ * La voix Veolt sur LinkedIn, Instagram et TikTok (25/11/2026, demande de
+ * Jonathan) : plus humaine, quelques emojis, sans en abuser. Trois touches,
+ * jamais plus :
+ *  - une phrase de ton après l'accroche (une posture, jamais un fait : pas de
+ *    « nos clients nous disent », règle 2) ;
+ *  - l'emoji du pilier devant l'enseignement, 👉 devant la question finale ;
+ *  - 👇 au bout de l'accroche d'un carrousel (le détail est dans les pages).
+ * L'accroche n'ouvre jamais sur un emoji (garde-fou 9) ; les images n'en
+ * portent aucun (axe visuel) : la question posée dans l'image est lue sans.
+ * L'article de blog et Reddit gardent un texte nu.
+ */
+const VOIX_VEOLT: Record<string, { aparte: string; emoji: string }> = {
+  'positionnement-prix': { aparte: 'On préfère le dire franchement, chiffres à l’appui.', emoji: '💶' },
+  'montrer-le-travail': { aparte: 'Plutôt que d’en parler, on vous montre comment ça se passe chez nous.', emoji: '🎬' },
+  'demonter-un-chiffre': { aparte: 'Faisons le calcul ensemble, simplement.', emoji: '📊' },
+  'pedagogie-dirigeant': { aparte: 'Sans jargon, promis.', emoji: '💡' },
+  'coulisses-methode': { aparte: 'Voici comment on s’y prend, concrètement.', emoji: '🛠️' },
+};
+
+function voixVeolt(b: Brouillon, s: Sujet, formatSlug: FormatSlug) {
+  const v = VOIX_VEOLT[s.pilier] ?? { aparte: '', emoji: '📌' };
+  const reseau = formatSlug.split('-')[0];
+  if (!['li', 'ig', 'tiktok'].includes(reseau)) return;
+  if (b.appel.trim() && !b.appel.startsWith('👉')) b.appel = `👉 ${b.appel.trim()}`;
+  const marquer = (texte: string) => texte.split(s.enseignement).join(`${v.emoji} ${s.enseignement}`);
+  if (formatSlug === 'li-carrousel' || formatSlug === 'ig-carrousel') {
+    b.accroche = `${b.accroche.trim()} 👇`;
+    return;
+  }
+  if (formatSlug === 'li-texte-image' || formatSlug === 'li-video') {
+    b.corps = [v.aparte, marquer(b.corps)].filter(Boolean).join('\n\n');
+    return;
+  }
+  b.corps = marquer(b.corps);
+  if (b.accroche.includes(s.enseignement)) b.accroche = marquer(b.accroche);
 }
 
 function tailler(s: Sujet, formatSlug: FormatSlug, entite: EntiteSlug, sansPagesEcrites: boolean, sansPageFinale: boolean): Brouillon {

@@ -46,7 +46,9 @@ async function initialiser() {
   const articlesPoses = poserArticles(d);
   const carrouselsApprofondis = approfondirCarrousels(d);
   const pagesFinales = poserPagesFinales(d);
-  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales) await sauvegarder();
+  const voix = poserVoixVeolt(d);
+  const recales = recalerMardiJeudiVeolt(d);
+  if (aSeme || articlesPoses || carrouselsApprofondis || pagesFinales || voix || recales) await sauvegarder();
   return { d, niveau };
 }
 
@@ -385,8 +387,8 @@ function approfondirCarrousels(d: Base): number {
     const s = sujet(p.sujet_ref);
     if (!s) continue;
     const fmt = p.format_slug as 'li-carrousel' | 'ig-carrousel';
-    const avant = fabriquer(s, fmt, 'veolt', { sansPagesEcrites: true });
-    const apres = fabriquer(s, fmt, 'veolt');
+    const avant = fabriquer(s, fmt, 'veolt', { sansPagesEcrites: true, sansVoix: true });
+    const apres = fabriquer(s, fmt, 'veolt', { sansPageFinale: true, sansVoix: true });
     if (apres.corps === avant.corps || p.corps === apres.corps) continue;
     const intact = [avant.accroche, avant.corps, avant.appel].join('\u0000') === [p.accroche, p.corps, p.appel].join('\u0000');
     if (!intact) continue;
@@ -422,8 +424,8 @@ function poserPagesFinales(d: Base): number {
     const s = sujet(p.sujet_ref);
     if (!s) continue;
     const fmt = p.format_slug as 'li-carrousel' | 'ig-carrousel';
-    const avant = fabriquer(s, fmt, 'veolt', { sansPageFinale: true });
-    const apres = fabriquer(s, fmt, 'veolt');
+    const avant = fabriquer(s, fmt, 'veolt', { sansPageFinale: true, sansVoix: true });
+    const apres = fabriquer(s, fmt, 'veolt', { sansVoix: true });
     if (apres.corps === avant.corps || p.corps === apres.corps) continue;
     const intact = [avant.accroche, avant.corps, avant.appel].join('\u0000') === [p.accroche, p.corps, p.appel].join('\u0000');
     if (!intact) continue;
@@ -436,6 +438,127 @@ function poserPagesFinales(d: Base): number {
     faits++;
   }
   return faits;
+}
+
+/**
+ * Veolt (25/11/2026, suite) : la voix plus humaine et les emojis mesurés
+ * (`voixVeolt`, `gabarits.ts`) sur les posts LinkedIn, Instagram et TikTok.
+ * Seulement les brouillons au texte encore exactement celui du moule sans
+ * cette voix ; un post retouché garde son texte. Relancer ne refait rien.
+ */
+function poserVoixVeolt(d: Base): number {
+  let faits = 0;
+  const posts = d
+    .prepare("SELECT * FROM publications WHERE entite='veolt' AND statut='brouillon' AND (format_slug LIKE 'li-%' OR format_slug LIKE 'ig-%' OR format_slug LIKE 'tiktok-%')")
+    .all() as Array<Record<string, string | null> & { id: number }>;
+  for (const p of posts) {
+    if (!p.sujet_ref) continue;
+    const s = sujet(p.sujet_ref);
+    if (!s) continue;
+    const fmt = p.format_slug as Parameters<typeof fabriquer>[1];
+    const avant = fabriquer(s, fmt, 'veolt', { sansVoix: true });
+    const apres = fabriquer(s, fmt, 'veolt');
+    const cle = (b: { accroche: string | null; corps: string | null; appel: string | null }) => [b.accroche, b.corps, b.appel].join('\u0000');
+    if (cle(avant) === cle(apres) || cle(p as never) === cle(apres) || cle(p as never) !== cle(avant)) continue;
+    d.prepare("UPDATE publications SET accroche=?, corps=?, appel=?, maj_le=datetime('now') WHERE id=?").run(apres.accroche, apres.corps, apres.appel, p.id);
+    d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+      'veolt',
+      'texte : voix humaine',
+      `publication ${p.id} (${p.format_slug}, ${p.date_prevue}) : phrase de ton et emojis mesurés`,
+    );
+    faits++;
+  }
+  return faits;
+}
+
+/**
+ * Veolt publie sur les réseaux le mardi, le mercredi et le jeudi, l'article
+ * de blog le lundi (décision de Jonathan, le 25/11/2026 ; même répartition
+ * que `SEMAINE_TYPE`). **Une seule fois** : la
+ * ligne de journal « calendrier : mardi-mercredi-jeudi » sert de marque, pour
+ * qu'un post déplacé à la main plus tard ne soit jamais ramené au démarrage
+ * suivant. Seule la date bouge (et l'heure, si aucune n'était posée) ; texte et
+ * statut restent. Chaque post garde sa semaine. Un post publié ou abandonné,
+ * ou daté avant aujourd'hui dans une semaine passée, ne bouge pas.
+ *
+ * Dans une semaine : un seul post par réseau et par jour. Mardi : texte +
+ * image, Reel, article ; mercredi : carrousels (LinkedIn vers 16 h) ; jeudi :
+ * second texte + image, TikTok. Un créneau déjà passé cède la place au
+ * premier jour permis à venir de la même semaine.
+ */
+function recalerMardiJeudiVeolt(d: Base): number {
+  const MARQUE = 'calendrier : lundi blog, mardi-mercredi-jeudi réseaux';
+  if (d.prepare("SELECT 1 FROM journal WHERE entite='veolt' AND action=?").get(MARQUE)) return 0;
+  const auj = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const posts = d
+    .prepare("SELECT id, date_prevue, format_slug, pilier, heure_prevue FROM publications WHERE entite='veolt' AND statut NOT IN ('publie','abandonne') ORDER BY date_prevue, id")
+    .all() as Array<{ id: number; date_prevue: string; format_slug: string; pilier: string; heure_prevue: string | null }>;
+  const reseau = (f: string) => (f.startsWith('li-') ? 'linkedin' : f.startsWith('ig-') ? 'instagram' : f.startsWith('tiktok') ? 'tiktok' : f.startsWith('blog') ? 'blog' : f.startsWith('reddit') ? 'reddit' : f);
+  const HEURE: Record<string, string> = { linkedin: '16:00', instagram: '18:00', tiktok: '19:00', blog: '09:00', reddit: '17:00' };
+  const jourIso = (s: string) => new Date(`${s}T12:00:00Z`);
+  const ajouter = (s: string, n: number) => {
+    const x = jourIso(s);
+    x.setUTCDate(x.getUTCDate() + n);
+    return x.toISOString().slice(0, 10);
+  };
+  const lundi = (s: string) => ajouter(s, -((jourIso(s).getUTCDay() + 6) % 7));
+  const semaines = new Map<string, typeof posts>();
+  for (const p of posts) {
+    const l = lundi(p.date_prevue);
+    if (ajouter(l, 3) < auj) continue; // semaine passée (son jeudi est avant aujourd'hui)
+    semaines.set(l, [...(semaines.get(l) ?? []), p]);
+  }
+  const occupe = d.prepare("SELECT 1 FROM publications WHERE entite='veolt' AND date_prevue=? AND format_slug=? AND pilier=? AND id<>?");
+  let faits = 0;
+  for (const [l, liste] of semaines) {
+    const pris = new Set<string>(); // « date|réseau »
+    let texteImage = 0;
+    const cibles = liste.map((p) => {
+      let j = 3;
+      if (p.format_slug === 'li-texte-image') j = [2, 4, 3][Math.min(texteImage++, 2)];
+      else if (p.format_slug === 'blog-article') j = 1;
+      else if (p.format_slug === 'ig-reel' || p.format_slug === 'ig-image') j = 2;
+      else if (p.format_slug === 'tiktok-video' || p.format_slug === 'ig-video' || p.format_slug === 'reddit-texte') j = 4;
+      return { p, j };
+    });
+    // Les créneaux les plus contraints d'abord (LinkedIn), et parmi eux le post
+    // le plus fort (carrousel, vidéo) : dans une semaine déjà entamée, c'est lui
+    // qui garde le dernier jour libre.
+    const fort = (f: string) => Number(f === 'li-carrousel' || f === 'li-video');
+    cibles.sort(
+      (a, b) =>
+        Number(reseau(b.p.format_slug) === 'linkedin') - Number(reseau(a.p.format_slug) === 'linkedin') ||
+        fort(b.p.format_slug) - fort(a.p.format_slug) ||
+        a.j - b.j,
+    );
+    for (const { p, j } of cibles) {
+      const r = reseau(p.format_slug);
+      // L'article de blog se pose le lundi (à défaut, le premier jour permis à venir).
+      const essais = [j, ...[2, 3, 4].filter((x) => x !== j)].map((x) => ajouter(l, x - 1)).filter((x) => x >= auj);
+      const date = essais.find((x) => (r === 'blog' || !pris.has(`${x}|${r}`)) && !occupe.get(x, p.format_slug, p.pilier, p.id));
+      if (!date) {
+        d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+          'veolt',
+          'calendrier : à replacer',
+          `publication ${p.id} (${p.format_slug}, ${p.date_prevue}) : pas de mardi-jeudi libre cette semaine, laissée à sa date — à déplacer à la main`,
+        );
+        continue;
+      }
+      pris.add(`${date}|${r}`);
+      const heure = p.heure_prevue || HEURE[r] || null;
+      if (date !== p.date_prevue || heure !== p.heure_prevue) {
+        d.prepare("UPDATE publications SET date_prevue=?, heure_prevue=?, maj_le=datetime('now') WHERE id=?").run(date, heure, p.id);
+        d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run(
+          'veolt',
+          'post déplacé',
+          `publication ${p.id} (${p.format_slug}) : ${p.date_prevue} → ${date}${heure ? ` à ${heure}` : ''} (lundi blog, mardi-jeudi réseaux)`,
+        );
+        faits++;
+      }
+    }
+  }
+  d.prepare('INSERT INTO journal (entite, action, detail) VALUES (?, ?, ?)').run('veolt', MARQUE, `${faits} post(s) recalé(s) : articles le lundi, réseaux le mardi, le mercredi et le jeudi`);
+  return faits + 1;
 }
 
 export function tracer(action: string, detail?: string, entite?: string) {

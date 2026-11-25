@@ -8,6 +8,7 @@ import { format } from '@/lib/formats';
 import { Medias } from '@/components/Medias';
 import { Sons } from '@/components/Sons';
 import { remettreVisuelsAuLogo, importerIllustrations } from '@/app/actions';
+import { ImporterPack } from '@/components/ImporterPack';
 import { etatPack } from '@/lib/illustrations-serveur';
 import { CHARTE_PROMPT_VEOLT } from '@/lib/illustrations';
 
@@ -77,12 +78,15 @@ export default async function Visuels({
             pages qu&apos;elles illustrent, et en plans dans les vidéos. Aucune lettre dans l&apos;image (le texte reste
             posé par la machine), aucun client, aucune donnée lisible. Chaque image garde ici sa source et son prompt.
             <div className="rang" style={{ marginTop: 10, gap: 10, alignItems: 'center' }}>
-              <form action={importerIllustrations}>
-                <input type="hidden" name="entite" value="veolt" />
-                <button type="submit" disabled={!manquantes}>
-                  {manquantes ? `Importer les ${manquantes} illustration(s) manquante(s)` : 'Pack importé, à jour'}
-                </button>
-              </form>
+              <ImporterPack entite="veolt" items={pack.filter((x) => !x.aJour).map((x) => ({ nom: x.image.nom, source: x.source }))} />
+              {manquantes ? (
+                <form action={importerIllustrations}>
+                  <input type="hidden" name="entite" value="veolt" />
+                  <button type="submit" className="fantome" title="Téléchargement par le serveur : seulement s'il atteint le CDN de Higgsfield">
+                    Par le serveur
+                  </button>
+                </form>
+              ) : null}
               <span className="aide" style={{ marginTop: 0 }}>
                 {pack.length - manquantes} / {pack.length} dans la médiathèque. Ensuite : « Remettre les visuels au logo »
                 refait les visuels concernés.

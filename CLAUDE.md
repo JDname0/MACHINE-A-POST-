@@ -491,3 +491,26 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
 - **La mention ne s'enlève pas** (« Illustration IA », « Concept Veolt · mise en
   situation IA ») : une image ne passe jamais pour un travail client (règle 2).
 - **1337 est exclu** (Tonic, Focus, Gélule, Film de marque, showreel) : client.
+
+## Calendrier, voix et import par le navigateur (25/11/2026, soir)
+
+- **Jours de publication Veolt** : article de blog le **lundi**, réseaux le
+  **mardi, mercredi, jeudi** (un seul post LinkedIn par jour, carrousel le
+  mercredi vers 16 h ; Sprout Social et Buffer 2026). `SEMAINE_TYPE` suit ;
+  `recalerMardiJeudiVeolt` (`db.ts`) a recalé les posts à venir **une seule
+  fois** (marque au journal « calendrier : lundi blog, mardi-mercredi-jeudi
+  réseaux ») : un post déplacé à la main ensuite n'est jamais ramené. Heures
+  posées seulement si vides (LinkedIn 16:00, Instagram 18:00, TikTok 19:00,
+  blog 09:00). Un post qui ne trouve pas de jour libre dans une semaine déjà
+  entamée reste à sa date, tracé « calendrier : à replacer ».
+- **Voix humaine** (`voixVeolt`, `gabarits.ts`) : une phrase de ton par pilier
+  (une posture, jamais un fait), l'emoji du pilier devant l'enseignement, 👉
+  devant l'appel, 👇 en fin d'accroche de carrousel. Jamais en ouverture
+  (garde-fou 9), jamais dans les images (`questionDuPost` retire l'emoji).
+  Blog et Reddit : texte nu. `poserVoixVeolt` (`db.ts`) l'a posée sur les
+  brouillons non retouchés. Chaîne des migrations de texte : `fabriquer(…,
+  { sansPagesEcrites, sansPageFinale, sansVoix })`.
+- **Import des illustrations par le navigateur** (`ImporterPack.tsx` →
+  `deposerIllustration`) : le serveur o2switch n'atteint pas le CDN de
+  Higgsfield (constaté le 25/11), le navigateur si. L'import serveur reste en
+  bouton secondaire, et s'arrête après deux échecs réseau.
