@@ -112,8 +112,11 @@ o2switch. La branche `hebergement/o2switch` a été fusionnée dans `main` le
 (`FAIR_USE_LIMITS_EXCEEDED`, dépassement du transfert « Fast Origin Transfer »,
 surtout les médias servis par la fonction). Réouverture automatique prévue le
 **20/12/2026**, avec la base Blob du 19/11, donc **périmée** par rapport à
-o2switch. Tant que le dépôt reste relié au projet Vercel, un push sur `main`
-y déclenche encore un déploiement. Ce qui suit décrit ce mode Vercel, toujours
+o2switch. **Projet Vercel mis en pause le 25/11/2026** à la demande de
+Jonathan (rien supprimé ; « unpause » dans les réglages du projet pour le
+rallumer) : l'ancienne adresse ne se rallumera pas seule le 20/12. Tant que le
+dépôt reste relié au projet Vercel, un push sur `main` y déclenche encore un
+déploiement. Ce qui suit décrit ce mode Vercel, toujours
 pris en charge par le code (sans `MAP_STOCKAGE`).
 
 - **URL** : https://machine-a-post.vercel.app — équipe `jonathandubost-heticnets-projects`.
