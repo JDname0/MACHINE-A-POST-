@@ -20,7 +20,7 @@
  * (`memoire.ts`). La changer fait refaire les visuels Veolt au prochain passage
  * (« Remettre les visuels au logo », lots de la semaine) ; MagistrIA n'est pas touché.
  */
-export const VERSION_CHARTE_VEOLT = 'logo-v-2026-11-25';
+export const VERSION_CHARTE_VEOLT = 'logo-v-png-2026-11-25';
 
 /** Les deux branches, en points [x, y] de la boîte 1000 × 1000. */
 export const V_GAUCHE: ReadonlyArray<readonly [number, number]> = [
