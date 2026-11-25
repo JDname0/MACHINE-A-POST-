@@ -56,6 +56,25 @@ if [ -n "$DOUBLONS" ]; then
   exit 1
 fi
 
+# Le build ouvre la base locale avec better-sqlite3 (Next importe les routes
+# pour « Collecting page data »). Son module natif doit correspondre au Node
+# qui lance le build : relevé le 25/11/2026, module compilé pour Node 20
+# (NODE_MODULE_VERSION 115) alors que le build tournait sous Node 22 (127).
+# Ce module ne part pas sur le serveur (node:sqlite y sert) ; il ne compte
+# que pour le build sur le Mac.
+essai_sqlite() { node -e "new (require('better-sqlite3'))(':memory:').close()" >/dev/null 2>&1; }
+echo "▸ Module SQLite du Mac adapté à Node $(node -v) ?"
+if ! essai_sqlite; then
+  echo "  ↻ compilé pour un autre Node : npm rebuild better-sqlite3"
+  npm rebuild better-sqlite3
+  if ! essai_sqlite; then
+    echo "✖ better-sqlite3 ne se charge toujours pas avec Node $(node -v)." >&2
+    echo "  Réinstaller les dépendances avec ce Node : npm ci, puis relancer ce script." >&2
+    exit 1
+  fi
+fi
+echo "  ✓ better-sqlite3 se charge"
+
 echo "▸ Build standalone"
 rm -rf .next "$DIST"
 MAP_BUILD_STANDALONE=1 npm run build
