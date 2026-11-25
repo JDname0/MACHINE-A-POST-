@@ -64,6 +64,12 @@ export interface ScriptVideo {
   cadre?: '9:16' | '4:5';
   /** Démonstration d'un cas d'utilisation réel du produit ou du service. */
   casUsage?: boolean;
+  /**
+   * Banque d'images du script (noms du registre `illustrations.ts`) : posées, dans
+   * l'ordre, sur les plans qui n'ont ni scène, ni clip, ni illustration — pour
+   * qu'aucun plan ne reste en texte seul (consignes du studio).
+   */
+  banque?: string[];
 }
 
 export const VIDEOS: ScriptVideo[] = [
@@ -384,6 +390,7 @@ export const VIDEOS: ScriptVideo[] = [
   // tels. Aucun client, aucun résultat, aucun témoignage.
   {
     ref: 'vid-v-cu-1',
+    banque: ['illu-dossier-loupe-reel', 'illu-previsionnel-banquier', 'illu-bp-deja-vendu', 'illu-bp-scenario', 'illu-bfr-reservoir-reel', 'illu-plan-action'],
     titre: 'Cas type : du projet au rendez-vous bancaire',
     entite: 'veolt',
     formatSlug: 'ig-video',
@@ -473,6 +480,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-cu-2',
+    banque: ['illu-photo-ou-3d-reel', 'illu-studio-et-poste-3d-reel', 'illu-un-modele-dix-coloris-reel', 'illu-courbe-cinq', 'illu-casque-en-situation', 'illu-flacon-publicite'],
     titre: 'Cas type : une référence produit, quatorze visuels',
     entite: 'veolt',
     formatSlug: 'ig-video',
@@ -925,6 +933,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-v2-1',
+    banque: ['illu-espace-client', 'illu-site-en-main', 'illu-fonctions-site', 'illu-accueil-apres', 'illu-devis-coche'],
     titre: 'Vos clients voient votre site. Vous, vous voyez leurs demandes.',
     entite: 'veolt',
     formatSlug: 'ig-video',
@@ -1024,6 +1033,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-v2-2',
+    banque: ['illu-an-zoning', 'illu-textes-titres', 'illu-an-developpement', 'illu-site-en-main', 'illu-accueil-apres'],
     titre: 'Le site d’un artisan, de A à Z',
     entite: 'veolt',
     formatSlug: 'ig-video',
@@ -1246,6 +1256,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-v3-1',
+    banque: ['illu-trois-metiers-reel', 'illu-ordre-travail', 'illu-video-en-dernier', 'illu-previsionnel-banquier', 'illu-an-developpement'],
     titre: 'Trois métiers, une équipe',
     entite: 'veolt',
     formatSlug: 'ig-reel',

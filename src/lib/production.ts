@@ -268,6 +268,16 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
     }
   }
 
+  // La banque d'images du script : sur les plans encore en texte seul, ouverture comprise.
+  if (script?.banque?.length) {
+    const banque = script.banque.map((n) => illustrationParNom(p.entite, n)).filter((m): m is NonNullable<typeof m> => !!m);
+    for (let i = 0; i < plans.length - 1 && banque.length; i++) {
+      const x = plans[i];
+      if (x.source.type !== 'carte' || x.clip || x.illustration || (x.scene && x.scene.type !== 'titre') || !x.texte.trim()) continue;
+      plans[i] = { ...x, source: { type: 'media', id: banque.shift()!.id } };
+    }
+  }
+
   const cadre = cadreVideo(p.format_slug, script?.cadre);
   // La carte au cadre de la vidéo : rognée, une carte 9:16 dans une vidéo 4:5
   // perdrait l'en-tête et le pied de marque, et le texte toucherait le bord.
