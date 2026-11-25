@@ -36,6 +36,19 @@ case "$O2_APP" in */*|.*) echo "✖ O2_APP doit être un simple nom de dossier s
 
 O2_NODE="${O2_NODE:-nodevenv/$O2_APP/$NODE_MAJEUR/bin/node}"
 
+# Node et npm doivent être ceux du terminal : relevé le 25/11/2026, script
+# lancé sous l'environnement conda « base » (sans Node) → « node: command not
+# found » au milieu du script. On le dit d'emblée, avant de toucher à quoi que ce soit.
+if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+  echo "✖ node ou npm introuvable dans ce terminal : rien n'a été fait." >&2
+  echo "  Activer Node $NODE_MAJEUR (sur ce Mac : conda activate node$NODE_MAJEUR), puis relancer ce script." >&2
+  exit 1
+fi
+NODE_ICI="$(node -p 'process.versions.node.split(".")[0]')"
+if [ "$NODE_ICI" != "$NODE_MAJEUR" ]; then
+  echo "! Node $(node -v) dans ce terminal, Node $NODE_MAJEUR sur le serveur : le build se fera quand même." >&2
+fi
+
 RACINE="$(cd "$(dirname "$0")/../.." && pwd)"
 DIST="$RACINE/.deploiement-o2switch"
 cd "$RACINE"
