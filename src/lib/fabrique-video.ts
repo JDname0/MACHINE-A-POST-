@@ -943,7 +943,16 @@ async function preparerRendu(m: Montage) {
           const w = Math.round(h * (img.naturalWidth / img.naturalHeight));
           return { x: Math.round((L - w) / 2), y: cl.y, w, h };
         })()
-      : cl;
+      : plans[i].entier && vertical && img.naturalWidth > img.naturalHeight
+        ? (() => {
+            // L'image entière, presque bord à bord, centrée entre le logo et le titre.
+            const bord = 28;
+            const w = L - bord * 2;
+            const h = Math.round(w * (img.naturalHeight / img.naturalWidth));
+            const bas = H - 620;
+            return { x: bord, y: Math.round(cl.y + Math.max(0, (bas - cl.y - h) / 2)), w, h };
+          })()
+        : cl;
     const e = 1 - Math.pow(1 - Math.min(1, tl / 0.7), 3);
     const dy = (1 - e) * 70;
     const s = 0.94 + 0.06 * e;
