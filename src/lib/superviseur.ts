@@ -46,7 +46,7 @@ export const PAGES_MAX_CARROUSEL = 8;
 export const PAGES_VISEES_CARROUSEL = 7;
 const VIDEOS = new Set(['ig-reel', 'tiktok-video', 'li-video', 'ig-video']);
 /** Scènes qui montrent un objet (écran, tableur, documents) — pas du texte animé (liste, chiffre, bento). */
-const SCENES_QUI_MONTRENT = new Set(['app', 'analyse', 'tableur', 'documents']);
+const SCENES_QUI_MONTRENT = new Set(['app', 'analyse', 'tableur', 'documents', 'site']);
 
 /** Les pages qui ne sont ni couverture, ni fin, ni « À retenir » : celles qui doivent montrer. */
 function pagesAMontrer(p: LignePublication): Array<{ numero: number; texte: string }> {

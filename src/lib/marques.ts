@@ -140,7 +140,10 @@ export const MARQUES: Record<EntiteSlug, Marque> = {
     ],
     offres: [
       { nom: 'Business plan et analyse financière', prixDepart: 'à partir de 490 € HT', acheteur: 'porteur de projet en recherche de financement' },
-      { nom: 'Sites web et web 3D', prixDepart: 'à partir de 1 490 € HT', acheteur: "dirigeant dont le site freine l'activité" },
+      // Décision de Jonathan, 26/11/2026 : 1 490 € HT est la formule classique ;
+      // le site dès 799 € HT s'adresse aux petits budgets. Tant que veolt.fr
+      // n'affiche pas l'offre à 799 €, ne pas la dire « affichée sur le site ».
+      { nom: 'Sites web et web 3D', prixDepart: 'à partir de 1 490 € HT (formule classique) ; petits budgets : site dès 799 € HT', acheteur: "dirigeant dont le site freine l'activité" },
       { nom: 'Vidéo, pub 3D et motion', prixDepart: 'à partir de 119 € HT', acheteur: 'marque produit, e-commerce, SaaS, agence' },
     ],
     reseaux: { linkedin: 'principal', instagram: 'principal', tiktok: 'secondaire', reddit: 'prudent', blog: 'principal' },
