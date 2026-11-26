@@ -576,6 +576,10 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
   une capture avec `cadrage.zoom > 1` est **animée** (la caméra avance vers le
   bloc utile, sans déborder sur le texte, `fabrique-video.ts`). Script
   `vid-v-pp-2`. Écran de fin Veolt : 3 s au plus (`montage.ts`).
+- **Scènes de texte dessiné sur image** (26/11) : liste, chiffre, comparatif
+  (`SCENES_SUR_IMAGE`, `montage.ts`) reçoivent une image de la `banque` du
+  script, plein cadre sous un voile dense (`fabrique-video.ts`) ; la banque
+  tourne si elle est plus courte que les plans, jamais deux fois de suite.
 - **Superviseur qualité** (`superviseur.ts`, page `/[entite]/qualite`, audit
   JSON `/[entite]/qualite/audit`) : relit tous les posts à venir (pages,
   images manquantes ou non importées, plans texte seul, figures d'article,

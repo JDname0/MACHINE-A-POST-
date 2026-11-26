@@ -16,7 +16,7 @@ import { publications, type LignePublication } from './requetes';
 import { attendu, dureeConseillee } from './conformite-media';
 import { visuelsDuPost } from './fiche';
 import { videosDe } from './videos';
-import { cadreVideo, plansDepuisPost, plansDepuisScript, type PlanMontage } from './montage';
+import { cadreVideo, plansDepuisPost, plansDepuisScript, SCENES_SUR_IMAGE, type PlanMontage } from './montage';
 import { deuxLignes, THEMES } from './visuels';
 import { TYPES_IMAGE, depotDirect, plafondDepotVideo } from './medias';
 import type { Montage, ThemeStudio } from './fabrique-video';
@@ -275,6 +275,19 @@ export function montageParDefaut(p: LignePublication, memoire: ImageMemoire[], s
       const x = plans[i];
       if (x.source.type !== 'carte' || x.clip || x.illustration || (x.scene && x.scene.type !== 'titre') || !x.texte.trim()) continue;
       plans[i] = { ...x, source: { type: 'media', id: banque.shift()!.id } };
+    }
+    // Les scènes de texte dessiné (liste, chiffre, comparatif) : l'image passe
+    // derrière, voilée, pour que le plan montre aussi de quoi il parle. D'abord
+    // les images restantes, puis celles de la banque à tour de rôle.
+    const toutes = script.banque.map((n) => illustrationParNom(p.entite, n)).filter((m): m is NonNullable<typeof m> => !!m);
+    let tour = 0;
+    for (let i = 0; i < plans.length - 1 && toutes.length; i++) {
+      const x = plans[i];
+      if (x.source.type !== 'carte' || x.clip || !x.scene || !SCENES_SUR_IMAGE.has(x.scene.type)) continue;
+      const precedent = i > 0 && plans[i - 1].source.type === 'media' ? (plans[i - 1].source as { id: number }).id : -1;
+      let k = banque.shift() ?? toutes[tour++ % toutes.length];
+      if (k.id === precedent && toutes.length > 1) k = toutes[tour++ % toutes.length];
+      plans[i] = { ...x, source: { type: 'media', id: k.id } };
     }
   }
 

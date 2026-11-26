@@ -70,6 +70,9 @@ export type ElementApp =
   /** Le curseur va sur le bouton, clique : le statut change, une bulle confirme. */
   | { type: 'clic'; avant: string; libelle: string; bouton: string; apres: string; toast?: string };
 
+/** Scènes de texte dessiné qui acceptent une image du sujet derrière elles, voilée. */
+export const SCENES_SUR_IMAGE: ReadonlySet<string> = new Set(['liste', 'chiffre', 'comparatif']);
+
 /**
  * Ce qui se passe dans un plan, au-delà du titre animé. Chaque scène est
  * dessinée et animée dans le navigateur, aux couleurs de la marque — c'est ce

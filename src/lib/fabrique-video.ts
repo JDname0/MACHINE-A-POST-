@@ -19,7 +19,7 @@
 
 import { dessinerV } from './logo-veolt';
 import { cadrer } from './illustrations';
-import type { PlanMontage, Scene } from './montage';
+import { SCENES_SUR_IMAGE, type PlanMontage, type Scene } from './montage';
 import {
   dessinerFond,
   dessinerChapitre,
@@ -1067,6 +1067,18 @@ async function preparerRendu(m: Montage) {
       cx.restore();
     } else if (x.source.type === 'carte') {
       couvrir(cx, img, L, H, 1 + 0.03 * u + punch);
+    } else if (illustre && x.scene && SCENES_SUR_IMAGE.has(x.scene.type)) {
+      // Scène de texte dessiné (liste, chiffre, comparatif) : l'image du sujet
+      // plein cadre, en poussée lente, sous un voile assez dense pour lire.
+      couvrir(cx, img, L, H, 1.04 + 0.07 * u + punch);
+      cx.fillStyle = `${th.fond}B3`;
+      cx.fillRect(0, 0, L, H);
+      const g = cx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, `${th.fond}99`);
+      g.addColorStop(0.35, `${th.fond}00`);
+      g.addColorStop(1, `${th.fond}80`);
+      cx.fillStyle = g;
+      cx.fillRect(0, 0, L, H);
     } else if (illustre) {
       dessinerIllustration(cx, i, img as HTMLImageElement, tl, b - a, punch);
     } else if (genere) {
