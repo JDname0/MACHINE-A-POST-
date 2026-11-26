@@ -174,6 +174,8 @@ export interface PlanMontage {
   illustration?: string;
   /** Cadrage de l'illustration dans son cadre (point d'intérêt, grossissement). */
   cadrage?: Cadrage;
+  /** L'illustration se montre entière, au format de l'image (un écran de logiciel ne se rogne pas). */
+  entier?: boolean;
 }
 
 /** Cadre de sortie par format : 9:16 là où le réseau l'impose, 4:5 ailleurs (le plus haut accepté en fil). */
@@ -206,6 +208,7 @@ export function plansDepuisScript(s: ScriptVideo): PlanMontage[] {
     ...(p.clip ? { clip: p.clip } : {}),
     ...(p.illustration ? { illustration: p.illustration } : {}),
     ...(p.cadrage ? { cadrage: p.cadrage } : {}),
+    ...(s.imagesEntieres && p.illustration && !p.cadrage ? { entier: true } : {}),
   }));
 }
 

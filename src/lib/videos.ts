@@ -70,6 +70,12 @@ export interface ScriptVideo {
    * qu'aucun plan ne reste en texte seul (consignes du studio).
    */
   banque?: string[];
+  /**
+   * Les illustrations se montrent entières, au format de l'image, au lieu de
+   * remplir un cadre presque carré : pour les scripts qui montrent des écrans
+   * (logiciel 3D, interface), que le recadrage coupait sur les côtés.
+   */
+  imagesEntieres?: boolean;
 }
 
 export const VIDEOS: ScriptVideo[] = [
@@ -140,6 +146,7 @@ export const VIDEOS: ScriptVideo[] = [
   },
   {
     ref: 'vid-v-3',
+    imagesEntieres: true,
     sujet: 'v-mt-3',
     titre: 'Sept étapes d’une publicité 3D',
     entite: 'veolt',

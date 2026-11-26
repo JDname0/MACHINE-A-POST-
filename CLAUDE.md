@@ -580,6 +580,10 @@ contenu réel de veolt.fr utilisable ou exclu). L'essentiel :
   (`SCENES_SUR_IMAGE`, `montage.ts`) reçoivent une image de la `banque` du
   script, plein cadre sous un voile dense (`fabrique-video.ts`) ; la banque
   tourne si elle est plus courte que les plans, jamais deux fois de suite.
+- **Images entières** (26/11) : `imagesEntieres: true` sur un script
+  (`vid-v-3`) montre chaque illustration paysage en entier, presque bord à
+  bord (`Plan.entier`, `fabrique-video.ts`) ; un plan qui porte un `cadrage`
+  garde son recadrage. Pour les scripts qui montrent des écrans de logiciel.
 - **Superviseur qualité** (`superviseur.ts`, page `/[entite]/qualite`, audit
   JSON `/[entite]/qualite/audit`) : relit tous les posts à venir (pages,
   images manquantes ou non importées, plans texte seul, figures d'article,
