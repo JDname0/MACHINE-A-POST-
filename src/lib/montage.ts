@@ -71,7 +71,7 @@ export type ElementApp =
   | { type: 'clic'; avant: string; libelle: string; bouton: string; apres: string; toast?: string };
 
 /** Scènes de texte dessiné qui acceptent une image du sujet derrière elles, voilée. */
-export const SCENES_SUR_IMAGE: ReadonlySet<string> = new Set(['liste', 'chiffre', 'comparatif']);
+export const SCENES_SUR_IMAGE: ReadonlySet<string> = new Set(['liste', 'chiffre', 'comparatif', 'recap', 'bento']);
 
 /**
  * Ce qui se passe dans un plan, au-delà du titre animé. Chaque scène est
