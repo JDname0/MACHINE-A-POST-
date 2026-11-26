@@ -900,11 +900,34 @@ export async function marquerPublie(fd: FormData) {
     .prepare("UPDATE publications SET statut='publie', url_publiee=?, publie_le=date('now'), maj_le=datetime('now') WHERE id=? AND entite=?")
     .run(url, id, entite);
   tracer('publication marquée publiée', `publication ${id}`, entite);
+  noterDernierPostReddit(id, entite);
   // Une mutation non poussée vers le Blob est une mutation perdue
   // au prochain démarrage d'instance. Elle ne coûte rien en local.
   await sauvegarder();
   revalidatePath(`/${entite}/publications/${id}`);
   revalidatePath(`/${entite}`);
+  revalidatePath(`/${entite}/comptes`);
+}
+
+/**
+ * Un post Reddit passé « publié » date le dernier post de son sous-forum.
+ *
+ * Le plafond de fréquence (`garde-fous.ts`) lit `sous_forums.dernier_post` :
+ * laissé à la saisie manuelle, un oubli suffisait à ce qu'il ne protège plus
+ * le compte — et un compte grillé est irrécupérable. La date ne recule
+ * jamais : une saisie plus récente faite à la main est gardée.
+ */
+function noterDernierPostReddit(id: number, entite: string) {
+  const p = db()
+    .prepare("SELECT format_slug, sous_forum FROM publications WHERE id=? AND entite=? AND statut='publie'")
+    .get(id, entite) as { format_slug: string; sous_forum: string | null } | undefined;
+  if (!p || p.format_slug !== 'reddit-texte' || !p.sous_forum) return;
+  const maj = db()
+    .prepare("UPDATE sous_forums SET dernier_post=date('now') WHERE nom=? AND (dernier_post IS NULL OR dernier_post < date('now'))")
+    .run(p.sous_forum);
+  if (Number(maj.changes) > 0) {
+    tracer('dernier post Reddit daté', `${p.sous_forum} → aujourd’hui (publication ${id})`, entite);
+  }
 }
 
 /**
@@ -1014,6 +1037,7 @@ export async function publierParApi(fd: FormData) {
   await sauvegarder();
   revalidatePath(fiche);
   revalidatePath(`/${entite}/calendrier`);
+  revalidatePath(`/${entite}/comptes`);
   revalidatePath(`/${entite}`);
   redirect(resultat(issue.code, issue.detail));
 }
@@ -1069,6 +1093,7 @@ async function envoyerParApi(
       .prepare("UPDATE publications SET statut='publie', url_publiee=?, publie_le=date('now'), maj_le=datetime('now') WHERE id=?")
       .run(res.url ?? null, id);
     tracer('publié par API', `publication ${id} → ${res.reseau} ${res.id}${res.avertissement ? ` · ${res.avertissement}` : ''}`, entite);
+    noterDernierPostReddit(id, entite);
     return { code: 'ok', detail: `Publié sur ${res.reseau}${res.url ? ` : ${res.url}` : ''}${res.avertissement ? ` (${res.avertissement})` : ''}` };
   }
   tracer('échec API', `publication ${id} → ${res.reseau} : ${res.raison}`, entite);
